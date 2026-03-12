@@ -2353,6 +2353,7 @@ body.tabs-active .tab-panel.active{max-width:900px;margin:0 auto;padding:12px 12
           <div style="font-size:10px;color:var(--muted);margin-top:3px">Um Apps Script salva o JSON da obra num Google Sheet. Abre do celular e os dados já estão lá.</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+          <span id="gas-sync-badge" style="font-size:10px;font-family:var(--font-mono);color:rgba(255,255,255,.4)">● aguardando</span>
           <button class="btn btn-outline btn-sm" onclick="syncEnviar()" id="btn-sync-enviar" style="display:none">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/></svg> Enviar para nuvem
           </button>
@@ -3954,26 +3955,22 @@ async function autoSyncNow(manual){
 
 // ── Pill de backup no topbar ─────────────────────────────────────────
 function atualizarPill(estado, ts){
-  const pill = document.getElementById('backup-pill');
-  const txt  = document.getElementById('backup-pill-txt');
-  if(!pill) return;
-  pill.style.display = 'flex';
-  // Troca classe de estado — CSS cuida do visual
-  pill.classList.remove('pill-ok','pill-sync','pill-fail');
-  const labels = {
-    ok:       ts || 'ok',
-    syncing:  'sync…',
-    retrying: 'retry…',
-    fail:     'sem bkp',
-  };
-  const cls = (estado === 'ok') ? 'pill-ok' : (estado === 'fail') ? 'pill-fail' : 'pill-sync';
-  pill.classList.add(cls);
-  if(txt) txt.textContent = labels[estado] ?? estado;
+  // Apps Script sync — atualiza só o badge da seção GAS, não o pill principal
+  const badge = document.getElementById('gas-sync-badge');
+  if(badge){
+    const labels = { ok:'● OK', syncing:'● sync…', retrying:'● retry…', fail:'● offline' };
+    badge.textContent = labels[estado] || estado;
+    badge.style.color = (estado==='ok') ? '#6EE7B7' : (estado==='fail'||estado==='retrying') ? '#FCA5A5' : '#FCD34D';
+  }
+  // O pill principal (☁) é controlado exclusivamente pelo Supabase (sbAtualizarIndicador)
 }
 
 function mostrarBannerFalha(){
-  const b = document.getElementById('backup-fail-banner');
-  if(b) b.style.display = 'flex';
+  // Só mostrar banner se Supabase também estiver offline
+  if(_sbOnline === false){
+    const b = document.getElementById('backup-fail-banner');
+    if(b) b.style.display = 'flex';
+  }
 }
 function esconderBannerFalha(){
   const b = document.getElementById('backup-fail-banner');
@@ -11212,6 +11209,14 @@ function selecionarObra(key){
     if(typeof renderCronograma==='function')    try{renderCronograma();}catch(e){}
     if(typeof renderDrawer==='function')        try{renderDrawer();}catch(e){}
     if(typeof renderRoteiro==='function')       try{renderRoteiro();}catch(e){}
+    // Verificar conexão Supabase e atualizar pill
+    setTimeout(function(){
+      sbLoad('__ping__').then(function(){
+        sbAtualizarIndicador('ok');
+      }).catch(function(){
+        // silencioso — sbLoad já chama sbAtualizarIndicador
+      });
+    }, 1500);
     // Abrir guia interativo automaticamente se obra já configurada
     if(typeof guiaAbrir === 'function'){
       setTimeout(function(){
