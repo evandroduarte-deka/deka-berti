@@ -816,6 +816,7 @@ body .os-backup button{border-radius:0}
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid rgba(255,255,255,.1);
+  transition: background .3s;
 }
 .guia-header {
   display: flex; align-items: center; gap: 8px;
@@ -7291,112 +7292,229 @@ function updateVisitaContext(){
 // ───────────────────────────────────────────────
 
 // ═══════════════════════════════════════════════════════════════
-// GUIA INTERATIVO FLUTUANTE
+// GUIA INTERATIVO FLUTUANTE — SIMPLES, PRÁTICO, TOM DE CHEFE
 // ═══════════════════════════════════════════════════════════════
 var guiaStepAtual = 0;
-var guiaSkipped   = [];  // índices pulados
 var guiaFechado   = false;
+var DIAS_ORD = ['seg','ter','qua','qui','sex'];
 
+function guiaDiaAtualIdx(){
+  var d = new Date().getDay();
+  return {1:0,2:1,3:2,4:3,5:4}[d] !== undefined ? {1:0,2:1,3:2,4:3,5:4}[d] : -1;
+}
+
+// ── Apenas alertas REALMENTE importantes (máx 2) ──
+function guiaGetAlertas(){
+  var lista = [];
+  var hoje = guiaDiaAtualIdx();
+
+  // Dia anterior sem nenhum registro (só um alerta, não um por dia)
+  if(hoje > 0){
+    var diaAnterior = DIAS_ORD[hoje - 1];
+    var d = state.diario && state.diario[diaAnterior];
+    var temQualquerCoisa = d && ((d.texto||'').trim().length > 0 ||
+      Object.values(d.presenca||{}).some(function(v){ return v && v !== 'nd'; }));
+    if(!temQualquerCoisa){
+      var nomes = {seg:'segunda',ter:'terça',qua:'quarta',qui:'quinta',sex:'sexta'};
+      lista.push({ msg: '⚠️ Ontem ('+nomes[diaAnterior]+') ficou sem registro. Preencha antes de fechar a semana.', tab:'tab-campo' });
+    }
+  }
+
+  // Pendências urgentes (só se explicitamente marcadas como alta)
+  var nUrgente = (state.pendencias||[]).filter(function(p){
+    return p.status !== 'RESOLVIDA' && (p.urgencia === 'alta' || p.prioridade === 'alta');
+  }).length;
+  if(nUrgente > 0){
+    lista.push({ msg: '🔴 '+nUrgente+' pendência(s) urgente(s) em aberto.', tab:'tab-registro' });
+  }
+
+  return lista.slice(0, 2); // máximo 2 alertas
+}
+
+// ── 5 passos fixos, adaptados ao estado atual ──
 function guiaGetSteps(){
-  var c2 = state.config;
+  var c2   = state.config;
   var srvs = state.servicos || [];
   var eqs  = state.equipes  || [];
-  var hasObra      = !!(c2.obra||'').trim();
-  var hasSrvs      = srvs.length > 0;
-  var hasEquipes   = eqs.length  > 0;
-  var hasApi       = !!getApiKey();
-  var hasImgbb     = !!getImgbbKey();
-  var srvMudou     = srvs.some(function(s){ return s.status_atual !== s.status_anterior || s.pct_atual !== s.pct_anterior; });
-  var hasPresenca  = eqs.some(function(e){ return e.presenca && Object.values(e.presenca).some(function(v){ return v !== 'nd'; }); });
-  var hasFotos     = (state.fotos||[]).length > 0;
-  var hasPend      = (state.pendencias||[]).filter(function(p){ return p.status !== 'RESOLVIDA'; }).length > 0;
-  var hasPag       = (state.pagamentos||[]).length > 0;
-  var hasNarr      = !!((document.getElementById('narrativa-visita')||{value:''}).value||'').trim() || !!(state.narrativa||'').trim();
-  var hasBloco     = !!((document.getElementById('export-atualizacao')||{value:''}).value||'').trim();
-  var hasSyncConf  = !!getGscriptUrl();
-  var nPend        = (state.pendencias||[]).filter(function(p){ return p.status !== 'RESOLVIDA'; }).length;
+  var hoje = guiaDiaAtualIdx();
+  var diaLabel = ['segunda','terça','quarta','quinta','sexta'][hoje] || 'hoje';
+  var nomes = {seg:'segunda',ter:'terça',qua:'quarta',qui:'quinta',sex:'sexta'};
+
+  var hasObra    = !!(c2.obra||'').trim();
+  var hasSrvs    = srvs.length > 0;
+  var hasEquipes = eqs.length > 0;
+  var hasApi     = !!getApiKey();
+
+  // Setup incompleto — mostrar só o que falta
+  if(!hasObra || !hasSrvs || !hasEquipes || !hasApi){
+    var steps = [];
+    if(!hasObra)    steps.push({ titulo:'Configure a obra', dica:'Nome, cliente e semana. Sem isso nada funciona.', feito:false, tab:'tab-config', sec:'sec-config', acao:'Configurar' });
+    if(!hasSrvs)    steps.push({ titulo:'Importe os serviços', dica:'Cole o JSON do orçamento. A obra precisa dos serviços para funcionar.', feito:false, tab:'tab-config', sec:'sec-config', acao:'Importar' });
+    if(!hasEquipes) steps.push({ titulo:'Importe as equipes', dica:'Necessário para registrar presença e vincular responsáveis.', feito:false, tab:'tab-config', sec:'sec-config', acao:'Importar' });
+    if(!hasApi)     steps.push({ titulo:'Configure a IA', dica:'Chave Anthropic necessária para o processamento semanal.', feito:false, tab:'tab-config', sec:'sec-integ', acao:'Configurar' });
+    return steps;
+  }
+
+  // Obra ok — guia operacional com 5 passos
+  var srvMudou = srvs.some(function(s){ return s.status_atual !== s.status_anterior || s.pct_atual !== s.pct_anterior; });
+  var nConcl   = srvs.filter(function(s){ return s.status_atual === 'CONCLUÍDO'; }).length;
+  var nAndam   = srvs.filter(function(s){ return s.status_atual === 'EM ANDAMENTO'; }).length;
+
+  var hasPresenca = false;
+  if(hoje >= 0){
+    var d = state.diario && state.diario[DIAS_ORD[hoje]];
+    hasPresenca = !!(d && Object.values(d.presenca||{}).some(function(v){ return v && v !== 'nd'; }));
+  }
+
+  var hasDiario = false;
+  if(hoje >= 0){
+    var dh = state.diario && state.diario[DIAS_ORD[hoje]];
+    hasDiario = !!(dh && (dh.texto||'').trim().length > 0);
+  }
+  // Fim de semana — checar qualquer dia da semana
+  if(hoje < 0){
+    hasDiario = DIAS_ORD.some(function(d){ var x = state.diario && state.diario[d]; return x && (x.texto||'').trim().length > 0; });
+  }
+
+  var nPend    = (state.pendencias||[]).filter(function(p){ return p.status !== 'RESOLVIDA'; }).length;
+  var hasPag   = (state.pagamentos||[]).length > 0;
+  var hasNarr  = !!(state.narrativa||'').trim();
+  var hasBloco = !!((document.getElementById('export-atualizacao')||{value:''}).value||'').trim();
+  var isSexta  = new Date().getDay() === 5 || hasNarr || hasBloco; // mostrar fechamento na sexta ou se já iniciou
 
   return [
-    // FASE 1 — Antes da visita
-    { fase:'PREPARAÇÃO', titulo:'Configurar a obra', dica:'Preencha nome, cliente, semana e período da obra antes de começar.', feito:hasObra, tab:'tab-config', sec:'sec-config', acao:'Configurar' },
-    { fase:'PREPARAÇÃO', titulo:'Importar serviços', dica: hasSrvs ? srvs.length+' serviços carregados.' : 'Cole o JSON do orçamento para importar os serviços da obra.', feito:hasSrvs, tab:'tab-config', sec:'sec-config', acao:'Importar' },
-    { fase:'PREPARAÇÃO', titulo:'Importar equipes', dica: hasEquipes ? eqs.length+' equipes cadastradas.' : 'Importe as equipes para registrar presença e vincular serviços.', feito:hasEquipes, tab:'tab-config', sec:'sec-config', acao:'Importar' },
-    { fase:'PREPARAÇÃO', titulo:'Configurar API da IA', dica: hasApi ? 'Chave configurada — IA pronta.' : 'Salve sua chave Anthropic para usar o processamento com IA.', feito:hasApi, tab:'tab-config', sec:'sec-integ', acao:'Configurar' },
-    { fase:'PREPARAÇÃO', titulo:'Configurar ImgBB (fotos)', dica: hasImgbb ? 'Fotos serão enviadas para a nuvem automaticamente.' : 'Opcional — evita lotar o armazenamento local do dispositivo.', feito:hasImgbb, tab:'tab-config', sec:'sec-integ', acao:'Configurar', opcional:true },
-
-    // FASE 2 — Na obra
-    { fase:'NA OBRA', titulo:'Consultar painel rápido', dica:'Toque na topbar para ver dados da obra, WhatsApp do cliente, endereço e PIX das equipes.', feito:false, fn:'toggleDrawer()', acao:'Abrir painel', sempreAtivo:true },
-    { fase:'NA OBRA', titulo:'Atualizar serviços', dica: srvMudou ? 'Alterações registradas — bom trabalho!' : 'Ajuste o status e % dos serviços que você observou na visita.', feito:srvMudou, tab:'tab-orcamento', sec:null, acao:'Ver orçamento' },
-    { fase:'NA OBRA', titulo:'Registrar presença das equipes', dica: hasPresenca ? 'Presença registrada.' : 'Marque quem estava presente em cada dia da semana.', feito:hasPresenca, tab:'tab-equipes', sec:'sec-equipes', acao:'Registrar presença' },
-    { fase:'NA OBRA', titulo:'Registrar fotos da visita', dica: hasFotos ? (state.fotos||[]).length+' foto(s) registrada(s).' : 'Fotografe os serviços em andamento para o relatório semanal.', feito:hasFotos, tab:'tab-registro', sec:'sec-fotos', acao:'Adicionar fotos', opcional:true },
-    { fase:'NA OBRA', titulo:'Registrar pendências', dica: hasPend ? nPend+' pendência(s) aberta(s).' : 'Documente problemas, atrasos ou decisões que precisam ser tomadas.', feito:!hasPend && (state.pendencias||[]).length > 0, tab:'tab-registro', sec:'sec-pendencias', acao:'Ver pendências', opcional:true },
-
-    // FASE 3 — Processamento
-    { fase:'PROCESSAMENTO', titulo:'Gravar narrativa da visita', dica: hasNarr ? 'Narrativa registrada — IA pronta para processar.' : 'Descreva o que observou na obra. A IA extrai serviços, pendências e avanços.', feito:hasNarr, tab:'tab-campo', sec:'sec-visita', acao:'Registrar visita' },
-    { fase:'PROCESSAMENTO', titulo:'Registrar pagamentos e NFs', dica: hasPag ? (state.pagamentos||[]).length+' lançamento(s) registrado(s).' : 'Lance os pagamentos e notas fiscais da semana.', feito:hasPag, tab:'tab-financeiro', sec:'sec-pagamentos', acao:'Pagamentos', opcional:true },
-
-    // FASE 4 — Fechamento
-    { fase:'FECHAMENTO', titulo:'Processar semana com IA', dica: hasBloco ? 'Bloco de atualização gerado!' : 'A IA analisa todos os dados e gera a atualização formatada para a planilha.', feito:hasBloco, tab:'tab-fechamento', sec:'sec-export', acao:'Processar IA' },
-    { fase:'FECHAMENTO', titulo:'Sincronizar com a planilha', dica: hasSyncConf ? 'Apps Script configurado. Clique em "Aplicar Direto na Planilha".' : 'Configure o Apps Script ou copie o BLOCO-ATUALIZACAO para colar na planilha.', feito:false, tab:'tab-fechamento', sec:'sec-export', acao:'Fechamento', sempreAtivo:true },
-    { fase:'FECHAMENTO', titulo:'Gerar relatórios e enviar ao cliente', dica:'Relatório semanal, medição formal e dashboard do cliente.', feito:false, tab:'tab-fechamento', sec:'sec-relatorios', acao:'Relatórios', sempreAtivo:true },
-
-    // FASE 5 — Próxima semana
-    { fase:'PRÓXIMA SEMANA', titulo:'Avançar para a próxima semana', dica:'Atualiza o número da semana e as datas do período automaticamente.', feito:false, fn:'avancarSemana()', acao:'Avançar semana', sempreAtivo:true },
-    { fase:'PRÓXIMA SEMANA', titulo:'Revisar pendências abertas', dica: nPend ? nPend+' pendência(s) ainda abertas — revise antes de fechar a semana.' : 'Nenhuma pendência aberta.', feito:nPend===0, tab:'tab-registro', sec:'sec-pendencias', acao:'Ver pendências' }
+    // Passo 1 — Presença
+    {
+      titulo: hasPresenca ? '✓ Presença registrada' : 'Marque a presença de ' + diaLabel,
+      dica:   hasPresenca
+        ? 'Equipes registradas para ' + diaLabel + '.'
+        : 'Quem está na obra hoje? Marque antes de esquecer.',
+      feito: hasPresenca,
+      tab: 'tab-equipes', acao: hasPresenca ? 'Revisar' : 'Marcar agora'
+    },
+    // Passo 2 — Serviços
+    {
+      titulo: srvMudou ? '✓ Serviços atualizados' : 'Atualize o andamento dos serviços',
+      dica:   srvMudou
+        ? nConcl + ' concluído(s) · ' + nAndam + ' em andamento.'
+        : 'Abra o Orçamento e atualize o % de cada serviço que avançou hoje.',
+      feito: srvMudou,
+      tab: 'tab-orcamento', acao: srvMudou ? 'Revisar' : 'Abrir orçamento'
+    },
+    // Passo 3 — Diário
+    {
+      titulo: hasDiario ? '✓ Diário preenchido' : 'Registre o diário de ' + diaLabel,
+      dica:   hasDiario
+        ? 'Relato do dia salvo. A IA usará no fechamento.'
+        : 'O que aconteceu hoje? Problemas, avanços, decisões. 2 minutos agora, 1 hora economizada na sexta.',
+      feito: hasDiario,
+      tab: 'tab-visita', sec: 'sec-diario', acao: hasDiario ? 'Ver diário' : 'Escrever'
+    },
+    // Passo 4 — Pendências ou Pagamentos
+    nPend > 0
+      ? {
+          titulo: nPend + ' pendência(s) em aberto',
+          dica:   'Resolva o que for possível hoje. Pendência acumulada vira atraso.',
+          feito:  false, urgente: true,
+          tab: 'tab-registro', sec: 'sec-pendencias', acao: 'Ver pendências'
+        }
+      : {
+          titulo: hasPag ? '✓ Pagamentos lançados' : 'Algum pagamento hoje?',
+          dica:   hasPag
+            ? (state.pagamentos||[]).length + ' lançamento(s) registrado(s).'
+            : 'Lance NFs e pagamentos assim que acontecerem. Não deixe acumular.',
+          feito:  hasPag, opcional: true,
+          tab: 'tab-pagamentos', acao: hasPag ? 'Ver pagamentos' : 'Lançar'
+        },
+    // Passo 5 — Fechamento (sexta) ou filler
+    isSexta
+      ? {
+          titulo: hasBloco ? '✓ Semana processada pela IA' : 'Processe e feche a semana',
+          dica:   hasBloco
+            ? 'Bloco gerado. Aplique na planilha e envie o relatório ao cliente.'
+            : 'Narrativa + IA + planilha + relatório. Não saia sem fazer isso.',
+          feito:  hasBloco,
+          tab: 'tab-fechamento', acao: hasBloco ? 'Aplicar na planilha' : 'Ir para fechamento'
+        }
+      : {
+          titulo: '📸 Registre fotos da visita',
+          dica:   (state.fotos||[]).length > 0
+            ? (state.fotos||[]).length + ' foto(s) registrada(s). Bom.'
+            : 'Fotos são evidência. No mínimo 3 por visita.',
+          feito:  (state.fotos||[]).length > 0, opcional: true,
+          tab: 'tab-registro', sec: 'sec-fotos', acao: 'Adicionar fotos'
+        }
   ];
 }
 
 function guiaTotalFeitos(){
-  var steps = guiaGetSteps();
-  return steps.filter(function(s){ return s.feito && !s.opcional; }).length;
+  return guiaGetSteps().filter(function(s){ return s.feito && !s.opcional; }).length;
 }
 function guiaTotalObrig(){
-  return guiaGetSteps().filter(function(s){ return !s.opcional && !s.sempreAtivo; }).length;
+  return guiaGetSteps().filter(function(s){ return !s.opcional; }).length;
 }
 
 function guiaRenderStep(){
-  // Guard — elementos podem não existir se guia estiver fechado
   var elNum   = document.getElementById('guia-step-num');
   var elTitle = document.getElementById('guia-step-title');
   var elHint  = document.getElementById('guia-step-hint');
-  var elBtnLbl= document.getElementById('guia-btn-label');
+  var elBtn   = document.getElementById('guia-btn-label');
   var elFill  = document.getElementById('guia-progress-fill');
   var elFase  = document.getElementById('guia-h-fase');
-  var elHTitl = document.getElementById('guia-h-title');
-  if(!elNum || !elTitle || !elHint) return; // DOM não pronto ainda
+  var elHT    = document.getElementById('guia-h-title');
+  var elUrg   = document.getElementById('guia-urg-box');
+  if(!elNum || !elTitle || !elHint) return;
 
-  var steps = guiaGetSteps();
-  var n = steps.length;
+  var steps  = guiaGetSteps();
+  var n      = steps.length;
   var feitos = guiaTotalFeitos();
   var total  = guiaTotalObrig();
   var pct    = total > 0 ? Math.round(feitos / total * 100) : 0;
 
-  // Pular passos já feitos (exceto sempreAtivo)
-  while(guiaStepAtual < n && steps[guiaStepAtual].feito && !steps[guiaStepAtual].sempreAtivo){
+  // Alertas — máximo 2, compactos
+  if(elUrg){
+    var alertas = guiaGetAlertas();
+    if(alertas.length){
+      elUrg.innerHTML = alertas.map(function(a){
+        var clk = a.tab ? ' onclick="switchTab(\'' + a.tab + '\')"' : '';
+        return '<div style="background:#4A1C0A;border-radius:6px;padding:6px 10px;margin-bottom:4px;font-size:11px;color:#FECACA;line-height:1.4;cursor:pointer"' + clk + '>' + a.msg + '</div>';
+      }).join('');
+      elUrg.style.display = 'block';
+    } else {
+      elUrg.style.display = 'none';
+      elUrg.innerHTML = '';
+    }
+  }
+
+  // Avançar para primeiro passo não feito
+  while(guiaStepAtual < n && steps[guiaStepAtual].feito){
     guiaStepAtual++;
   }
+
   if(guiaStepAtual >= n){
-    elNum.textContent   = '🎉 Tudo pronto!';
-    elTitle.textContent = 'Semana concluída';
-    elHint.textContent  = 'Todos os passos foram completados. Ótima semana!';
-    if(elBtnLbl)  elBtnLbl.textContent  = 'Fechar';
-    if(elFill)    elFill.style.width    = '100%';
-    if(elFase)    elFase.textContent    = 'CONCLUÍDO';
-    if(elHTitl)   elHTitl.textContent   = feitos+'/'+total+' · '+pct+'%';
+    elNum.textContent   = '✅ '+feitos+'/'+total;
+    elTitle.textContent = 'Tudo em dia!';
+    elHint.textContent  = 'Todos os pontos da visita foram cobertos. Boa semana.';
+    if(elBtn)  elBtn.textContent  = 'Fechar';
+    if(elFill) elFill.style.width = '100%';
+    if(elFase) elFase.textContent = 'CONCLUÍDO';
+    if(elHT)   elHT.textContent   = feitos+'/'+total+' · 100%';
     var rb = document.getElementById('guia-reabrir-badge');
     if(rb) rb.textContent = feitos+'/'+total;
     return;
   }
 
-  var s = steps[guiaStepAtual];
-  var idx1 = guiaStepAtual + 1;
-  elNum.textContent   = 'Passo '+idx1+' / '+n + (s.opcional ? ' — opcional' : '');
+  var s    = steps[guiaStepAtual];
+  var card = document.getElementById('guia-card-inner');
+
+  elNum.textContent   = (guiaStepAtual+1)+' / '+n + (s.opcional ? '  —  opcional' : '');
   elTitle.textContent = s.titulo;
   elHint.textContent  = s.dica;
-  if(elBtnLbl)  elBtnLbl.textContent  = s.acao || 'Ir';
-  if(elFase)    elFase.textContent    = s.fase || '';
-  if(elHTitl)   elHTitl.textContent   = feitos+'/'+total+' · '+pct+'%';
-  if(elFill)    elFill.style.width    = pct + '%';
+  if(elBtn)  elBtn.textContent  = s.acao || 'Ir';
+  if(elFase) elFase.textContent = s.urgente ? '🔴 ATENÇÃO' : (pct === 100 ? 'CONCLUÍDO' : 'PRÓXIMO PASSO');
+  if(elHT)   elHT.textContent   = feitos+'/'+total+' feitos';
+  if(elFill) elFill.style.width = pct + '%';
+  if(card)   card.style.background = s.urgente ? '#3D1010' : '';
 
   var rb = document.getElementById('guia-reabrir-badge');
   if(rb) rb.textContent = feitos+'/'+total;
@@ -7404,53 +7522,34 @@ function guiaRenderStep(){
 
 function guiaAbrir(){
   guiaFechado = false;
-  var steps = guiaGetSteps();
   guiaStepAtual = 0;
-  while(guiaStepAtual < steps.length && steps[guiaStepAtual].feito && !steps[guiaStepAtual].sempreAtivo){
-    guiaStepAtual++;
-  }
   var el = document.getElementById('guia-flutuante');
   var rb = document.getElementById('guia-reabrir');
-  if(!el){ return; } // DOM ainda não pronto
+  if(!el) return;
   el.classList.remove('hidden');
   if(rb) rb.style.display = 'none';
-  // Render após DOM visível
-  requestAnimationFrame(function(){
-    guiaRenderStep();
-  });
+  requestAnimationFrame(guiaRenderStep);
 }
 
 function guiaFechar(){
   guiaFechado = true;
   var el = document.getElementById('guia-flutuante');
-  var rb = document.getElementById('guia-reabrir');
   if(el) el.classList.add('hidden');
-  // Mostrar botão reabrir
+  var rb = document.getElementById('guia-reabrir');
   if(rb){
     rb.style.display = 'flex';
-    var feitos = guiaTotalFeitos();
-    var total  = guiaTotalObrig();
-    var badge  = document.getElementById('guia-reabrir-badge');
-    if(badge) badge.textContent = feitos+'/'+total;
+    var b = document.getElementById('guia-reabrir-badge');
+    if(b) b.textContent = guiaTotalFeitos()+'/'+guiaTotalObrig();
   }
 }
 
 function guiaToggleMin(){
-  var wrap = document.getElementById('guia-body-wrap');
-  if(!wrap) return;
-  wrap.style.display = wrap.style.display === 'none' ? '' : 'none';
+  var w = document.getElementById('guia-body-wrap');
+  if(w) w.style.display = w.style.display === 'none' ? '' : 'none';
 }
 
 function guiaPular(){
-  var steps = guiaGetSteps();
-  guiaSkipped.push(guiaStepAtual);
-  guiaStepAtual++;
-  while(guiaStepAtual < steps.length && steps[guiaStepAtual].feito && !steps[guiaStepAtual].sempreAtivo){
-    guiaStepAtual++;
-  }
-  if(guiaStepAtual >= steps.length){
-    guiaFechar(); return;
-  }
+  guiaStepAtual = Math.min(guiaStepAtual + 1, guiaGetSteps().length);
   guiaRenderStep();
 }
 
@@ -7458,38 +7557,24 @@ function guiaIr(){
   var steps = guiaGetSteps();
   if(guiaStepAtual >= steps.length){ guiaFechar(); return; }
   var s = steps[guiaStepAtual];
-
-  // Navegar
-  if(s.fn){
-    try{ eval(s.fn); }catch(e){}
-  } else if(s.tab){
+  if(s.fn){ try{ eval(s.fn); }catch(e){} }
+  else if(s.tab){
     switchTab(s.tab);
-    if(s.sec){ setTimeout(function(){ scrollToSec(s.sec); }, 180); }
+    if(s.sec) setTimeout(function(){ scrollToSec(s.sec); }, 200);
   }
-
-  // Avançar
   guiaStepAtual++;
-  while(guiaStepAtual < steps.length && steps[guiaStepAtual].feito && !steps[guiaStepAtual].sempreAtivo){
-    guiaStepAtual++;
-  }
-  if(guiaStepAtual >= steps.length){
-    guiaRenderStep(); return;
-  }
   guiaRenderStep();
 }
 
 function guiaAtualizar(){
   if(!guiaFechado){
     var el = document.getElementById('guia-flutuante');
-    if(el && !el.classList.contains('hidden')){
-      guiaRenderStep();
-    }
+    if(el && !el.classList.contains('hidden')) guiaRenderStep();
   }
   var rb = document.getElementById('guia-reabrir-badge');
   if(rb) rb.textContent = guiaTotalFeitos()+'/'+guiaTotalObrig();
-  // Atualizar roteiro de fundo também
-  if(typeof renderRoteiro === 'function') try{ renderRoteiro(); }catch(e){}
 }
+
 
 // ROTEIRO DE VISITA (dashboard do gestor)
 // ───────────────────────────────────────────────
@@ -9711,38 +9796,6 @@ ${cabHeader}
   <div class="rdp-r">${today()} · Semana ${semana}</div>
 </div>
 </div>
-<!-- ═══ GUIA INTERATIVO FLUTUANTE ═══ -->
-<div id="guia-flutuante" class="hidden">
-  <div class="guia-card">
-    <div class="guia-header" onclick="guiaToggleMin()">
-      <div class="guia-header-icon">🗺</div>
-      <div class="guia-header-title" id="guia-h-title">Guia de Visita</div>
-      <div class="guia-header-fase" id="guia-h-fase">PREPARAÇÃO</div>
-      <button class="guia-header-close" onclick="event.stopPropagation();guiaFechar()" title="Fechar guia">✕</button>
-    </div>
-    <div id="guia-body-wrap">
-      <div class="guia-body">
-        <div class="guia-step-num" id="guia-step-num">Passo 1 / 13</div>
-        <div class="guia-step-title" id="guia-step-title">—</div>
-        <div class="guia-step-hint" id="guia-step-hint">—</div>
-        <div class="guia-btns">
-          <button class="guia-btn-skip" onclick="guiaPular()">Pular</button>
-          <button class="guia-btn-ir" onclick="guiaIr()">Ir → <span id="guia-btn-label">Configurar</span></button>
-        </div>
-      </div>
-    </div>
-    <div class="guia-progress-bar">
-      <div class="guia-progress-fill" id="guia-progress-fill" style="width:0%"></div>
-    </div>
-  </div>
-</div>
-
-<!-- Botão reabrir -->
-<button id="guia-reabrir" onclick="guiaAbrir()">
-  🗺 Guia de Visita
-  <span class="gr-badge" id="guia-reabrir-badge">0/13</span>
-</button>
-
 </body>`;
 
   abrirModalRel(`Registro Fotográfico — Semana ${semana}`, body);
@@ -15575,5 +15628,36 @@ if(document.readyState === "loading"){
 }
 
 </script>
+<!-- ═══ GUIA INTERATIVO FLUTUANTE ═══ -->
+<div id="guia-flutuante" class="hidden">
+  <div class="guia-card" id="guia-card-inner">
+    <div class="guia-header" onclick="guiaToggleMin()">
+      <div class="guia-header-icon">🗺</div>
+      <div class="guia-header-title" id="guia-h-title">Guia de Visita</div>
+      <div class="guia-header-fase" id="guia-h-fase">PREPARAÇÃO</div>
+      <button class="guia-header-close" onclick="event.stopPropagation();guiaFechar()" title="Fechar">✕</button>
+    </div>
+    <div id="guia-body-wrap">
+      <div id="guia-urg-box" style="display:none;padding:8px 12px 0"></div>
+      <div class="guia-body">
+        <div class="guia-step-num" id="guia-step-num">—</div>
+        <div class="guia-step-title" id="guia-step-title">—</div>
+        <div class="guia-step-hint" id="guia-step-hint">—</div>
+        <div class="guia-btns">
+          <button class="guia-btn-skip" onclick="guiaPular()">Pular</button>
+          <button class="guia-btn-ir" id="guia-btn-ir" onclick="guiaIr()">Ir → <span id="guia-btn-label">Ir</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="guia-progress-bar">
+      <div class="guia-progress-fill" id="guia-progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+</div>
+<button id="guia-reabrir" onclick="guiaAbrir()" style="display:none">
+  🗺 Guia de Visita
+  <span class="gr-badge" id="guia-reabrir-badge">0/13</span>
+</button>
+
 </body>
 </html>
