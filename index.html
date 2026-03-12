@@ -2335,18 +2335,18 @@ body.tabs-active .tab-panel.active{max-width:900px;margin:0 auto;padding:12px 12
         </div>
         <div style="padding:12px 14px">
           <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
-            <input type="text" id="cfg-sync-script" placeholder="Cole aqui a URL do script após implantar…"
+            <input type="text" id="cfg-sync-script-2" placeholder="Cole aqui a URL do script após implantar…"
               style="flex:1;font-size:12px" oninput="salvarSyncScript()">
             <button class="btn btn-primary btn-sm" onclick="testarSync()">Testar</button>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
-            <button class="btn btn-outline btn-sm" onclick="syncEnviar()" id="btn-sync-enviar" style="display:none">
+            <button class="btn btn-outline btn-sm" onclick="syncEnviar()" id="btn-sync-enviar-2" style="display:none">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/></svg> Enviar para nuvem
             </button>
-            <button class="btn btn-outline btn-sm" onclick="syncReceber()" id="btn-sync-receber" style="display:none">
+            <button class="btn btn-outline btn-sm" onclick="syncReceber()" id="btn-sync-receber-2" style="display:none">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> Carregar da nuvem
             </button>
-            <span id="sync-last-time" style="font-size:10px;color:var(--muted);align-self:center;font-family:var(--font-mono)"></span>
+            <span id="sync-last-time-2" style="font-size:10px;color:var(--muted);align-self:center;font-family:var(--font-mono)"></span>
           </div>
           <button onclick="abrirGuiaScript('sync')" style="background:transparent;border:1.5px solid var(--border);border-radius:7px;padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer;color:var(--accent);display:flex;align-items:center;gap:6px;width:100%;justify-content:center">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -11254,7 +11254,14 @@ function ok(obj) {
 `;
 
 function salvarSyncScript(){
-  const url = ((document.getElementById('cfg-sync-script')||{value:''}).value||'').trim();
+  var f1 = ((document.getElementById('cfg-sync-script')||{value:''}).value||'').trim();
+  var f2 = ((document.getElementById('cfg-sync-script-2')||{value:''}).value||'').trim();
+  var url = f1 || f2;
+  // Manter ambos em sync
+  var el1 = document.getElementById('cfg-sync-script');
+  var el2 = document.getElementById('cfg-sync-script-2');
+  if(el1 && url) el1.value = url;
+  if(el2 && url) el2.value = url;
   const badge  = document.getElementById('sync-status-badge');
   const badge2 = document.getElementById('sync-script-badge-2');
   const btnE   = document.getElementById('btn-sync-enviar');
@@ -11283,7 +11290,8 @@ function salvarSyncScript(){
 
 function getSyncScript(){
   return localStorage.getItem('cockpit_sync_script') || 
-         ((document.getElementById('cfg-sync-script')||{value:''}).value||'').trim() || '';
+         ((document.getElementById('cfg-sync-script')||{value:''}).value||'').trim() ||
+         ((document.getElementById('cfg-sync-script-2')||{value:''}).value||'').trim() || '';
 }
 
 async function testarSync(){
@@ -14661,19 +14669,4 @@ function safeInit(){
     console.error('Mestre de Obra init error:', e);
     // Mostrar erro legível no seletor
     var errDiv = document.createElement('div');
-    errDiv.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#7f1d1d;color:#fca5a5;padding:12px 16px;font-family:monospace;font-size:12px;z-index:9999;border-top:2px solid #ef4444';
-    errDiv.textContent = '⚠️ Erro ao iniciar: ' + (e.message || e.toString());
-    document.body.appendChild(errDiv);
-    // Tentar mostrar o seletor de obras mesmo assim
-    try { switchTab('tab-config'); } catch(_){}
-  }
-}
-if(document.readyState === "loading"){
-  document.addEventListener("DOMContentLoaded", safeInit);
-} else {
-  safeInit();
-}
-
-</script>
-</body>
-</html>
+    errDiv.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#7f1d1d;color:#fca5a5;padding:12px 16px;font-family:monospace;font-size:12px;z-in
