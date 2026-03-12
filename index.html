@@ -3385,7 +3385,17 @@ let state = {
 // STATE MIGRATION
 // ───────────────────────────────────────────────
 function migrateState(s){
-  if(!s) return s;
+  if(!s) s = {};
+  // Garantir estrutura mínima antes de qualquer acesso
+  if(!s.config)     s.config     = {};
+  if(!s.servicos)   s.servicos   = [];
+  if(!s.equipes)    s.equipes    = [];
+  if(!s.pagamentos) s.pagamentos = [];
+  if(!s.fotos)      s.fotos      = [];
+  if(!s.pendencias) s.pendencias = [];
+  if(!s.materiais)  s.materiais  = [];
+  if(!s.notas)      s.notas      = '';
+  if(!s.visitas)    s.visitas    = [];
   const v = s._version || 1;
   if(v < 2){
     // v1 → v2: add new config fields, add date fields to servicos, add cloud fields to fotos
