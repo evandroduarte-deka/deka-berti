@@ -139,6 +139,18 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .badge-entregue{background:var(--green-soft);color:#065F46}
 /* ───── SERVIÇOS ───── */
 .srv-filters{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.orc-painel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px}
+.orc-painel-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.orc-kpi{flex:1;min-width:90px;background:var(--bg);border-radius:8px;padding:10px 12px;text-align:center}
+.orc-kpi-val{font-family:var(--font-display);font-size:18px;font-weight:800;color:var(--primary);line-height:1}
+.orc-kpi-lbl{font-size:10px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
+.orc-kpi.verde .orc-kpi-val{color:#16a34a}
+.orc-kpi.gold .orc-kpi-val{color:var(--gold)}
+.orc-kpi.azul .orc-kpi-val{color:var(--info)}
+.orc-progress{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:8px}
+.orc-progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));border-radius:3px;transition:width .6s ease}
+.orc-actions{display:flex;gap:8px;align-items:center}
+.badge-aditivo{display:inline-block;background:#7c3aed;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;letter-spacing:.5px;text-transform:uppercase;margin-left:4px}
 .srv-filter{
   padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);
   font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;
@@ -1872,12 +1884,12 @@ body.tabs-active .tab-panel.active{max-width:900px;margin:0 auto;padding:12px 12
       <span class="tab-icon">⚙️</span>Obra
     </button>
     <button class="tab-btn" onclick="switchTab('tab-campo')" id="tbtn-campo">
-      <span class="tab-icon">📋</span>Campo
+      <span class="tab-icon">📋</span>Visita
       <span class="tab-badge" id="tbadge-campo"></span>
     </button>
-    <button class="tab-btn" onclick="switchTab('tab-servicos')" id="tbtn-servicos">
-      <span class="tab-icon">🔧</span>Serviços
-      <span class="tab-badge" id="tbadge-servicos"></span>
+    <button class="tab-btn" onclick="switchTab('tab-orcamento')" id="tbtn-orcamento">
+      <span class="tab-icon">📊</span>Orçamento
+      <span class="tab-badge" id="tbadge-orcamento"></span>
     </button>
     <button class="tab-btn" onclick="switchTab('tab-equipes')" id="tbtn-equipes">
       <span class="tab-icon">👷</span>Equipes
@@ -2453,6 +2465,73 @@ body.tabs-active .tab-panel.active{max-width:900px;margin:0 auto;padding:12px 12
   </div>
 </div>
 
+
+
+
+</div><!-- /tab-panel -->
+<!-- TAB: TAB-SERVICOS (hidden - edição movida para Orçamento) -->
+<div class="tab-panel" id="tab-servicos" style="display:none!important">
+<!-- ═══ 2 SERVIÇOS ═══ -->
+<div class="sec" id="sec-servicos">
+  <div class="sec-header" onclick="toggleSec('sec-servicos')">
+    <div class="sec-num">2</div>
+    <div class="sec-title">Serviços</div>
+    <div class="sec-subtitle" id="sub-servicos">0 itens</div>
+    <div class="sec-chevron"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+  <div class="sec-body">
+    <!-- PAINEL DE ORÇAMENTO -->
+    
+    <div class="srv-filters">
+      <button class="srv-filter active" onclick="setSrvFilter('todos',this)">Todos</button>
+      <button class="srv-filter" onclick="setSrvFilter('EM ANDAMENTO',this)">Em andamento</button>
+      <button class="srv-filter" onclick="setSrvFilter('A EXECUTAR',this)">A executar</button>
+      <button class="srv-filter" onclick="setSrvFilter('CONCLUÍDO',this)">Concluídos</button>
+      <button class="srv-filter" onclick="setSrvFilter('PAUSADO',this)">Pausados</button>
+      <button class="srv-filter" onclick="setSrvFilter('ADITIVO',this)">Aditivos</button>
+    </div>
+    <div class="srv-search">
+      <input type="text" id="srv-busca" placeholder="Buscar serviço..." oninput="renderServicos()">
+    </div>
+    <div id="servicos-list"><div class="empty"><div class="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></div>Importe os serviços na seção 1 para começar.</div></div>
+  </div>
+</div>
+
+
+</div><!-- /tab-panel -->
+<!-- TAB: TAB-EQUIPES -->
+<!-- TAB: TAB-ORCAMENTO -->
+<div class="tab-panel" id="tab-orcamento">
+<!-- ═══ ORÇAMENTO ═══ -->
+<div class="sec sec-open" id="sec-orcamento">
+  <div class="sec-header" onclick="toggleSec('sec-orcamento')">
+    <div class="sec-num" style="background:var(--gold);font-size:11px">R$</div>
+    <div class="sec-title">Orçamento</div>
+    <div class="sec-subtitle" id="sub-orcamento-painel">Visão financeira da obra</div>
+    <div class="sec-chevron"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+  <div class="sec-body">
+    <div class="orc-painel" id="orc-painel">
+      <div class="orc-painel-row" id="orc-kpis">
+        <div class="orc-kpi"><div class="orc-kpi-val" id="orc-total">—</div><div class="orc-kpi-lbl">Orçamento total</div></div>
+        <div class="orc-kpi verde"><div class="orc-kpi-val" id="orc-executado">—</div><div class="orc-kpi-lbl">Executado</div></div>
+        <div class="orc-kpi gold"><div class="orc-kpi-val" id="orc-aditivos">—</div><div class="orc-kpi-lbl">Aditivos</div></div>
+        <div class="orc-kpi azul"><div class="orc-kpi-val" id="orc-saldo">—</div><div class="orc-kpi-lbl">A executar</div></div>
+      </div>
+      <div class="orc-progress"><div class="orc-progress-bar" id="orc-progress-bar" style="width:0%"></div></div>
+      <div class="orc-actions">
+        <button class="btn btn-sm" style="background:var(--primary);color:#fff;border:none;gap:4px" onclick="abrirModalAditivo()">＋ Novo Aditivo</button>
+        <button class="btn btn-sm" style="background:transparent;border:1.5px solid var(--border);gap:4px" onclick="abrirRelatorioOrcamento()">📄 PDF</button>
+        <button class="btn btn-sm" id="btn-sync-orc" style="background:#065F46;color:#fff;border:none;gap:4px" onclick="syncOrcamentoPlanilha()">⬆ Sync Planilha</button>
+        <span style="font-size:11px;color:var(--muted)" id="orc-aditivos-count"></span>
+      </div>
+    </div>
+
+    <!-- TABELA DETALHADA INLINE -->
+    <div id="orc-tabela-inline" style="margin-top:8px"></div>
+  </div>
+</div>
+
 <!-- ═══ CRONOGRAMA ═══ -->
 <div class="sec" id="sec-cronograma">
   <div class="sec-header" onclick="toggleSec('sec-cronograma')">
@@ -2486,36 +2565,7 @@ body.tabs-active .tab-panel.active{max-width:900px;margin:0 auto;padding:12px 12
   </div>
 </div>
 
-
-</div><!-- /tab-panel -->
-<!-- TAB: TAB-SERVICOS -->
-<div class="tab-panel" id="tab-servicos">
-<!-- ═══ 2 SERVIÇOS ═══ -->
-<div class="sec" id="sec-servicos">
-  <div class="sec-header" onclick="toggleSec('sec-servicos')">
-    <div class="sec-num">2</div>
-    <div class="sec-title">Serviços</div>
-    <div class="sec-subtitle" id="sub-servicos">0 itens</div>
-    <div class="sec-chevron"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></div>
-  </div>
-  <div class="sec-body">
-    <div class="srv-filters">
-      <button class="srv-filter active" onclick="setSrvFilter('todos',this)">Todos</button>
-      <button class="srv-filter" onclick="setSrvFilter('EM ANDAMENTO',this)">Em andamento</button>
-      <button class="srv-filter" onclick="setSrvFilter('A EXECUTAR',this)">A executar</button>
-      <button class="srv-filter" onclick="setSrvFilter('CONCLUÍDO',this)">Concluídos</button>
-      <button class="srv-filter" onclick="setSrvFilter('PAUSADO',this)">Pausados</button>
-    </div>
-    <div class="srv-search">
-      <input type="text" id="srv-busca" placeholder="Buscar serviço..." oninput="renderServicos()">
-    </div>
-    <div id="servicos-list"><div class="empty"><div class="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></div>Importe os serviços na seção 1 para começar.</div></div>
-  </div>
-</div>
-
-
-</div><!-- /tab-panel -->
-<!-- TAB: TAB-EQUIPES -->
+</div><!-- /tab-panel tab-orcamento -->
 <div class="tab-panel" id="tab-equipes">
 <!-- ═══ 3 EQUIPES ═══ -->
 <div class="sec" id="sec-equipes">
@@ -4488,23 +4538,36 @@ function importServicos(){
   let d;
   try { d = JSON.parse(raw); } catch(e){ toast('JSON inválido: ' + e.message, 'error'); return; }
   if(!d.servicos || !Array.isArray(d.servicos)){ toast('JSON sem campo "servicos"', 'error'); return; }
-  state.servicos = d.servicos.map(s=>({
-    cod: s.cod||'',
-    categoria: s.categoria||'',
-    descricao: s.descricao||'',
-    setor: s.setor||'',
-    equipe: s.equipe||'',
-    fornecedor: s.fornecedor||'',
-    valor: parseFloat(s.valor)||0,
-    status_anterior: s.status||'A EXECUTAR',
-    status_atual: s.status||'A EXECUTAR',
-    pct_anterior: parseInt(s.pct)||0,
-    pct_atual: parseInt(s.pct)||0,
-    observacao: '',
-    data_inicio: s.data_inicio||'',
-    data_fim: s.data_fim||'',
-    prazo_dias: parseInt(s.prazo_dias)||0
-  }));
+  state.servicos = d.servicos.map(s=>{
+    // valor_unitario e quantidade da planilha master
+    var qtd  = parseFloat(s.quantidade||s.qtd||1)||1;
+    var vUnit = parseFloat(s.valor_unitario||s.valor_unit||s.preco_unitario||0);
+    var vTot  = parseFloat(s.valor||s.valor_total||0);
+    // Se não veio valor_unit mas veio total e qtd, calcular
+    if(!vUnit && vTot && qtd) vUnit = vTot/qtd;
+    // Se não veio total mas veio unit e qtd, calcular
+    if(!vTot && vUnit && qtd) vTot = vUnit*qtd;
+    return {
+      cod: s.cod||'',
+      categoria: s.categoria||'',
+      descricao: s.descricao||'',
+      unidade: s.unidade||s.un||s.unid||'vb',
+      quantidade: qtd,
+      valor_unitario: vUnit,
+      valor: vTot,
+      setor: s.setor||'',
+      equipe: s.equipe||'',
+      fornecedor: s.fornecedor||'',
+      status_anterior: s.status||'A EXECUTAR',
+      status_atual: s.status||'A EXECUTAR',
+      pct_anterior: parseInt(s.pct)||0,
+      pct_atual: parseInt(s.pct)||0,
+      observacao: s.observacao||'',
+      data_inicio: s.data_inicio||'',
+      data_fim: s.data_fim||'',
+      prazo_dias: parseInt(s.prazo_dias)||0
+    };
+  });
   renderServicos();
   renderCronograma();
   renderDrawer();
@@ -4568,7 +4631,7 @@ function renderServicos(){
   const busca = (getVal('srv-busca')||'').toLowerCase();
   let lista = state.servicos.filter(s=>{
     const match = s.descricao.toLowerCase().includes(busca) || s.cod.toLowerCase().includes(busca) || s.setor.toLowerCase().includes(busca);
-    const filtro = srvFilter==='todos' || s.status_atual===srvFilter;
+    const filtro = srvFilter==='todos' || s.status_atual===srvFilter || (srvFilter==='ADITIVO' && s.is_aditivo);
     return match && filtro;
   });
   const el = document.getElementById('servicos-list');
@@ -4597,10 +4660,11 @@ function renderServicos(){
       const idx = state.servicos.indexOf(s);
       const pctW = s.pct_atual>0 ? Math.min(s.pct_atual,100) : 0;
       html += `
-      <div class="srv-card" id="srvcard-${idx}">
+      <div class="srv-card" id="srvcard-${idx}" style="${s.is_aditivo?'border-left:3px solid #7c3aed':''}">
         <div class="srv-card-header" onclick="toggleCard(${idx})">
           <span class="srv-cod">${esc(s.cod)}</span>
           <span class="srv-desc" title="${esc(s.descricao)}">${esc(s.descricao)}</span>
+          ${s.is_aditivo?`<span class="badge-aditivo">Aditivo</span>`:''}
           ${s.setor?`<span class="srv-setor">${esc(s.setor)}</span>`:''}
           ${s.equipe?`<span class="srv-setor" style="color:var(--muted);font-style:italic" title="${esc(s.equipe)}">${esc(getEqNome(s.equipe))}</span>`:''}
           <span class="badge ${BADGE_SRV[s.status_atual]||'badge-a-executar'}" style="margin-left:4px">${esc(s.status_atual)}</span>
@@ -4618,10 +4682,14 @@ function renderServicos(){
             </div>
             <div class="field">
               <label>Equipe / Fornecedor</label>
-              <select onchange="updateEquipeSrv(${idx},this.value)">
-                <option value="">— sem equipe —</option>
-                ${state.equipes.map(e=>`<option value="${esc(e.cod)}"${s.equipe===e.cod?' selected':''}>${esc(e.cod)} · ${esc(e.nome||e.responsavel)}</option>`).join('')}
-              </select>
+              <div style="display:flex;gap:6px;align-items:center">
+                <select onchange="updateEquipeSrv(${idx},this.value)" style="flex:1">
+                  <option value="">— sem equipe —</option>
+                  ${state.equipes.map(e=>`<option value="${esc(e.cod)}"${s.equipe===e.cod?' selected':''}>${esc(e.cod)} · ${esc(e.nome||e.responsavel)}</option>`).join('')}
+                </select>
+                <button type="button" onclick="promptCriarEquipe()" title="Cadastrar nova equipe" style="background:var(--primary);color:#fff;border:none;border-radius:6px;padding:6px 8px;cursor:pointer;font-size:12px;white-space:nowrap">＋ Equipe</button>
+              </div>
+              ${s.equipe && !state.equipes.find(e=>e.cod===s.equipe) ? `<div style="font-size:11px;color:#b45309;margin-top:4px">⚠️ Equipe "${esc(s.equipe)}" não cadastrada. <button type="button" onclick="promptCriarEquipeCod('${esc(s.equipe)}')" style="background:none;border:none;color:#b45309;text-decoration:underline;cursor:pointer;font-size:11px;padding:0">Cadastrar agora</button></div>` : ''}
             </div>
           </div>
           <div class="pct-row">
@@ -4641,6 +4709,485 @@ function renderServicos(){
   el.innerHTML = html;
   updateSubtitle('sub-servicos', `${state.servicos.length} itens`);
   updatePctBadge();
+  renderOrcPainel();
+}
+
+function renderOrcPainel(){
+  const total   = state.config.valor_contrato || 0;
+  const srvs    = state.servicos || [];
+  const aditivos = srvs.filter(s=>s.is_aditivo);
+  const valAdit  = aditivos.reduce(function(a,s){ return a + (parseFloat(s.valor)||0); }, 0);
+  const executado = srvs.reduce(function(a,s){ return a + (parseFloat(s.valor)||0) * (s.pct_atual||0) / 100; }, 0);
+  const saldo   = srvs.reduce(function(a,s){ return a + (parseFloat(s.valor)||0) * (1 - (s.pct_atual||0)/100); }, 0);
+  const totalComAdit = total + valAdit;
+  const pct = totalComAdit > 0 ? Math.min(executado / totalComAdit * 100, 100) : 0;
+
+  var el = function(id){ return document.getElementById(id); };
+  if(el('orc-total'))     el('orc-total').textContent     = 'R$ ' + fmtNum(totalComAdit);
+  if(el('orc-executado')) el('orc-executado').textContent = 'R$ ' + fmtNum(executado);
+  if(el('orc-aditivos'))  el('orc-aditivos').textContent  = 'R$ ' + fmtNum(valAdit);
+  if(el('orc-saldo'))     el('orc-saldo').textContent     = 'R$ ' + fmtNum(saldo);
+  if(el('orc-progress-bar')) el('orc-progress-bar').style.width = pct.toFixed(1) + '%';
+  if(el('orc-aditivos-count')) el('orc-aditivos-count').textContent = aditivos.length ? aditivos.length + ' aditivo(s) no orçamento' : '';
+  renderOrcTabelaInline();
+}
+
+function renderOrcTabelaInline(){
+  var el = document.getElementById('orc-tabela-inline');
+  if(!el) return;
+  var srvs = state.servicos || [];
+  if(!srvs.length){
+    el.innerHTML = '<div style="text-align:center;padding:28px;color:var(--muted);font-size:13px">Nenhum serviço cadastrado.<br>Importe os serviços na aba <strong>Obra</strong>.</div>';
+    return;
+  }
+
+  var catOrder = ['Preliminares','Demolições','Infraestrutura','Alvenaria','Construções e Regularizações','Impermeabilização','Pintura','Hidráulica','Elétrica','Ar-condicionado','Drywall / Forro','Revestimento','Cobertura','Serralheria','Estruturas Especiais','PPCI / Incêndio','Projetos','Marcenaria','Limpeza','Administração'];
+  var catMap = {};
+  srvs.forEach(function(s){ var cat = s.categoria||'Outros'; if(!catMap[cat]) catMap[cat]=[]; catMap[cat].push(s); });
+  var catKeys = [];
+  catOrder.forEach(function(ct){ if(catMap[ct]) catKeys.push(ct); });
+  Object.keys(catMap).forEach(function(ct){ if(!catKeys.includes(ct)) catKeys.push(ct); });
+
+  var totalGeral = srvs.reduce(function(a,s){ return a+(parseFloat(s.valor)||0); },0);
+  var execGeral  = srvs.reduce(function(a,s){ return a+(parseFloat(s.valor)||0)*(s.pct_atual||0)/100; },0);
+
+  var statusList = ['A EXECUTAR','EM ANDAMENTO','CONCLUÍDO','PAUSADO','AGUARDANDO PROJETO'];
+  var iBase = 'background:transparent;border:none;border-bottom:1.5px solid transparent;font-family:inherit;font-size:inherit;color:inherit;padding:0;outline:none;cursor:text;';
+
+  var wrap = document.createElement('div');
+
+  // ── Toolbar ──
+  var toolbar = document.createElement('div');
+  toolbar.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap';
+  toolbar.innerHTML = '<span style="font-size:11px;color:var(--muted)">✏️ Edite diretamente na tabela</span>';
+  var totalSrvs = srvs.length;
+  var infoSpan = document.createElement('span');
+  infoSpan.style.cssText = 'margin-left:auto;font-size:11px;color:var(--muted);font-family:var(--font-mono)';
+  infoSpan.textContent = totalSrvs + ' serviço' + (totalSrvs!==1?'s':'');
+  toolbar.appendChild(infoSpan);
+  wrap.appendChild(toolbar);
+
+  // ── Scroll wrapper ──
+  var scroller = document.createElement('div');
+  scroller.style.overflowX = 'auto';
+
+  var table = document.createElement('table');
+  table.style.cssText = 'width:100%;border-collapse:collapse;font-size:12px;min-width:780px';
+
+  // ── Cabeçalho ──
+  var thead = table.createTHead();
+  var hr = thead.insertRow();
+  hr.style.cssText = 'background:var(--primary);color:#fff';
+  var cols = [
+    {t:'Cód',    w:'70px',  align:'left'},
+    {t:'Descrição', w:'auto', align:'left'},
+    {t:'Un',     w:'42px',  align:'center'},
+    {t:'Qtde',   w:'52px',  align:'right'},
+    {t:'R$/Un',  w:'80px',  align:'right'},
+    {t:'Total',  w:'88px',  align:'right'},
+    {t:'Status', w:'130px', align:'center'},
+    {t:'Avanço', w:'120px', align:'center'},
+    {t:'Equipe', w:'110px', align:'left'},
+    {t:'Exec.',  w:'80px',  align:'right'},
+    {t:'',       w:'32px',  align:'center'},
+  ];
+  cols.forEach(function(col){
+    var th = document.createElement('th');
+    th.style.cssText = 'padding:8px 8px;font-size:11px;font-weight:700;white-space:nowrap;text-align:'+col.align+';width:'+col.w;
+    th.textContent = col.t;
+    hr.appendChild(th);
+  });
+
+  var tbody = table.createTBody();
+
+  catKeys.forEach(function(cat){
+    var items = catMap[cat];
+    var catTotal = items.reduce(function(a,s){ return a+(parseFloat(s.valor)||0); },0);
+    var catExec  = items.reduce(function(a,s){ return a+(parseFloat(s.valor)||0)*(s.pct_atual||0)/100; },0);
+    var catPct   = catTotal>0 ? Math.round(catExec/catTotal*100) : 0;
+
+    // Linha de categoria
+    var cr = tbody.insertRow();
+    cr.style.cssText = 'background:var(--primary)';
+    var ctd = document.createElement('td');
+    ctd.colSpan = 9;
+    ctd.style.cssText = 'padding:7px 10px;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px';
+    ctd.textContent = cat;
+    cr.appendChild(ctd);
+    var cpct = document.createElement('td');
+    cpct.style.cssText = 'padding:7px 10px;color:var(--gold);text-align:right;font-family:var(--font-mono);font-size:11px;font-weight:700';
+    cpct.textContent = catPct + '%';
+    cr.appendChild(cpct);
+    var ctotal = document.createElement('td');
+    ctotal.style.cssText = 'padding:7px 10px;color:var(--gold);text-align:right;font-family:var(--font-mono);font-size:11px;font-weight:700';
+    ctotal.textContent = 'R$ ' + fmtNum(catTotal);
+    cr.appendChild(ctotal);
+
+    items.forEach(function(s){
+      var idx  = state.servicos.indexOf(s);
+      var pct  = s.pct_atual || 0;
+      var qtd  = parseFloat(s.quantidade)||1;
+      var vUnit= parseFloat(s.valor_unitario)||0;
+      var vTot = parseFloat(s.valor)||0;
+      var exec = vTot * pct / 100;
+      var bgRow = idx%2===0 ? 'var(--surface)' : 'var(--bg)';
+
+      var stColor = s.status_atual==='CONCLUÍDO'?'#065F46':s.status_atual==='EM ANDAMENTO'?'#1D4ED8':s.status_atual==='PAUSADO'?'#92400E':'var(--muted)';
+      var stBg    = s.status_atual==='CONCLUÍDO'?'#D1FAE5':s.status_atual==='EM ANDAMENTO'?'#DBEAFE':s.status_atual==='PAUSADO'?'#FEF3C7':'var(--border)';
+
+      var row = tbody.insertRow();
+      row.id  = 'orcrow-' + idx;
+      row.style.cssText = 'border-bottom:1px solid var(--border);background:'+bgRow;
+      row.onmouseenter = function(){ this.style.background='var(--hover, #f0ede6)'; };
+      row.onmouseleave = function(){ this.style.background=bgRow; };
+
+      function mkInp(opts){
+        var inp = document.createElement('input');
+        inp.type = opts.type||'text';
+        if(opts.min!==undefined) inp.min = opts.min;
+        if(opts.step) inp.step = opts.step;
+        inp.style.cssText = iBase + 'width:100%;text-align:'+(opts.align||'left')+';';
+        if(opts.mono) inp.style.fontFamily = 'var(--font-mono)';
+        if(opts.bold) inp.style.fontWeight = '700';
+        inp.value = opts.value;
+        inp.dataset.idx = idx;
+        inp.dataset.field = opts.field;
+        if(opts.onChange) inp.addEventListener('change', opts.onChange);
+        inp.addEventListener('focus', function(){ this.style.borderBottomColor='var(--primary)'; });
+        inp.addEventListener('blur',  function(){ this.style.borderBottomColor='transparent'; });
+        return inp;
+      }
+
+      // Cód (read-only)
+      var td0 = row.insertCell();
+      td0.style.cssText = 'padding:5px 8px;font-family:var(--font-mono);font-size:10px;color:var(--muted);white-space:nowrap';
+      td0.textContent = s.cod||'';
+      if(s.is_aditivo){ var b=document.createElement('span'); b.style.cssText='display:block;background:#7C3AED;color:#fff;font-size:8px;padding:1px 4px;border-radius:3px;margin-top:2px'; b.textContent='Aditivo'; td0.appendChild(b); }
+
+      // Descrição
+      var td1 = row.insertCell(); td1.style.cssText='padding:4px 8px;min-width:140px';
+      td1.appendChild(mkInp({value:s.descricao||'', field:'descricao', onChange:function(){ orcEditField(+this.dataset.idx,'descricao',this.value); }}));
+
+      // Unidade
+      var td2 = row.insertCell(); td2.style.cssText='padding:4px 6px;text-align:center';
+      td2.appendChild(mkInp({value:s.unidade||s.un||'vb', field:'unidade', align:'center', onChange:function(){ orcEditField(+this.dataset.idx,'unidade',this.value); }}));
+
+      // Qtde
+      var td3 = row.insertCell(); td3.style.cssText='padding:4px 6px;text-align:right';
+      td3.appendChild(mkInp({type:'number',min:0,step:'any',value:qtd, field:'quantidade', align:'right', mono:true,
+        onChange:function(){
+          var i=+this.dataset.idx, q=parseFloat(this.value)||1, vu=parseFloat(state.servicos[i].valor_unitario)||0;
+          state.servicos[i].quantidade=q;
+          if(vu){ state.servicos[i].valor=q*vu; orcSyncValorRow(i); }
+          orcEditField(i,'quantidade',q);
+        }}));
+
+      // R$/Un
+      var td4 = row.insertCell(); td4.style.cssText='padding:4px 8px;text-align:right';
+      var inpVUnit = mkInp({type:'number',min:0,step:1,value:vUnit||'', field:'valor_unitario', align:'right', mono:true, bold:false,
+        onChange:function(){
+          var i=+this.dataset.idx, vu=parseFloat(this.value)||0, q=parseFloat(state.servicos[i].quantidade)||1;
+          state.servicos[i].valor_unitario=vu;
+          state.servicos[i].valor=vu*q;
+          orcSyncValorRow(i);
+          saveState(); renderOrcPainel();
+        }});
+      inpVUnit.placeholder = '—';
+      td4.appendChild(inpVUnit);
+
+      // Total
+      var td5 = row.insertCell(); td5.style.cssText='padding:4px 8px;text-align:right';
+      var inpTot = mkInp({type:'number',min:0,step:100,value:vTot, field:'valor', align:'right', mono:true, bold:true,
+        onChange:function(){
+          var i=+this.dataset.idx, vt=parseFloat(this.value)||0, q=parseFloat(state.servicos[i].quantidade)||1;
+          state.servicos[i].valor=vt;
+          state.servicos[i].valor_unitario=q?vt/q:0;
+          // Atualiza campo R$/Un na mesma linha
+          var row2=document.getElementById('orcrow-'+i);
+          if(row2){ var vui=row2.querySelectorAll('input[type=number]')[2]; if(vui) vui.value=(q?vt/q:0).toFixed(2); }
+          saveState(); renderOrcPainel();
+        }});
+      inpTot.id = 'orc-tot-' + idx;
+      td5.appendChild(inpTot);
+
+      // Status
+      var td6 = row.insertCell(); td6.style.cssText='padding:4px 6px;text-align:center';
+      var sel = document.createElement('select');
+      sel.style.cssText='background:'+stBg+';color:'+stColor+';border:none;border-radius:4px;font-size:9px;font-weight:700;padding:2px 4px;cursor:pointer;max-width:124px';
+      statusList.forEach(function(st){ var o=document.createElement('option'); o.value=st; o.textContent=st; if(s.status_atual===st) o.selected=true; sel.appendChild(o); });
+      sel.dataset.idx = idx;
+      sel.addEventListener('change', function(){ orcEditField(+this.dataset.idx,'status_atual',this.value); });
+      td6.appendChild(sel);
+
+      // Avanço
+      var td7 = row.insertCell(); td7.style.cssText='padding:4px 8px;min-width:110px';
+      var advDiv = document.createElement('div');
+      advDiv.style.cssText='display:flex;align-items:center;gap:4px';
+      var slider = document.createElement('input');
+      slider.type='range'; slider.min=0; slider.max=100; slider.step=5; slider.value=pct;
+      slider.style.cssText='flex:1;cursor:pointer;accent-color:var(--primary);height:4px';
+      slider.dataset.idx=idx;
+      slider.addEventListener('input', function(){ orcEditPct(+this.dataset.idx, this.value); });
+      var numPct = document.createElement('input');
+      numPct.id='orc-pct-'+idx; numPct.type='number'; numPct.min=0; numPct.max=100; numPct.value=pct;
+      numPct.style.cssText='width:34px;font-size:10px;font-family:var(--font-mono);text-align:right;background:transparent;border:none;border-bottom:1px solid var(--border);outline:none;color:var(--muted)';
+      numPct.dataset.idx=idx;
+      numPct.addEventListener('change', function(){ orcEditPct(+this.dataset.idx, this.value); });
+      var pctSpan=document.createElement('span'); pctSpan.style.cssText='font-size:10px;color:var(--muted)'; pctSpan.textContent='%';
+      advDiv.appendChild(slider); advDiv.appendChild(numPct); advDiv.appendChild(pctSpan);
+      td7.appendChild(advDiv);
+
+      // Equipe
+      var td8 = row.insertCell(); td8.style.cssText='padding:4px 8px;min-width:100px';
+      var eqs = state.equipes||[];
+      if(eqs.length){
+        var selEq = document.createElement('select');
+        selEq.style.cssText='background:transparent;border:none;border-bottom:1px solid var(--border);font-size:10px;color:var(--muted);cursor:pointer;max-width:105px;outline:none';
+        var optN=document.createElement('option'); optN.value=''; optN.textContent='— equipe —'; selEq.appendChild(optN);
+        eqs.forEach(function(eq){ var o=document.createElement('option'); o.value=eq.cod||eq.nome; o.textContent=(eq.cod?eq.cod+' ':'')+( eq.nome||eq.responsavel||''); if((s.equipe||'')===(eq.cod||eq.nome)) o.selected=true; selEq.appendChild(o); });
+        selEq.dataset.idx=idx;
+        selEq.addEventListener('change',function(){ orcEditField(+this.dataset.idx,'equipe',this.value); });
+        td8.appendChild(selEq);
+      } else {
+        var inpEq = mkInp({value:s.equipe||'', field:'equipe', onChange:function(){ orcEditField(+this.dataset.idx,'equipe',this.value); }});
+        inpEq.placeholder='EQ-XXX-01';
+        inpEq.style.fontSize='10px';
+        td8.appendChild(inpEq);
+      }
+
+      // Executado (read-only)
+      var td9 = row.insertCell();
+      td9.id='orc-exec-'+idx;
+      td9.style.cssText='padding:5px 8px;text-align:right;font-family:var(--font-mono);font-size:11px;color:'+(pct>0?'#065F46':'var(--muted)');
+      td9.textContent = pct>0 ? 'R$ '+fmtNum(exec) : '—';
+
+      // Ação
+      var td10 = row.insertCell(); td10.style.cssText='padding:4px 4px;text-align:center';
+      if(s.is_aditivo){
+        var btnD=document.createElement('button'); btnD.title='Remover aditivo';
+        btnD.style.cssText='background:none;border:none;cursor:pointer;color:var(--danger);font-size:14px;padding:2px 4px';
+        btnD.textContent='🗑'; btnD.dataset.idx=idx;
+        btnD.addEventListener('click',function(){ orcRemoverAditivo(+this.dataset.idx); });
+        td10.appendChild(btnD);
+      }
+    });
+
+    // Subtotal
+    var str = tbody.insertRow();
+    str.style.cssText='background:var(--border)';
+    var sct=document.createElement('td'); sct.colSpan=9; sct.style.cssText='padding:5px 10px;text-align:right;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px'; sct.textContent='Subtotal '+cat; str.appendChild(sct);
+    var scv=document.createElement('td'); scv.style.cssText='padding:5px 8px;text-align:right;font-family:var(--font-mono);font-size:11px;font-weight:700;color:#065F46'; scv.textContent='R$ '+fmtNum(catExec); str.appendChild(scv);
+    var sct2=document.createElement('td'); sct2.style.cssText='padding:5px 8px;text-align:right;font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--text)'; sct2.textContent='R$ '+fmtNum(catTotal); str.appendChild(sct2);
+  });
+
+  // Total geral
+  var ttr=tbody.insertRow(); ttr.style.background='var(--primary)';
+  var ttd=document.createElement('td'); ttd.colSpan=9; ttd.style.cssText='padding:10px;text-align:right;font-family:var(--font-display);font-size:12px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.5px'; ttd.textContent='TOTAL GERAL'; ttr.appendChild(ttd);
+  var tte=document.createElement('td'); tte.style.cssText='padding:10px;text-align:right;font-family:var(--font-mono);font-size:14px;font-weight:800;color:var(--gold)'; tte.textContent='R$ '+fmtNum(execGeral); ttr.appendChild(tte);
+  var ttv=document.createElement('td'); ttv.style.cssText='padding:10px;text-align:right;font-family:var(--font-mono);font-size:14px;font-weight:800;color:#fff'; ttv.textContent='R$ '+fmtNum(totalGeral); ttr.appendChild(ttv);
+
+  scroller.appendChild(table);
+  wrap.appendChild(scroller);
+  el.innerHTML='';
+  el.appendChild(wrap);
+}
+
+async function syncOrcamentoPlanilha(){
+  const url = getGscriptUrl();
+  if(!url){
+    toast('Configure o Google Apps Script em Obra > Integrações', 'error');
+    return;
+  }
+  const btn = document.getElementById('btn-sync-orc');
+  if(btn){ btn.disabled=true; btn.textContent='⟳ Enviando...'; }
+  const c2 = state.config;
+  const srvs = state.servicos || [];
+  const payload = {
+    orcamento: srvs.map(function(s){
+      var qtd=parseFloat(s.quantidade)||1, vu=parseFloat(s.valor_unitario)||0, vt=parseFloat(s.valor)||0;
+      return {
+        cod:            s.cod||'',
+        categoria:      s.categoria||'',
+        descricao:      s.descricao||'',
+        unidade:        s.unidade||s.un||'vb',
+        quantidade:     qtd,
+        valor_unitario: vu,
+        valor:          vt,
+        equipe_cod:     s.equipe||'',
+        status:         s.status_atual||'A EXECUTAR',
+        pct:            s.pct_atual||0
+      };
+    }),
+    log: {
+      data: today(),
+      hora: new Date().toLocaleTimeString('pt-BR'),
+      aba: 'Orçamento',
+      descricao: 'Sync orçamento — '+srvs.length+' serviços via Cockpit',
+      autor: 'Cockpit'
+    }
+  };
+  try {
+    const resp = await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(payload),
+      redirect:'follow'
+    });
+    let result;
+    try { result = await resp.json(); } catch(e){ result={status:'ok'}; }
+    if(result.status==='partial' && result.errors && result.errors.length){
+      toast('⚠️ Parcial: '+(result.updates||0)+' ok · '+result.errors.join('; '),'error');
+    } else {
+      toast('✅ Orçamento sincronizado! '+(result.updates||0)+' linhas atualizadas.','success');
+    }
+  } catch(e){
+    toast('Erro ao sincronizar: '+e.message,'error');
+  } finally {
+    if(btn){ btn.disabled=false; btn.textContent='⬆ Sync Planilha'; }
+  }
+}
+
+function orcSyncValorRow(idx){
+  var s=state.servicos[idx]; if(!s) return;
+  var el=document.getElementById('orc-tot-'+idx);
+  if(el) el.value=parseFloat(s.valor)||0;
+  var execEl=document.getElementById('orc-exec-'+idx);
+  if(execEl){
+    var ex=(parseFloat(s.valor)||0)*(s.pct_atual||0)/100;
+    execEl.textContent=s.pct_atual>0?'R$ '+fmtNum(ex):'—';
+    execEl.style.color=s.pct_atual>0?'#065F46':'var(--muted)';
+  }
+}
+
+
+function orcEditField(idx, field, val){
+  if(!state.servicos[idx]) return;
+  state.servicos[idx][field] = val;
+  // Sync status↔pct
+  if(field==='status_atual'){
+    if(val==='CONCLUÍDO' && state.servicos[idx].pct_atual < 100) state.servicos[idx].pct_atual = 100;
+    if(val==='A EXECUTAR' && state.servicos[idx].pct_atual > 0) state.servicos[idx].pct_atual = 0;
+  }
+  saveState();
+  renderOrcPainel(); // atualiza KPIs + tabela
+}
+
+function orcEditPct(idx, val){
+  var v = Math.min(100, Math.max(0, parseInt(val)||0));
+  if(!state.servicos[idx]) return;
+  state.servicos[idx].pct_atual = v;
+  if(v >= 100) state.servicos[idx].status_atual = 'CONCLUÍDO';
+  else if(v > 0 && state.servicos[idx].status_atual === 'A EXECUTAR') state.servicos[idx].status_atual = 'EM ANDAMENTO';
+  else if(v === 0) state.servicos[idx].status_atual = 'A EXECUTAR';
+  // Atualizar campo numérico e slider sem re-render total
+  var pctInp = document.getElementById('orc-pct-'+idx);
+  if(pctInp) pctInp.value = v;
+  // Sync slider (procura input[type=range] no mesmo row)
+  var row = document.getElementById('orcrow-'+idx);
+  if(row){ var sl = row.querySelector('input[type=range]'); if(sl) sl.value = v; }
+  var execEl = document.getElementById('orc-exec-'+idx);
+  if(execEl){
+    var exec = (parseFloat(state.servicos[idx].valor)||0)*v/100;
+    execEl.textContent = v>0 ? 'R$ '+fmtNum(exec) : '—';
+    execEl.style.color = v>0 ? '#065F46' : 'var(--muted)';
+  }
+  saveState();
+  renderOrcPainel();
+}
+
+function orcRemoverAditivo(idx){
+  if(!state.servicos[idx] || !state.servicos[idx].is_aditivo) return;
+  var nome = state.servicos[idx].descricao || state.servicos[idx].cod;
+  if(!confirm('Remover aditivo "'+nome+'"?')) return;
+  state.servicos.splice(idx,1);
+  saveState();
+  renderServicos();
+  renderOrcPainel();
+  toast('Aditivo removido','success');
+}
+
+
+function abrirModalAditivo(sugestao){
+  // sugestao = {descricao, categoria, valor} — pré-preenche se vier da IA
+  sugestao = sugestao || {};
+  var proxCod = 'SRV-' + String(state.servicos.length + 1).padStart(3,'0');
+  // Garantir que o código não existe
+  while(state.servicos.find(function(s){ return s.cod === proxCod; })){
+    var n = parseInt(proxCod.split('-')[1]) + 1;
+    proxCod = 'SRV-' + String(n).padStart(3,'0');
+  }
+  var modal = document.createElement('div');
+  modal.id = 'modal-aditivo';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:12px;width:100%;max-width:480px;overflow:hidden">
+      <div style="background:var(--primary);padding:16px 20px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-family:var(--font-display);font-size:14px;font-weight:800;color:#fff">＋ Novo Aditivo</span>
+        <button onclick="document.getElementById('modal-aditivo').remove()" style="background:transparent;border:none;color:rgba(255,255,255,.7);font-size:18px;cursor:pointer">✕</button>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
+        <div class="field"><label>Código</label><input id="adit-cod" type="text" value="${proxCod}" style="font-family:var(--font-mono);font-size:13px"></div>
+        <div class="field"><label>Descrição *</label><input id="adit-desc" type="text" placeholder="Ex: Instalação de ponto extra de elétrica" value="${esc(sugestao.descricao||'')}"></div>
+        <div class="field"><label>Categoria</label>
+          <select id="adit-cat">
+            ${['Preliminares','Demolições','Infraestrutura','Alvenaria','Construções e Regularizações','Impermeabilização','Pintura','Hidráulica','Elétrica','Ar-condicionado','Drywall / Forro','Revestimento','Cobertura','Serralheria','Estruturas Especiais','PPCI / Incêndio','Projetos','Marcenaria','Limpeza','Administração'].map(function(ct){ return '<option value="'+ct+'"'+(ct===(sugestao.categoria||'')?' selected':'')+'>'+ct+'</option>'; }).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Valor (R$)</label><input id="adit-valor" type="number" min="0" step="100" placeholder="0" value="${sugestao.valor||''}"></div>
+        <div class="field"><label>Unidade</label><input id="adit-unid" type="text" placeholder="vb, m², m, un..." value="${sugestao.unidade||'vb'}"></div>
+        <div class="field"><label>Justificativa</label><textarea id="adit-just" rows="2" placeholder="Motivo do aditivo / observações...">${sugestao.justificativa||''}</textarea></div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button onclick="document.getElementById('modal-aditivo').remove()" class="btn btn-outline" style="flex:1">Cancelar</button>
+          <button onclick="confirmarAditivo()" class="btn" style="flex:2;background:var(--primary);color:#fff;border:none">✓ Adicionar ao Orçamento</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  setTimeout(function(){ var el = document.getElementById('adit-desc'); if(el) el.focus(); }, 100);
+}
+
+function sugerirAditivo(desc, cat){
+  fecharApplyModal();
+  extracaoAtual = null;
+  abrirModalAditivo({ descricao: desc, categoria: cat });
+}
+
+function fecharModalAditivo(){ var m=document.getElementById("modal-aditivo"); if(m) m.remove(); }
+
+function confirmarAditivo(){
+  var cod  = (document.getElementById('adit-cod').value||'').trim();
+  var desc = (document.getElementById('adit-desc').value||'').trim();
+  var cat  = document.getElementById('adit-cat').value;
+  var val  = parseFloat(document.getElementById('adit-valor').value) || 0;
+  var unid = (document.getElementById('adit-unid').value||'vb').trim();
+  var just = (document.getElementById('adit-just').value||'').trim();
+
+  if(!desc){ toast('Descrição obrigatória', 'error'); return; }
+  if(state.servicos.find(function(s){ return s.cod===cod; })){
+    toast('Código ' + cod + ' já existe — escolha outro', 'error'); return;
+  }
+
+  state.servicos.push({
+    cod: cod,
+    descricao: desc,
+    categoria: cat,
+    setor: cat,
+    unidade: unid,
+    valor: val,
+    pct_anterior: 0,
+    pct_atual: 0,
+    status_anterior: 'A EXECUTAR',
+    status_atual: 'A EXECUTAR',
+    equipe: '',
+    observacao: just,
+    aditivo: true,
+    data_aditivo: now()
+  });
+
+  document.getElementById('modal-aditivo').remove();
+  renderServicos();
+  saveState();
+  toast('✅ Aditivo ' + cod + ' adicionado ao orçamento!', 'success');
 }
 
 function toggleCard(idx){
@@ -4666,9 +5213,94 @@ function updateEquipeSrv(idx, val){
   state.servicos[idx].equipe = val;
   saveState();
   renderServicos();
-  // Reabrir card que estava aberto
   const card = document.getElementById('srvcard-'+idx);
   if(card){ card.classList.add('open'); }
+}
+
+function promptCriarEquipe(){
+  promptCriarEquipeCod('');
+}
+
+function promptCriarEquipeCod(codSugerido){
+  // Detectar prefixo pelo código sugerido
+  const prefixos = ['EQ-ALV','EQ-ELE','EQ-PIN','EQ-DRY','EQ-ACO','EQ-HID','EQ-VID','EQ-SER','EQ-MAR','EQ-LIM','EQ-RVT'];
+  const proxNum = function(pref){
+    const existing = state.equipes.filter(e=>e.cod&&e.cod.startsWith(pref));
+    return pref + '-' + String(existing.length+1).padStart(2,'0');
+  };
+
+  // Detectar prefixo do código sugerido
+  let prefixSugerido = '';
+  if(codSugerido){
+    prefixos.forEach(p=>{ if(codSugerido.toUpperCase().includes(p.replace('EQ-',''))) prefixSugerido = p; });
+  }
+
+  const opcoesPrefixo = prefixos.map(p=>`<option value="${p}"${prefixSugerido===p?' selected':''}>${p} · ${({
+    'EQ-ALV':'Alvenaria','EQ-ELE':'Elétrica','EQ-PIN':'Pintura','EQ-DRY':'Drywall/Forro',
+    'EQ-ACO':'Ar-condicionado','EQ-HID':'Hidráulica','EQ-VID':'Vidraçaria','EQ-SER':'Serralheria',
+    'EQ-MAR':'Marcenaria','EQ-LIM':'Limpeza','EQ-RVT':'Revestimento'
+  }[p]||p)}</option>`).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-nova-equipe';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:12px;padding:20px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+      <div style="font-family:var(--font-display);font-size:16px;font-weight:800;color:var(--text);margin-bottom:16px">
+        👷 Cadastrar Nova Equipe
+      </div>
+      <div class="field" style="margin-bottom:12px">
+        <label>Especialidade (define o código)</label>
+        <select id="ne-prefixo" onchange="atualizarCodEquipe()" style="width:100%">
+          ${opcoesPrefixo}
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:12px">
+        <label>Código gerado</label>
+        <input type="text" id="ne-cod" style="width:100%;background:var(--bg);color:var(--muted);font-family:var(--font-mono)" readonly>
+      </div>
+      <div class="field" style="margin-bottom:12px">
+        <label>Nome da equipe / empresa</label>
+        <input type="text" id="ne-nome" placeholder="Ex: Alvenaria Silva" style="width:100%">
+      </div>
+      <div class="field" style="margin-bottom:16px">
+        <label>Responsável</label>
+        <input type="text" id="ne-resp" placeholder="Nome do responsável" style="width:100%">
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="document.getElementById('modal-nova-equipe').remove()" style="background:transparent;border:1.5px solid var(--border);border-radius:8px;padding:10px 16px;cursor:pointer;color:var(--muted)">Cancelar</button>
+        <button onclick="confirmarCriarEquipe()" style="background:var(--primary);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-family:var(--font-display);font-weight:800;cursor:pointer">✓ Cadastrar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  atualizarCodEquipe();
+}
+
+function atualizarCodEquipe(){
+  const pref = document.getElementById('ne-prefixo').value;
+  const existing = state.equipes.filter(e=>e.cod&&e.cod.startsWith(pref));
+  const cod = pref + '-' + String(existing.length+1).padStart(2,'0');
+  document.getElementById('ne-cod').value = cod;
+}
+
+function confirmarCriarEquipe(){
+  const cod  = document.getElementById('ne-cod').value.trim();
+  const nome = document.getElementById('ne-nome').value.trim();
+  const resp = document.getElementById('ne-resp').value.trim();
+  const pref = document.getElementById('ne-prefixo').value;
+  const especialidade = {
+    'EQ-ALV':'Alvenaria','EQ-ELE':'Elétrica','EQ-PIN':'Pintura','EQ-DRY':'Drywall/Forro',
+    'EQ-ACO':'Ar-condicionado','EQ-HID':'Hidráulica','EQ-VID':'Vidraçaria','EQ-SER':'Serralheria',
+    'EQ-MAR':'Marcenaria','EQ-LIM':'Limpeza','EQ-RVT':'Revestimento'
+  }[pref]||'';
+  if(!nome){ toast('Informe o nome da equipe','error'); return; }
+  if(state.equipes.find(e=>e.cod===cod)){ toast('Código já existe: ' + cod,'error'); return; }
+  state.equipes.push({ cod, nome, responsavel: resp, especialidade, presenca:{seg:'nd',ter:'nd',qua:'nd',qui:'nd',sex:'nd'} });
+  saveState();
+  renderEquipes();
+  renderServicos();
+  document.getElementById('modal-nova-equipe').remove();
+  toast('✅ Equipe ' + cod + ' cadastrada!', 'success');
 }
 
 function updateFornecedorSrv(idx, val){
@@ -4713,6 +5345,130 @@ function updateObs(idx, val){
   saveState();
 }
 
+function updateOrcamentoKPIs(){
+  const srvs = state.servicos || [];
+  const srvBase = srvs.filter(s => !s.is_aditivo);
+  const srvAdit = srvs.filter(s =>  s.is_aditivo);
+  const totalBase = srvBase.reduce((a,s)=>a+(s.valor||0),0);
+  const totalAdit = srvAdit.reduce((a,s)=>a+(s.valor||0),0);
+  const totalGeral = totalBase + totalAdit;
+  const executado  = srvs.reduce((a,s)=>a+(s.valor||0)*(s.pct_atual||0)/100,0);
+  const aExecutar  = totalGeral - executado;
+  const pct = totalGeral>0 ? Math.round(executado/totalGeral*100) : 0;
+
+  function fmt(v){ return v>=1000 ? 'R$ '+fmtNum(v) : v>0 ? 'R$ '+v.toFixed(2).replace('.',',') : '—'; }
+  const el = function(id,val){ var e=document.getElementById(id); if(e) e.textContent=val; };
+  el('orc-total',    fmt(totalGeral));
+  el('orc-executado',fmt(executado));
+  el('orc-aditivos', totalAdit>0 ? fmt(totalAdit) : '—');
+  el('orc-saldo',    fmt(aExecutar));
+  el('orc-aditivos-count', srvAdit.length ? srvAdit.length+' aditivo'+(srvAdit.length>1?'s':'') : '');
+  const bar = document.getElementById('orc-progress-bar');
+  if(bar) bar.style.width = pct+'%';
+}
+
+function abrirModalAditivo(prefill){
+  // prefill: { descricao, categoria, valor } — opcional, para sugestão automática
+  prefill = prefill || {};
+  // Próximo código SRV
+  const maxCod = (state.servicos||[]).reduce(function(m,s){
+    var n=parseInt((s.cod||'').replace('SRV-',''))||0; return Math.max(m,n);
+  },0);
+  const novoCod = 'SRV-'+(maxCod+1).toString().padStart(3,'0');
+
+  const CATS = ['Preliminares','Demolições','Infraestrutura','Alvenaria','Construções e Regularizações',
+    'Impermeabilização','Pintura','Hidráulica','Elétrica','Ar-condicionado','Drywall / Forro',
+    'Revestimento','Cobertura','Serralheria','Estruturas Especiais','PPCI / Incêndio',
+    'Projetos','Marcenaria','Limpeza','Administração','Mão de Obra'];
+  const catOpts = CATS.map(function(cat){
+    return '<option value="'+cat+'"'+(cat===(prefill.categoria||'')||cat==='Mão de Obra'&&!prefill.categoria?' selected':'')+'>'+cat+'</option>';
+  }).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-aditivo';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML = [
+    '<div style="background:var(--surface);border-radius:12px;width:100%;max-width:440px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)">',
+      '<div style="background:var(--primary);padding:16px 20px;display:flex;align-items:center;justify-content:space-between">',
+        '<div style="font-family:var(--font-display);font-size:15px;font-weight:800;color:#fff">＋ Novo Aditivo</div>',
+        '<button onclick="fecharModalAditivo()" style="background:transparent;border:none;color:rgba(255,255,255,.6);font-size:20px;cursor:pointer;line-height:1">×</button>',
+      '</div>',
+      '<div style="padding:20px;display:flex;flex-direction:column;gap:14px">',
+        '<div style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:8px;padding:10px 12px;font-size:12px;color:#7c3aed">',
+          '⚠️ Aditivo: serviço fora do escopo original. Será marcado em roxo e incluído no orçamento total.',
+        '</div>',
+        '<div>',
+          '<label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Código</label>',
+          '<input id="adt-cod" value="'+novoCod+'" style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:var(--font-mono);font-size:13px;background:var(--bg);color:var(--text)" readonly>',
+        '</div>',
+        '<div>',
+          '<label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Descrição *</label>',
+          '<input id="adt-desc" value="'+(prefill.descricao||'')+'" placeholder="Descreva o serviço aditivo..." style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;background:var(--bg);color:var(--text)">',
+        '</div>',
+        '<div>',
+          '<label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Categoria</label>',
+          '<select id="adt-cat" style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;background:var(--bg);color:var(--text)">'+catOpts+'</select>',
+        '</div>',
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">',
+          '<div>',
+            '<label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Valor (R$)</label>',
+            '<input id="adt-valor" type="number" value="'+(prefill.valor||'')+'" placeholder="0,00" style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;background:var(--bg);color:var(--text)">',
+          '</div>',
+          '<div>',
+            '<label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Unidade</label>',
+            '<input id="adt-un" value="vb" style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;background:var(--bg);color:var(--text)">',
+          '</div>',
+        '</div>',
+        '<div>',
+          '<label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Motivo / Justificativa</label>',
+          '<textarea id="adt-motivo" rows="2" placeholder="Por que este serviço foi adicionado?" style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;background:var(--bg);color:var(--text);resize:vertical"></textarea>',
+        '</div>',
+      '</div>',
+      '<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">',
+        '<button onclick="fecharModalAditivo()" style="background:transparent;border:1.5px solid var(--border);border-radius:8px;padding:10px 16px;font-size:13px;cursor:pointer;color:var(--muted)">Cancelar</button>',
+        '<button onclick="confirmarAditivo()" style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-family:var(--font-display);font-size:13px;font-weight:800;cursor:pointer">＋ Adicionar Aditivo</button>',
+      '</div>',
+    '</div>'
+  ].join('');
+  document.body.appendChild(modal);
+  setTimeout(function(){ var el=document.getElementById('adt-desc'); if(el){el.focus();if(!el.value)el.select();} },100);
+}
+
+function confirmarAditivo(){
+  const desc  = (document.getElementById('adt-desc')||{}).value||'';
+  const cod   = (document.getElementById('adt-cod')||{}).value||'';
+  const cat   = (document.getElementById('adt-cat')||{}).value||'Mão de Obra';
+  const valor = parseFloat((document.getElementById('adt-valor')||{}).value)||0;
+  const un    = (document.getElementById('adt-un')||{}).value||'vb';
+  const motivo= (document.getElementById('adt-motivo')||{}).value||'';
+  if(!desc.trim()){ toast('Informe a descrição do aditivo', 'error'); return; }
+  const novoSrv = {
+    cod:           cod,
+    descricao:     desc.trim(),
+    categoria:     cat,
+    setor:         cat,
+    unidade:       un,
+    valor:         valor,
+    pct_anterior:  0,
+    pct_atual:     0,
+    status_anterior:'A EXECUTAR',
+    status_atual:  'A EXECUTAR',
+    observacao:    motivo,
+    is_aditivo:    true,
+    data_aditivo:  now()
+  };
+  if(!Array.isArray(state.servicos)) state.servicos = [];
+  state.servicos.push(novoSrv);
+  document.getElementById('modal-aditivo').remove();
+  saveState();
+  renderServicos();
+  updateOrcamentoKPIs();
+  // Ativar filtro aditivos
+  var btn = document.querySelector('.srv-filter[onclick*="ADITIVO"]');
+  if(btn) setSrvFilter('ADITIVO', btn);
+  toast('✅ Aditivo '+cod+' adicionado!', 'success');
+}
+
 function updatePctBadge(){
   const srvs = state.servicos;
   if(!srvs.length){ document.getElementById('topbar-pct').textContent='—%'; return; }
@@ -4721,6 +5477,7 @@ function updatePctBadge(){
   if(totalVal>0) pct = srvs.reduce((a,s)=>a+(s.pct_atual||0)*(s.valor||0),0) / totalVal;
   else pct = srvs.reduce((a,s)=>a+(s.pct_atual||0),0) / srvs.length;
   document.getElementById('topbar-pct').textContent = Math.round(pct)+'%';
+  updateOrcamentoKPIs();
 }
 
 // ───────────────────────────────────────────────
@@ -6507,7 +7264,9 @@ const SEC_TAB_MAP = {
   'sec-config':     'tab-config',
   'sec-roteiro':    'tab-campo',
   'sec-visita':     'tab-campo',
-  'sec-cronograma': 'tab-campo',
+  'sec-cronograma': 'tab-orcamento',
+  'sec-roteiro':     'tab-campo',
+  'sec-orcamento':    'tab-orcamento',
   'sec-plano-ia':   'tab-campo',
   'sec-whatsapp-hub': 'tab-campo',
   'sec-servicos':   'tab-servicos',
@@ -6703,26 +7462,46 @@ const GSCRIPT_CODE = `function doPost(e) {
     }
   }
 
-  // ── Orçamento: STATUS (col J=10) e % CONCLUSÃO (col K=11) ── D59 fix
+  // ── Orçamento: todos os campos editáveis (cols A→K, linha 6+) ──
   if (data.orcamento && data.orcamento.length) {
     try {
       var orc = ss.getSheetByName('Orçamento') || ss.getSheetByName('Orcamento');
       if (orc) {
         var orcLastRow = orc.getLastRow();
-        if (orcLastRow >= 6) {
-          var codigos = orc.getRange(6, 1, orcLastRow - 5, 1).getValues();
-          data.orcamento.forEach(function(item) {
+        // Garante linhas suficientes
+        var needed = data.orcamento.length + 5;
+        if (orcLastRow < needed) orc.insertRowsAfter(orcLastRow, needed - orcLastRow);
+        // Ler códigos existentes (col A, a partir linha 6)
+        var totalRows = Math.max(orcLastRow - 5, data.orcamento.length);
+        var codigos = orc.getRange(6, 1, totalRows, 1).getValues();
+        data.orcamento.forEach(function(item) {
+          var targetRow = -1;
+          // Tentar achar linha existente pelo código
+          for (var i = 0; i < codigos.length; i++) {
+            if (codigos[i][0] === item.cod) { targetRow = i + 6; break; }
+          }
+          // Se não achou, usar próxima linha vazia
+          if (targetRow === -1) {
             for (var i = 0; i < codigos.length; i++) {
-              if (codigos[i][0] === item.cod) {
-                var row = i + 6;
-                orc.getRange(row, 10).setValue(item.status);  // Col J = STATUS
-                orc.getRange(row, 11).setValue(item.pct);     // Col K = % CONCLUSÃO
-                result.updates++;
-                break;
-              }
+              if (!codigos[i][0]) { targetRow = i + 6; codigos[i][0] = item.cod; break; }
             }
-          });
-        }
+          }
+          // Se ainda não achou, append
+          if (targetRow === -1) { targetRow = orc.getLastRow() + 1; }
+          // Escrever todos os campos:
+          // A=CÓD  B=CAT  C=DESCRIÇÃO  D=UNID  E=QTDE  F=UNIT(R$)  G=TOTAL(R$)  H=EQUIPE_COD  I=EQUIPE/FORNEC  J=STATUS  K=%CONCLUSÃO
+          orc.getRange(targetRow, 1).setValue(item.cod);
+          orc.getRange(targetRow, 2).setValue(item.categoria || '');
+          orc.getRange(targetRow, 3).setValue(item.descricao || '');
+          orc.getRange(targetRow, 4).setValue(item.unidade || 'vb');
+          orc.getRange(targetRow, 5).setValue(item.quantidade || 1);
+          orc.getRange(targetRow, 6).setValue(item.valor_unitario || 0);
+          orc.getRange(targetRow, 7).setValue(item.valor || 0);
+          orc.getRange(targetRow, 8).setValue(item.equipe_cod || '');
+          orc.getRange(targetRow, 10).setValue(item.status || 'A EXECUTAR');
+          orc.getRange(targetRow, 11).setValue(item.pct || 0);
+          result.updates++;
+        });
       } else {
         result.errors.push('Aba Orçamento não encontrada');
       }
@@ -7007,7 +7786,18 @@ async function aplicarNaPlanilha(){
 
   // Montar payload
   const payload = {
-    orcamento: srvs.map(s => ({ cod: s.cod, status: s.status_atual, pct: s.pct_atual })),
+    orcamento: srvs.map(s => ({
+      cod:            s.cod            || '',
+      categoria:      s.categoria      || '',
+      descricao:      s.descricao      || '',
+      unidade:        s.unidade || s.un || 'vb',
+      quantidade:     parseFloat(s.quantidade)    || 1,
+      valor_unitario: parseFloat(s.valor_unitario) || 0,
+      valor:          parseFloat(s.valor)          || 0,
+      equipe_cod:     s.equipe         || '',
+      status:         s.status_atual   || 'A EXECUTAR',
+      pct:            s.pct_atual      || 0
+    })),
     financeiro: state.pagamentos.map(p => ({
       data: p.data ? fmtDateNum(p.data) : '',
       descricao: p.descricao||'',
@@ -7346,6 +8136,8 @@ STATUS de material: "a_comprar", "comprado", "entregue"
 TIPOS de nota: "observacao", "decisao", "alerta", "lembrete"
 DIAS de presença: "sim", "nao", "nd"
 
+ADITIVOS: Se o gestor mencionar um serviço, material ou trabalho que NÃO tem código SRV correspondente na lista acima, inclua em "aditivos_sugeridos" com descrição, categoria mais adequada, valor estimado (0 se não mencionado) e justificativa. Só sugira aditivo se o serviço claramente não existe no orçamento.
+
 Retorne APENAS um JSON válido, sem texto antes ou depois, sem markdown, sem blocos de código. Estrutura obrigatória:
 
 {
@@ -7364,7 +8156,10 @@ Retorne APENAS um JSON válido, sem texto antes ou depois, sem markdown, sem blo
   "notas_novas": [
     {"tipo":"observacao|decisao|alerta|lembrete","texto":"..."}
   ],
-  "narrativa_revisada": "Narrativa técnica e organizada em 3-5 linhas, linguagem profissional, para o relatório semanal."
+  "narrativa_revisada": "Narrativa técnica e organizada em 3-5 linhas, linguagem profissional, para o relatório semanal.",
+  "aditivos_sugeridos": [
+    {"descricao":"Serviço mencionado mas sem código SRV existente","categoria":"Elétrica","valor":0,"unidade":"vb","justificativa":"Motivo ou contexto mencionado na narrativa"}
+  ]
 }
 
 REGRAS:
@@ -7936,8 +8731,26 @@ Valores: número sem R$ nos dados, com R$ na apresentação.`;
 function mostrarApplyModal(d){
   let html = '';
 
-  // Serviços
+  // Serviços — detectar os que não existem no orçamento (candidatos a aditivo)
   const srvs = d.servicos_atualizados || [];
+  const srvsSemCadastro = srvs.filter(s => !state.servicos.find(x=>x.cod===s.cod));
+  if(srvsSemCadastro.length){
+    html += '<div class="apply-section" style="border-left:3px solid #7c3aed;padding-left:10px">';
+    html += '<div class="apply-section-title" style="color:#7c3aed">⚠️ Serviços não cadastrados — possíveis Aditivos ('+srvsSemCadastro.length+')</div>';
+    srvsSemCadastro.forEach(function(s){
+      html += '<div class="apply-item" style="background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.2);border-radius:8px;padding:10px 12px;margin-bottom:6px">';
+      html += '<div class="apply-item-text">';
+      html += '<span class="apply-item-tag" style="background:#7c3aed">'+esc(s.cod)+'</span> '+esc(s.descricao||s.cod);
+      html += '<div style="font-size:11px;color:#7c3aed;margin-top:4px">Este serviço não está no orçamento.</div>';
+      var descAdt = esc(s.descricao||s.cod).replace(/'/g,"&#39;");
+      var catAdt  = esc(s.categoria||'Mao de Obra').replace(/'/g,"&#39;");
+      html += '<button onclick="sugerirAditivo(\''+descAdt+'\',\''+catAdt+'\')" ';
+      html += 'style="margin-top:6px;background:#7c3aed;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">&#xFF0B; Adicionar como Aditivo</button>';
+      html += '</div></div>';
+    });
+    html += '</div>';
+  }
+
   if(srvs.length){
     html += `<div class="apply-section">
       <div class="apply-section-title">📋 Serviços (${srvs.length})</div>`;
@@ -8043,6 +8856,24 @@ function mostrarApplyModal(d){
     </div>`;
   }
 
+  // Aditivos sugeridos pela IA
+  const adits = d.aditivos_sugeridos || [];
+  if(adits.length){
+    html += `<div class="apply-section" style="border-left:3px solid #7c3aed">
+      <div class="apply-section-title" style="color:#7c3aed">🔧 Serviços não orçados — sugestão de Aditivo (${adits.length})</div>`;
+    adits.forEach(function(a,i){
+      html += `<div class="apply-item">
+        <input type="checkbox" class="apply-item-check" id="chk-adit-${i}" checked>
+        <div class="apply-item-text">
+          <span class="badge-aditivo">Aditivo</span> <b>${esc(a.descricao)}</b>
+          <div class="apply-item-change">Categoria: ${esc(a.categoria||'—')} · Valor estimado: R$ ${fmtNum(parseFloat(a.valor)||0)}</div>
+          ${a.justificativa?`<div style="font-size:11px;color:var(--muted)">${esc(a.justificativa)}</div>`:''}
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
   if(!html){
     html = '<div class="empty"><div class="empty-icon">🤔</div>A IA não identificou atualizações claras. Tente uma narrativa mais detalhada.</div>';
   }
@@ -8110,6 +8941,22 @@ function aplicarExtracoes(){
     const chk = document.getElementById('chk-nota-'+i);
     if(!chk || !chk.checked) return;
     state.notas.push({ tipo: n.tipo||'observacao', texto: n.texto||'', data: now() });
+    count++;
+  });
+
+  // Aditivos sugeridos
+  (d.aditivos_sugeridos||[]).forEach(function(a,i){
+    var chk = document.getElementById('chk-adit-'+i);
+    if(!chk || !chk.checked) return;
+    var proxN = state.servicos.length + 1;
+    var cod = 'SRV-' + String(proxN).padStart(3,'0');
+    while(state.servicos.find(function(s){ return s.cod===cod; })){ proxN++; cod='SRV-'+String(proxN).padStart(3,'0'); }
+    state.servicos.push({
+      cod:cod, descricao:a.descricao||'', categoria:a.categoria||'Administração',
+      setor:a.categoria||'', unidade:a.unidade||'vb', valor:parseFloat(a.valor)||0,
+      pct_anterior:0, pct_atual:0, status_anterior:'A EXECUTAR', status_atual:'A EXECUTAR',
+      equipe:'', observacao:a.justificativa||'', aditivo:true, data_aditivo:now()
+    });
     count++;
   });
 
