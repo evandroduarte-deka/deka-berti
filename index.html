@@ -5351,10 +5351,12 @@ async function syncOrcamentoPlanilha(){
   }
   const btn = document.getElementById('btn-sync-orc');
   if(btn){ btn.disabled=true; btn.textContent='⟳ Enviando...'; }
-  const c2 = state.config;
   const srvs = state.servicos || [];
+
+  // FIX: action correto + campo 'servicos' (não 'orcamento') + pct decimal + equipe_cod correto
   const payload = {
-    orcamento: srvs.map(function(s){
+    action:   'sync_orcamento',                          // FIX 1: action obrigatório
+    servicos: srvs.map(function(s){                      // FIX 2: 'servicos', não 'orcamento'
       var qtd=parseFloat(s.quantidade)||1, vu=parseFloat(s.valor_unitario)||0, vt=parseFloat(s.valor)||0;
       return {
         cod:            s.cod||'',
@@ -5363,19 +5365,12 @@ async function syncOrcamentoPlanilha(){
         unidade:        s.unidade||s.un||'vb',
         quantidade:     qtd,
         valor_unitario: vu,
-        valor:          vt,
-        equipe_cod:     s.equipe||'',
+        equipe_cod:     s.equipe_cod||'',               // FIX 4: equipe_cod, não s.equipe
+        equipe:         s.equipe||'',
         status:         s.status_atual||'A EXECUTAR',
-        pct:            s.pct_atual||0
+        pct:            (s.pct_atual||0) / 100          // FIX 3: decimal (75 → 0.75)
       };
-    }),
-    log: {
-      data: today(),
-      hora: new Date().toLocaleTimeString('pt-BR'),
-      aba: 'Orçamento',
-      descricao: 'Sync orçamento — '+srvs.length+' serviços via Cockpit',
-      autor: 'Cockpit'
-    }
+    })
   };
   try {
     const resp = await fetch(url, {
@@ -5385,11 +5380,11 @@ async function syncOrcamentoPlanilha(){
       redirect:'follow'
     });
     let result;
-    try { result = await resp.json(); } catch(e){ result={status:'ok'}; }
-    if(result.status==='partial' && result.errors && result.errors.length){
-      toast('⚠️ Parcial: '+(result.updates||0)+' ok · '+result.errors.join('; '),'error');
+    try { result = await resp.json(); } catch(e){ result={ok:true}; }
+    if(result.ok){
+      toast('✅ Orçamento sincronizado! '+srvs.length+' serviços enviados.','success');
     } else {
-      toast('✅ Orçamento sincronizado! '+(result.updates||0)+' linhas atualizadas.','success');
+      toast('⚠️ '+(result.msg||'Resposta inesperada da planilha'),'warning');
     }
   } catch(e){
     toast('Erro ao sincronizar: '+e.message,'error');
