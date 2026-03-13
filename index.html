@@ -827,7 +827,7 @@ body .os-backup button{border-radius:0}
   filter: drop-shadow(0 8px 24px rgba(0,0,0,.22));
   transition: transform .3s cubic-bezier(.4,0,.2,1), opacity .3s;
 }
-#guia-flutuante.hidden { display: none !important; }
+#guia-flutuante.hidden { transform: translateY(120%); opacity: 0; pointer-events: none; }
 #guia-flutuante.minimized { width: 180px; }
 
 .guia-card {
@@ -1720,7 +1720,6 @@ body.tabs-active .tab-panel.active{max-width:900px;margin:0 auto;padding:12px 12
   color:var(--accent);width:38px;text-align:right;flex-shrink:0;
 }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -1995,6 +1994,7 @@ body.tabs-active .tab-panel.active{max-width:900px;margin:0 auto;padding:12px 12
     </div>
     <input type="file" id="os-restore-input" accept=".json" onchange="restaurarBackup(this)">
     <div class="os-backup-info" id="os-backup-info"></div>
+    <button id="os-sync-btn" onclick="sbSyncForcado()" style="width:100%;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 14px;border-radius:var(--radius);border:1.5px solid var(--border);background:var(--surface);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;font-family:var(--font-body);" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">&#9729; Sincronizar com a Nuvem</button>
     <div class="os-hint">As chaves de API s&atilde;o compartilhadas entre todas as obras.</div>
     <button class="os-help-btn" onclick="abrirOnboarding()">&#9432; Guia de configura&ccedil;&atilde;o</button>
   </div>
@@ -3117,16 +3117,6 @@ body.tabs-active .tab-panel.active{max-width:900px;margin:0 auto;padding:12px 12
 </div><!-- /tab-panel -->
 <!-- TAB: TAB-FECHAMENTO -->
 <div class="tab-panel" id="tab-fechamento">
-
-<!-- BOTÃO EXPORTAR TUDO — ZIP -->
-<div style="padding:14px 14px 0">
-  <button id="btn-exportar-zip" onclick="exportarTudoZip()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:14px 20px;background:linear-gradient(135deg,var(--primary) 0%,#1a3d28 100%);color:#fff;border:2px solid rgba(255,255,255,.12);border-radius:var(--radius-lg);font-family:var(--font-display);font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.3px;transition:opacity .15s">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-    Exportar Tudo — ZIP
-  </button>
-  <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:5px;font-family:var(--font-mono)">Relatório Interno + Cliente + Fotográfico + Portal + JSON — tudo em um arquivo</div>
-</div>
-
 <!-- ═══ 9 EXPORT ═══ -->
 <div class="sec" id="sec-export">
   <div class="sec-header" onclick="toggleSec('sec-export')">
@@ -3331,12 +3321,9 @@ body.tabs-active .tab-panel.active{max-width:900px;margin:0 auto;padding:12px 12
           </div>
           <div class="rel-card-body">
             <div class="rel-card-nome">Relatório Fotográfico</div>
-            <div class="rel-card-desc">Fotos por ambiente com título editável e data · Padrão: "Ambiente — Data"</div>
+            <div class="rel-card-desc">Fotos por ambiente com legenda e data</div>
           </div>
-          <div style="display:flex;gap:6px;flex-shrink:0">
-            <button class="btn btn-outline btn-sm" onclick="abrirEditorTitulosFotos()">✏ Editar títulos</button>
-            <button class="btn btn-primary btn-sm" onclick="abrirRelatorioFotografico()">Gerar →</button>
-          </div>
+          <button class="btn btn-outline btn-sm" onclick="abrirRelatorioFotografico()">Gerar →</button>
         </div>
 
       </div>
@@ -3384,18 +3371,6 @@ body.tabs-active .tab-panel.active{max-width:900px;margin:0 auto;padding:12px 12
             <div class="rel-card-desc">Relatório de medição formal + campo de aceite pelo cliente · Registra data e hora da aprovação</div>
           </div>
           <button class="btn btn-outline btn-sm" onclick="gerarMedicaoComAceite()">Gerar →</button>
-        </div>
-
-        <!-- Resumo Executivo CEO -->
-        <div class="rel-card rel-card-destaque" style="border-color:#B91C1C">
-          <div class="rel-card-icon" style="background:#B91C1C">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
-          </div>
-          <div class="rel-card-body">
-            <div class="rel-card-nome">RESUMO EXECUTIVO</div>
-            <div class="rel-card-desc">Margem · Avanço real vs previsto · Alertas de desvio</div>
-          </div>
-          <button class="btn btn-primary btn-sm" style="background:#B91C1C;border-color:#B91C1C" onclick="gerarResumoExecutivo()">Gerar →</button>
         </div>
 
       </div>
@@ -3506,8 +3481,7 @@ body.tabs-active .tab-panel.active{max-width:900px;margin:0 auto;padding:12px 12
   <div class="rel-preview-bar">
     <div class="rel-preview-bar-title" id="rel-modal-title">Relatório</div>
     <div class="rel-preview-bar-btns">
-      <button class="btn-print" onclick="gerarPDFdoRelatorio()" style="background:var(--primary);color:#fff;border-color:var(--primary)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Baixar PDF</button>
-      <button class="btn-print" onclick="imprimirRelatorio()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block;vertical-align:middle;margin-right:5px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir</button>
+      <button class="btn-print" onclick="imprimirRelatorio()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block;vertical-align:middle;margin-right:5px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir / Salvar PDF</button>
       <button class="btn-close-rel" onclick="fecharRelatorio()">✕ Fechar</button>
     </div>
   </div>
@@ -7695,28 +7669,6 @@ var guiaStepAtual = 0;
 var guiaFechado   = false;
 var DIAS_ORD = ['seg','ter','qua','qui','sex'];
 
-function guiaStorageKey(){
-  var obra = (state && state.config && state.config.obra) || '_default';
-  return 'mdo_guia_fechado_' + obra.replace(/\s+/g,'_').toLowerCase();
-}
-
-function guiaSetEstado(fechado){
-  guiaFechado = fechado;
-  var el = document.getElementById('guia-flutuante');
-  var rb = document.getElementById('guia-reabrir');
-  if(!el) return;
-  if(fechado){
-    el.classList.add('hidden');
-    if(rb) rb.style.display = 'none';
-  } else {
-    el.classList.remove('hidden');
-    if(rb) rb.style.display = 'none';
-    guiaStepAtual = 0;
-    requestAnimationFrame(guiaRenderStep);
-  }
-  try{ localStorage.setItem(guiaStorageKey(), fechado ? '1' : '0'); }catch(e){}
-}
-
 function guiaDiaAtualIdx(){
   var d = new Date().getDay();
   return {1:0,2:1,3:2,4:3,5:4}[d] !== undefined ? {1:0,2:1,3:2,4:3,5:4}[d] : -1;
@@ -7750,166 +7702,119 @@ function guiaGetAlertas(){
   return lista.slice(0, 2); // máximo 2 alertas
 }
 
-// ── 6 passos operacionais reais ──
+// ── 5 passos fixos, adaptados ao estado atual ──
 function guiaGetSteps(){
   var c2   = state.config;
   var srvs = state.servicos || [];
   var eqs  = state.equipes  || [];
   var hoje = guiaDiaAtualIdx();
   var diaLabel = ['segunda','terça','quarta','quinta','sexta'][hoje] || 'hoje';
+  var nomes = {seg:'segunda',ter:'terça',qua:'quarta',qui:'quinta',sex:'sexta'};
 
-  // ── Detecção de estado de cada módulo ──
+  var hasObra    = !!(c2.obra||'').trim();
+  var hasSrvs    = srvs.length > 0;
+  var hasEquipes = eqs.length > 0;
+  var hasApi     = !!getApiKey();
 
-  // PASSO 1 — OBRA (configuração base)
-  var hasObra     = !!(c2.obra||'').trim();
-  var hasCliente  = !!(c2.cliente||'').trim();
-  var hasEndereco = !!(c2.endereco_obra||'').trim();
-  var hasPeriodo  = !!(c2.periodo_ini||'').trim() && !!(c2.periodo_fim||'').trim();
-  var hasPlanilha = !!getGscriptUrl();
-  var hasApi      = !!getApiKey();
-  var obraItens   = [hasObra, hasCliente, hasPeriodo, hasPlanilha, hasApi];
-  var obraFeitos  = obraItens.filter(Boolean).length;
-  var obraTotal   = obraItens.length;
-  var obraOk      = obraFeitos === obraTotal;
+  // Setup incompleto — mostrar só o que falta
+  if(!hasObra || !hasSrvs || !hasEquipes || !hasApi){
+    var steps = [];
+    if(!hasObra)    steps.push({ titulo:'Configure a obra', dica:'Nome, cliente e semana. Sem isso nada funciona.', feito:false, tab:'tab-config', sec:'sec-config', acao:'Configurar' });
+    if(!hasSrvs)    steps.push({ titulo:'Importe os serviços', dica:'Cole o JSON do orçamento. A obra precisa dos serviços para funcionar.', feito:false, tab:'tab-config', sec:'sec-config', acao:'Importar' });
+    if(!hasEquipes) steps.push({ titulo:'Importe as equipes', dica:'Necessário para registrar presença e vincular responsáveis.', feito:false, tab:'tab-config', sec:'sec-config', acao:'Importar' });
+    if(!hasApi)     steps.push({ titulo:'Configure a IA', dica:'Chave Anthropic necessária para o processamento semanal.', feito:false, tab:'tab-config', sec:'sec-integ', acao:'Configurar' });
+    return steps;
+  }
 
-  var obraFalta = [];
-  if(!hasObra)     obraFalta.push('nome da obra');
-  if(!hasCliente)  obraFalta.push('cliente');
-  if(!hasPeriodo)  obraFalta.push('período');
-  if(!hasPlanilha) obraFalta.push('URL do script');
-  if(!hasApi)      obraFalta.push('chave da IA');
+  // Obra ok — guia operacional com 5 passos
+  var srvMudou = srvs.some(function(s){ return s.status_atual !== s.status_anterior || s.pct_atual !== s.pct_anterior; });
+  var nConcl   = srvs.filter(function(s){ return s.status_atual === 'CONCLUÍDO'; }).length;
+  var nAndam   = srvs.filter(function(s){ return s.status_atual === 'EM ANDAMENTO'; }).length;
 
-  // PASSO 2 — VISITA (presença + diário + fotos) — travado sem Passo 1
   var hasPresenca = false;
   if(hoje >= 0){
     var d = state.diario && state.diario[DIAS_ORD[hoje]];
     hasPresenca = !!(d && Object.values(d.presenca||{}).some(function(v){ return v && v !== 'nd'; }));
   }
+
   var hasDiario = false;
   if(hoje >= 0){
     var dh = state.diario && state.diario[DIAS_ORD[hoje]];
     hasDiario = !!(dh && (dh.texto||'').trim().length > 0);
   }
+  // Fim de semana — checar qualquer dia da semana
   if(hoje < 0){
-    hasDiario = DIAS_ORD.some(function(dd){ var x = state.diario && state.diario[dd]; return x && (x.texto||'').trim().length > 0; });
+    hasDiario = DIAS_ORD.some(function(d){ var x = state.diario && state.diario[d]; return x && (x.texto||'').trim().length > 0; });
   }
-  var hasFotos   = (state.fotos||[]).length > 0;
-  var visitaOk   = hasPresenca && hasDiario;
 
-  // PASSO 3 — ORÇAMENTO — sempre livre
-  var hasSrvs    = srvs.length > 0;
-  var srvMudou   = srvs.some(function(s){ return s.status_atual !== s.status_anterior || s.pct_atual !== s.pct_anterior; });
-  var nConcl     = srvs.filter(function(s){ return s.status_atual === 'CONCLUÍDO'; }).length;
-  var nAndam     = srvs.filter(function(s){ return s.status_atual === 'EM ANDAMENTO'; }).length;
-  var orcOk      = hasSrvs && srvMudou;
+  var nPend    = (state.pendencias||[]).filter(function(p){ return p.status !== 'RESOLVIDA'; }).length;
+  var hasPag   = (state.pagamentos||[]).length > 0;
+  var hasNarr  = !!(state.narrativa||'').trim();
+  var hasBloco = !!((document.getElementById('export-atualizacao')||{value:''}).value||'').trim();
+  var isSexta  = new Date().getDay() === 5 || hasNarr || hasBloco; // mostrar fechamento na sexta ou se já iniciou
 
-  // PASSO 4 — EQUIPES — sempre livre
-  var hasEquipes = eqs.length > 0;
-  var eqOk       = hasEquipes && hasPresenca;
-
-  // PASSO 5 — PAGAMENTOS — sempre livre
-  var hasPag     = (state.pagamentos||[]).length > 0;
-
-  // PASSO 6 — FECHAMENTO — travado sem Passo 1
-  var hasNarr    = !!(state.narrativa||'').trim();
-  var hasBloco   = !!((document.getElementById('export-atualizacao')||{value:''}).value||'').trim();
-  var hasJson    = !!((document.getElementById('export-json')||{value:''}).value||'').trim();
-  var fechOk     = hasBloco && hasJson;
-
-  // ── Montagem dos 6 passos ──
   return [
-    // PASSO 1 — OBRA
+    // Passo 1 — Presença
     {
-      titulo: obraOk
-        ? '✅ Obra configurada'
-        : '⚠️ Configure a obra (' + obraFeitos + '/' + obraTotal + ')',
-      dica: obraOk
-        ? c2.obra + ' — ' + (c2.cliente||'') + '. Tudo certo.'
-        : 'Falta: ' + obraFalta.join(', ') + '.',
-      feito: obraOk,
-      tab: 'tab-config', sec: 'sec-config',
-      acao: obraOk ? 'Revisar' : 'Configurar'
+      titulo: hasPresenca ? '✓ Presença registrada' : 'Marque a presença de ' + diaLabel,
+      dica:   hasPresenca
+        ? 'Equipes registradas para ' + diaLabel + '.'
+        : 'Quem está na obra hoje? Marque antes de esquecer.',
+      feito: hasPresenca,
+      tab: 'tab-equipes', acao: hasPresenca ? 'Revisar' : 'Marcar agora'
     },
-    // PASSO 2 — VISITA (travado se Passo 1 incompleto)
+    // Passo 2 — Serviços
     {
-      titulo: !obraOk
-        ? '🔒 Visita (configure a obra primeiro)'
-        : visitaOk
-          ? '✅ Visita do dia registrada'
-          : '⚠️ Registre a visita de ' + diaLabel,
-      dica: !obraOk
-        ? 'Complete o Passo 1 para desbloquear.'
-        : (hasPresenca ? '✓ Presença · ' : '○ Presença · ')
-          + (hasDiario ? '✓ Diário · ' : '○ Diário · ')
-          + (hasFotos ? '✓ Fotos' : '○ Fotos'),
-      feito: obraOk && visitaOk,
-      travado: !obraOk,
-      tab: 'tab-visita',
-      acao: !obraOk ? '—' : (visitaOk ? 'Revisar' : 'Registrar')
+      titulo: srvMudou ? '✓ Serviços atualizados' : 'Atualize o andamento dos serviços',
+      dica:   srvMudou
+        ? nConcl + ' concluído(s) · ' + nAndam + ' em andamento.'
+        : 'Abra o Orçamento e atualize o % de cada serviço que avançou hoje.',
+      feito: srvMudou,
+      tab: 'tab-orcamento', acao: srvMudou ? 'Revisar' : 'Abrir orçamento'
     },
-    // PASSO 3 — ORÇAMENTO (sempre livre)
+    // Passo 3 — Diário
     {
-      titulo: !hasSrvs
-        ? '⚠️ Importe os serviços'
-        : orcOk
-          ? '✅ Orçamento atualizado'
-          : '⚠️ Atualize os serviços',
-      dica: !hasSrvs
-        ? 'Sem serviços cadastrados. Importe na aba Obra.'
-        : srvMudou
-          ? nConcl + ' concluído(s) · ' + nAndam + ' em andamento.'
-          : srvs.length + ' serviços. Atualize o % e status de quem avançou.',
-      feito: orcOk,
-      tab: hasSrvs ? 'tab-orcamento' : 'tab-config',
-      sec: hasSrvs ? undefined : 'sec-config',
-      acao: !hasSrvs ? 'Importar' : (srvMudou ? 'Revisar' : 'Abrir orçamento')
+      titulo: hasDiario ? '✓ Diário preenchido' : 'Registre o diário de ' + diaLabel,
+      dica:   hasDiario
+        ? 'Relato do dia salvo. A IA usará no fechamento.'
+        : 'O que aconteceu hoje? Problemas, avanços, decisões. 2 minutos agora, 1 hora economizada na sexta.',
+      feito: hasDiario,
+      tab: 'tab-visita', sec: 'sec-diario', acao: hasDiario ? 'Ver diário' : 'Escrever'
     },
-    // PASSO 4 — EQUIPES (sempre livre)
-    {
-      titulo: !hasEquipes
-        ? '⚠️ Importe as equipes'
-        : eqOk
-          ? '✅ Equipes atualizadas'
-          : '⚠️ Registre presença das equipes',
-      dica: !hasEquipes
-        ? 'Sem equipes cadastradas. Importe na aba Obra.'
-        : hasPresenca
-          ? eqs.length + ' equipe(s) com presença marcada para ' + diaLabel + '.'
-          : eqs.length + ' equipe(s) cadastrada(s). Marque quem está na obra.',
-      feito: eqOk,
-      tab: hasEquipes ? 'tab-equipes' : 'tab-config',
-      sec: hasEquipes ? undefined : 'sec-config',
-      acao: !hasEquipes ? 'Importar' : (hasPresenca ? 'Revisar' : 'Marcar presença')
-    },
-    // PASSO 5 — PAGAMENTOS (sempre livre)
-    {
-      titulo: hasPag
-        ? '✅ ' + (state.pagamentos||[]).length + ' lançamento(s)'
-        : '⚠️ Algum pagamento hoje?',
-      dica: hasPag
-        ? 'Lançamentos registrados. Confira NFs e valores.'
-        : 'NFs, pagamentos e entradas. Lance assim que acontecer.',
-      feito: hasPag, opcional: true,
-      tab: 'tab-pagamentos',
-      acao: hasPag ? 'Ver pagamentos' : 'Lançar'
-    },
-    // PASSO 6 — FECHAMENTO (travado se Passo 1 incompleto)
-    {
-      titulo: !obraOk
-        ? '🔒 Fechamento (configure a obra primeiro)'
-        : fechOk
-          ? '✅ Semana processada'
-          : '⚠️ Feche a semana',
-      dica: !obraOk
-        ? 'Complete o Passo 1 para desbloquear.'
-        : fechOk
-          ? 'Bloco gerado. Aplique na planilha e envie ao cliente.'
-          : 'IA → Planilha → Relatório → WhatsApp → Avançar semana.',
-      feito: obraOk && fechOk,
-      travado: !obraOk,
-      tab: 'tab-fechamento',
-      acao: !obraOk ? '—' : (fechOk ? 'Revisar' : 'Ir para fechamento')
-    }
+    // Passo 4 — Pendências ou Pagamentos
+    nPend > 0
+      ? {
+          titulo: nPend + ' pendência(s) em aberto',
+          dica:   'Resolva o que for possível hoje. Pendência acumulada vira atraso.',
+          feito:  false, urgente: true,
+          tab: 'tab-registro', sec: 'sec-pendencias', acao: 'Ver pendências'
+        }
+      : {
+          titulo: hasPag ? '✓ Pagamentos lançados' : 'Algum pagamento hoje?',
+          dica:   hasPag
+            ? (state.pagamentos||[]).length + ' lançamento(s) registrado(s).'
+            : 'Lance NFs e pagamentos assim que acontecerem. Não deixe acumular.',
+          feito:  hasPag, opcional: true,
+          tab: 'tab-pagamentos', acao: hasPag ? 'Ver pagamentos' : 'Lançar'
+        },
+    // Passo 5 — Fechamento (sexta) ou filler
+    isSexta
+      ? {
+          titulo: hasBloco ? '✓ Semana processada pela IA' : 'Processe e feche a semana',
+          dica:   hasBloco
+            ? 'Bloco gerado. Aplique na planilha e envie o relatório ao cliente.'
+            : 'Narrativa + IA + planilha + relatório. Não saia sem fazer isso.',
+          feito:  hasBloco,
+          tab: 'tab-fechamento', acao: hasBloco ? 'Aplicar na planilha' : 'Ir para fechamento'
+        }
+      : {
+          titulo: '📸 Registre fotos da visita',
+          dica:   (state.fotos||[]).length > 0
+            ? (state.fotos||[]).length + ' foto(s) registrada(s). Bom.'
+            : 'Fotos são evidência. No mínimo 3 por visita.',
+          feito:  (state.fotos||[]).length > 0, opcional: true,
+          tab: 'tab-registro', sec: 'sec-fotos', acao: 'Adicionar fotos'
+        }
   ];
 }
 
@@ -7925,14 +7830,11 @@ function guiaRenderStep(){
   var elTitle = document.getElementById('guia-step-title');
   var elHint  = document.getElementById('guia-step-hint');
   var elBtn   = document.getElementById('guia-btn-label');
-  var elBtnIr = document.getElementById('guia-btn-ir');
   var elFill  = document.getElementById('guia-progress-fill');
   var elFase  = document.getElementById('guia-h-fase');
   var elHT    = document.getElementById('guia-h-title');
   var elUrg   = document.getElementById('guia-urg-box');
   if(!elNum || !elTitle || !elHint) return;
-
-  var NOMES_PASSO = ['OBRA','VISITA','ORÇAMENTO','EQUIPES','PAGAMENTOS','FECHAMENTO'];
 
   var steps  = guiaGetSteps();
   var n      = steps.length;
@@ -7963,9 +7865,8 @@ function guiaRenderStep(){
   if(guiaStepAtual >= n){
     elNum.textContent   = '✅ '+feitos+'/'+total;
     elTitle.textContent = 'Tudo em dia!';
-    elHint.textContent  = 'Todos os pontos cobertos. Boa semana.';
+    elHint.textContent  = 'Todos os pontos da visita foram cobertos. Boa semana.';
     if(elBtn)  elBtn.textContent  = 'Fechar';
-    if(elBtnIr){ elBtnIr.style.opacity = ''; elBtnIr.style.pointerEvents = ''; }
     if(elFill) elFill.style.width = '100%';
     if(elFase) elFase.textContent = 'CONCLUÍDO';
     if(elHT)   elHT.textContent   = feitos+'/'+total+' · 100%';
@@ -7976,38 +7877,41 @@ function guiaRenderStep(){
 
   var s    = steps[guiaStepAtual];
   var card = document.getElementById('guia-card-inner');
-  var faseName = NOMES_PASSO[guiaStepAtual] || ('PASSO '+(guiaStepAtual+1));
 
-  elNum.textContent   = 'PASSO ' + (guiaStepAtual+1) + ' / ' + n + (s.opcional ? '  —  opcional' : '');
+  elNum.textContent   = (guiaStepAtual+1)+' / '+n + (s.opcional ? '  —  opcional' : '');
   elTitle.textContent = s.titulo;
   elHint.textContent  = s.dica;
   if(elBtn)  elBtn.textContent  = s.acao || 'Ir';
-  if(elFase) elFase.textContent = s.travado ? '🔒 TRAVADO' : faseName;
+  if(elFase) elFase.textContent = s.urgente ? '🔴 ATENÇÃO' : (pct === 100 ? 'CONCLUÍDO' : 'PRÓXIMO PASSO');
   if(elHT)   elHT.textContent   = feitos+'/'+total+' feitos';
   if(elFill) elFill.style.width = pct + '%';
-  if(card)   card.style.background = s.travado ? '#2A2A2A' : '';
-
-  // Desabilitar botão Ir se passo travado
-  if(elBtnIr){
-    if(s.travado){
-      elBtnIr.style.opacity = '0.35';
-      elBtnIr.style.pointerEvents = 'none';
-    } else {
-      elBtnIr.style.opacity = '';
-      elBtnIr.style.pointerEvents = '';
-    }
-  }
+  if(card)   card.style.background = s.urgente ? '#3D1010' : '';
 
   var rb = document.getElementById('guia-reabrir-badge');
   if(rb) rb.textContent = feitos+'/'+total;
 }
 
 function guiaAbrir(){
-  guiaSetEstado(false);
+  guiaFechado = false;
+  guiaStepAtual = 0;
+  var el = document.getElementById('guia-flutuante');
+  var rb = document.getElementById('guia-reabrir');
+  if(!el) return;
+  el.classList.remove('hidden');
+  if(rb) rb.style.display = 'none';
+  requestAnimationFrame(guiaRenderStep);
 }
 
 function guiaFechar(){
-  guiaSetEstado(true);
+  guiaFechado = true;
+  var el = document.getElementById('guia-flutuante');
+  if(el) el.classList.add('hidden');
+  var rb = document.getElementById('guia-reabrir');
+  if(rb){
+    rb.style.display = 'flex';
+    var b = document.getElementById('guia-reabrir-badge');
+    if(b) b.textContent = guiaTotalFeitos()+'/'+guiaTotalObrig();
+  }
 }
 
 function guiaToggleMin(){
@@ -8024,7 +7928,6 @@ function guiaIr(){
   var steps = guiaGetSteps();
   if(guiaStepAtual >= steps.length){ guiaFechar(); return; }
   var s = steps[guiaStepAtual];
-  if(s.travado){ guiaPular(); return; }
   if(s.fn){ try{ eval(s.fn); }catch(e){} }
   else if(s.tab){
     switchTab(s.tab);
@@ -8041,18 +7944,6 @@ function guiaAtualizar(){
   }
   var rb = document.getElementById('guia-reabrir-badge');
   if(rb) rb.textContent = guiaTotalFeitos()+'/'+guiaTotalObrig();
-}
-
-// Restaura estado salvo do guia para a obra atual
-function guiaRestaurarEstado(){
-  try{
-    var saved = localStorage.getItem(guiaStorageKey());
-    if(saved === '1'){
-      guiaSetEstado(true);
-      return true; // estava fechado
-    }
-  }catch(e){}
-  return false; // não estava fechado (ou sem dados)
 }
 
 
@@ -10292,8 +10183,6 @@ function buildBertiHeader(opts) {
 
 // ─── UTILITÁRIO MODAL ──────────────────────────────
 function abrirModalRel(titulo, htmlContent) {
-  _relCurrentHtml = htmlContent;
-  _relCurrentTitle = titulo;
   const fullDoc = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>${titulo}</title>
@@ -10337,7 +10226,7 @@ function abrirRelatorioFotografico(){
             ? `<img src="${f.url||f.src}" style="width:100%;aspect-ratio:4/3;object-fit:cover;display:block" onerror="this.style.background='#ddd';this.style.aspectRatio='4/3'">`
             : `<div style="width:100%;aspect-ratio:4/3;background:#2A3A2A;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:9px;color:rgba(255,255,255,.2)">FOTO</div>`}
           <div style="padding:7px 10px;background:var(--fundo);border-top:1px solid var(--linha)">
-            ${f.titulo_rel ? `<div style="font-size:11px;font-weight:700;color:var(--preto);margin-bottom:1px">${esc2(f.titulo_rel)}</div>` : (f.legenda && f.legenda !== 'Sem legenda' ? `<div style="font-size:11px;font-weight:700;color:var(--preto);margin-bottom:1px">${esc2(f.legenda)}</div>` : '')}
+            ${f.legenda && f.legenda !== 'Sem legenda' ? `<div style="font-size:11px;font-weight:700;color:var(--preto);margin-bottom:1px">${esc2(f.legenda)}</div>` : ''}
             <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--cinza)">${esc2(f.ambiente||grp)}${f.data?' · '+esc2(f.data):''}</div>
           </div>
         </div>`).join('')}
@@ -11502,6 +11391,69 @@ async function sbRestaurarDaNuvem(){
   }
 }
 
+// SYNC FORÇADO — chamado pelo botão, com feedback visual
+async function sbSyncForcado(){
+  var btn = document.getElementById('os-sync-btn');
+  if(btn){ btn.textContent = '⏳ Sincronizando…'; btn.disabled = true; }
+  try {
+    const remotas = await sbListarObras();
+    if(!remotas || !remotas.length){
+      toast('Nenhuma obra encontrada na nuvem','warning');
+      if(btn){ btn.innerHTML = '&#9729; Sincronizar com a Nuvem'; btn.disabled = false; }
+      return;
+    }
+    var keysLocais = getObrasIndex().map(function(o){ return o.key; });
+    var novas = remotas.filter(function(r){
+      var k = 'cockpit_' + r.obra_key;
+      return !keysLocais.includes(k) && !keysLocais.includes(r.obra_key) && r.obra_key !== 'default';
+    });
+    if(!novas.length){
+      toast('✓ Tudo sincronizado — nenhuma obra nova na nuvem','success');
+      if(btn){ btn.innerHTML = '&#9729; Sincronizar com a Nuvem'; btn.disabled = false; }
+      return;
+    }
+    var baixadas = 0;
+    for(var i=0; i<novas.length; i++){
+      var full = await sbLoad(novas[i].obra_key);
+      if(full && full.data){
+        localStorage.setItem('cockpit_' + novas[i].obra_key, JSON.stringify(full.data));
+        baixadas++;
+      }
+    }
+    toast('☁ ' + baixadas + ' obra(s) sincronizada(s) da nuvem!','success');
+    renderObraSelector();
+  } catch(e){
+    toast('Erro ao sincronizar: ' + e.message,'error');
+  }
+  if(btn){ btn.innerHTML = '&#9729; Sincronizar com a Nuvem'; btn.disabled = false; }
+}
+
+// AUTO-SYNC silencioso — baixa obras da nuvem que não existem local, sem prompt
+async function sbAutoSync(){
+  try {
+    const remotas = await sbListarObras();
+    if(!remotas || !remotas.length) return;
+    var keysLocais = getObrasIndex().map(function(o){ return o.key; });
+    var novas = remotas.filter(function(r){
+      var k = 'cockpit_' + r.obra_key;
+      return !keysLocais.includes(k) && !keysLocais.includes(r.obra_key) && r.obra_key !== 'default';
+    });
+    if(!novas.length) return;
+    var baixadas = 0;
+    for(var i=0; i<novas.length; i++){
+      var full = await sbLoad(novas[i].obra_key);
+      if(full && full.data){
+        localStorage.setItem('cockpit_' + novas[i].obra_key, JSON.stringify(full.data));
+        baixadas++;
+      }
+    }
+    if(baixadas > 0){
+      toast('☁ ' + baixadas + ' obra(s) sincronizada(s) da nuvem', 'success');
+      renderObraSelector();
+    }
+  } catch(e){ /* silencioso */ }
+}
+
 function renderObraSelector(){
   var obras = getObrasIndex();
   var el = document.getElementById('os-lista');
@@ -11550,6 +11502,8 @@ function renderObraSelector(){
 
 function showObraSelector(){
   renderObraSelector();
+  // AUTO-SYNC: baixar obras da nuvem silenciosamente ao abrir o seletor
+  sbAutoSync();
   var sel = document.getElementById('obra-selector'); if(sel) sel.classList.remove('hidden');
   var tb  = document.getElementById('topbar');        if(tb)  tb.style.display  = 'none';
   var tbr = document.getElementById('tabbar');        if(tbr) tbr.style.display = 'none';
@@ -11585,17 +11539,13 @@ function selecionarObra(key){
         // silencioso — sbLoad já chama sbAtualizarIndicador
       });
     }, 1500);
-    // Abrir guia interativo automaticamente se obra já configurada (respeita estado salvo)
+    // Abrir guia interativo automaticamente se obra já configurada
     if(typeof guiaAbrir === 'function'){
       setTimeout(function(){
         if((state.config&&state.config.obra||'').trim()){
-          if(typeof guiaRestaurarEstado === 'function' && guiaRestaurarEstado()){
-            // Estava fechado — manter fechado, só mostrar botão reabrir
-          } else {
-            guiaAbrir();
-          }
+          guiaAbrir();
         }
-      }, 900);
+      }, 900); // delay maior para garantir DOM completo
     }
     if(typeof atualizarBadgesAbas==='function') setTimeout(function(){ try{atualizarBadgesAbas();}catch(e){}},100);
     toast('Obra "'+state.config.obra+'" carregada','success');
@@ -11754,90 +11704,20 @@ function gerarDashboardClienteDownload(){
   const html = _buildPortalCliente();
   if(!html) return;
   const c = state.config;
-  const filename = _pdfFilename('Portal_Cliente');
-  toast('Gerando PDF do Portal...','info');
-  gerarPDFdoHTML(html, filename).then(function(blob){
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(a.href);
-    toast('Portal PDF salvo: ' + filename,'success');
-  }).catch(function(e){
-    console.error('PDF Portal error:', e);
-    // Fallback: download HTML
-    const b = new Blob([html], {type:'text/html'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(b);
-    a.download = filename.replace('.pdf','.html');
-    a.click(); URL.revokeObjectURL(a.href);
-    toast('Fallback: Portal salvo como HTML','info');
-  });
-}
-
-// ═══════════════════════════════════════════════════════════════
-// PDF GENERATION ENGINE — html2pdf.js
-// ═══════════════════════════════════════════════════════════════
-var _relCurrentHtml = '';
-var _relCurrentTitle = '';
-
-function _pdfFilename(tipo){
-  var c = state.config || {};
-  var obra = (c.obra||'obra').replace(/[^a-z0-9]/gi,'_').toLowerCase();
-  var sem = String(c.semana||1).padStart(2,'0');
-  var tipoSlug = (tipo||'relatorio').replace(/[^a-z0-9]/gi,'_').toLowerCase();
-  return obra + '_' + tipoSlug + '_sem' + sem + '.pdf';
-}
-
-function _pdfOpts(filename){
-  return {
-    margin: 0,
-    filename: filename,
-    image: { type: 'jpeg', quality: 0.95 },
-    html2canvas: { scale: 2, useCORS: true, logging: false },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  };
-}
-
-function gerarPDFdoRelatorio(){
-  if(!_relCurrentHtml){ toast('Nenhum relatório aberto','info'); return; }
-  var filename = _pdfFilename(_relCurrentTitle);
-  toast('Gerando PDF...','info');
-  var container = document.createElement('div');
-  container.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;z-index:-1';
-  container.innerHTML = _relCurrentHtml;
-  document.body.appendChild(container);
-  html2pdf().set(_pdfOpts(filename)).from(container).save().then(function(){
-    document.body.removeChild(container);
-    toast('PDF salvo: ' + filename, 'success');
-  }).catch(function(e){
-    document.body.removeChild(container);
-    console.error('PDF error:', e);
-    toast('Erro ao gerar PDF — tente Imprimir','error');
-  });
-}
-
-function gerarPDFdoHTML(htmlContent, filename){
-  return new Promise(function(resolve, reject){
-    var container = document.createElement('div');
-    container.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;z-index:-1';
-    container.innerHTML = htmlContent;
-    document.body.appendChild(container);
-    html2pdf().set(_pdfOpts(filename)).from(container).outputPdf('blob').then(function(blob){
-      document.body.removeChild(container);
-      resolve(blob);
-    }).catch(function(e){
-      document.body.removeChild(container);
-      reject(e);
-    });
-  });
+  const blob = new Blob([html], {type:'text/html'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const sem  = String(c.semana||1).padStart(2,'0');
+  const apelido = slugify(c.razao_cliente||c.cliente||'cliente');
+  a.href = url; a.download = `Portal_${apelido}_Sem${sem}.html`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast('Portal baixado — salve no Drive e envie o link','success');
 }
 
 function fecharRelatorio(){
   document.getElementById('rel-modal').classList.remove('show');
   document.getElementById('rel-preview-content').innerHTML = '';
-  _relCurrentHtml = '';
-  _relCurrentTitle = '';
 }
 
 function imprimirRelatorio(){
@@ -11921,27 +11801,17 @@ function _buildPortalCliente(){
   // Pendências cliente
   const pendCliente = pends.filter(p=>p.status!=='RESOLVIDA'&&(p.responsavel||'').toLowerCase().includes('client')).slice(0,3);
 
-  // Ring SVG — grande para o header
-  const R=52,CX=60,CY=60,C=2*Math.PI*R;
-  const ringBig=`<svg width="120" height="120" viewBox="0 0 120 120">
-    <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="11"/>
-    <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="#c9a84c" stroke-width="11"
+  // Ring SVG
+  const R=38,CX=44,CY=44,C=2*Math.PI*R;
+  const ring=`<svg width="88" height="88" viewBox="0 0 88 88">
+    <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="9"/>
+    <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${p2}" stroke-width="9"
       stroke-dasharray="${C*pctGeral/100} ${C*(1-pctGeral/100)}"
       stroke-dashoffset="${C*.25}" stroke-linecap="round"/>
-    <text x="${CX}" y="${CY-2}" text-anchor="middle" font-family="'DM Sans',sans-serif"
-      font-size="28" font-weight="800" fill="#fff">${pctGeral}%</text>
+    <text x="${CX}" y="${CY+2}" text-anchor="middle" font-family="'DM Sans',sans-serif"
+      font-size="19" font-weight="800" fill="#fff">${pctGeral}%</text>
     <text x="${CX}" y="${CY+14}" text-anchor="middle" font-family="'DM Mono',monospace"
-      font-size="8" letter-spacing="1.5" fill="rgba(255,255,255,.35)">CONCLUÍDO</text>
-  </svg>`;
-  // Ring pequeno para blocos
-  const R2=30,CX2=36,CY2=36,C2=2*Math.PI*R2;
-  const ring=`<svg width="72" height="72" viewBox="0 0 72 72">
-    <circle cx="${CX2}" cy="${CY2}" r="${R2}" fill="none" stroke="rgba(0,0,0,.06)" stroke-width="7"/>
-    <circle cx="${CX2}" cy="${CY2}" r="${R2}" fill="none" stroke="${p2}" stroke-width="7"
-      stroke-dasharray="${C2*pctGeral/100} ${C2*(1-pctGeral/100)}"
-      stroke-dashoffset="${C2*.25}" stroke-linecap="round"/>
-    <text x="${CX2}" y="${CY2+4}" text-anchor="middle" font-family="'DM Sans',sans-serif"
-      font-size="16" font-weight="800" fill="var(--ink,#111)">${pctGeral}%</text>
+      font-size="7" letter-spacing="1" fill="rgba(255,255,255,.35)">CONCLUÍDO</text>
   </svg>`;
 
   // Dots
@@ -11956,159 +11826,223 @@ function _buildPortalCliente(){
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1">
 <title>${esc2(c.obra||'Obra')} · Semana ${semana}</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--dk:#1a3a2a;--ink:#111;--sub:#666;--line:#e5e5e5;--bg:#fff}
-body{font-family:'DM Sans',sans-serif;background:#f8f8f8;color:var(--ink);font-size:14px;line-height:1.55}
+:root{--p1:${p1};--p2:${p2};--bg:#F5F3F0;--card:#fff;--border:#E8E5DF;--ink:#111;--sub:#6B6B6B;--green:#1B8A5A;--amber:#C47A1E;--red:#C62828;--r:14px}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5}
 a{text-decoration:none;color:inherit}
 img{display:block}
-.wrap{max-width:640px;margin:0 auto;background:var(--bg)}
-/* HEADER */
-.hdr{background:var(--dk);padding:28px 24px 20px}
-.hdr-brand{font-size:10px;font-weight:800;color:rgba(255,255,255,.35);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px}
-.hdr-title{font-size:clamp(22px,5vw,32px);font-weight:800;color:#fff;line-height:1.05;letter-spacing:-.5px;margin-bottom:6px}
-.hdr-meta{font-size:12px;color:rgba(255,255,255,.4);line-height:1.6}
-.hdr-ring{display:flex;align-items:center;gap:16px;margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.08)}
-.hdr-kpis{display:flex;gap:20px;flex:1}
-.hdr-kpi-v{font-size:20px;font-weight:800;color:#fff}
-.hdr-kpi-l{font-size:8px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.8px;margin-top:1px}
-.hdr-dots{display:flex;align-items:center;gap:4px;margin-top:12px}
-.hdr-dots-lbl{font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,.2);letter-spacing:1px;text-transform:uppercase;margin-right:4px}
-/* SECTIONS */
-.sec{padding:20px 24px;border-bottom:1px solid var(--line)}
-.sec:last-child{border-bottom:none}
-.sec-num{font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--dk);margin-bottom:2px}
-.sec-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:var(--dk);margin-bottom:12px}
-.sec-line{height:1px;background:var(--line);margin:16px 0}
-/* KPI ROW */
-.kpi-row{display:flex;gap:0}
-.kpi{flex:1;padding-right:16px}
-.kpi:last-child{padding-right:0}
-.kpi-l{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;font-family:'DM Mono',monospace;margin-bottom:2px}
-.kpi-v{font-size:22px;font-weight:800;color:var(--ink);line-height:1.1}
-.kpi-s{font-size:10px;color:var(--sub);margin-top:2px}
-/* SERVICE ITEMS */
-.srv{display:flex;align-items:flex-start;gap:10px;padding:6px 0;border-bottom:1px solid #f5f5f5}
-.srv:last-child{border-bottom:none}
-.srv-cod{font-family:'DM Mono',monospace;font-size:10px;color:var(--sub);min-width:18px;padding-top:2px}
-.srv-nm{font-size:13px;font-weight:600;color:var(--ink);flex:1}
-.srv-pct{font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--ink)}
-.srv-tag{font-family:'DM Mono',monospace;font-size:9px;font-weight:600;padding:2px 7px;border-radius:3px;text-transform:uppercase;color:var(--sub);background:#f5f5f5}
-/* PHOTO GRID */
+nav{position:sticky;top:0;z-index:50;background:var(--p1);height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;box-shadow:0 4px 24px rgba(0,0,0,.3)}
+.nav-name{font-size:15px;font-weight:700;color:#fff;letter-spacing:-.3px}
+.nav-tag{font-size:10px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.3);margin-top:-1px}
+.nav-wa{display:flex;align-items:center;gap:5px;background:#25D366;color:#fff;padding:6px 13px;border-radius:8px;font-size:12px;font-weight:600}
+.hero{background:var(--p1);padding:22px 18px 0;overflow:hidden}
+.hero-grid{display:grid;grid-template-columns:1fr 88px;gap:12px;align-items:flex-start}
+.hero-eyebrow{font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,.25);letter-spacing:2px;text-transform:uppercase;margin-bottom:7px}
+.hero-title{font-size:clamp(20px,4vw,34px);font-weight:700;color:#fff;line-height:1.1;letter-spacing:-.5px;margin-bottom:6px}
+.hero-meta{font-size:11px;color:rgba(255,255,255,.35);line-height:1.6}
+.hero-weeks{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin-top:12px}
+.hero-wlbl{font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:1px;margin-right:3px}
+.pbar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,.08);margin-top:10px}
+.pbar-done{background:#059669}.pbar-wip{background:${p2};opacity:.7}
+.leg{display:flex;gap:14px;margin-top:6px}
+.leg-item{font-size:10px;color:rgba(255,255,255,.4);display:flex;align-items:center;gap:4px}
+.leg-dot{width:7px;height:7px;border-radius:2px;display:inline-block}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);background:rgba(0,0,0,.22);border-top:1px solid rgba(255,255,255,.05);margin:16px -18px 0}
+.stat{padding:10px 12px;border-right:1px solid rgba(255,255,255,.05)}
+.stat:last-child{border-right:none}
+.stat-v{font-size:20px;font-weight:700;color:#fff;line-height:1}
+.stat-l{font-family:'DM Mono',monospace;font-size:7px;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.7px;margin-top:2px}
+.fin{display:grid;grid-template-columns:1fr 1fr 1fr;background:var(--card);border-bottom:2.5px solid var(--p1)}
+.fin-item{padding:13px 16px;border-right:1px solid var(--border)}
+.fin-item:last-child{border-right:none}
+.fin-lbl{font-family:'DM Mono',monospace;font-size:8px;color:var(--sub);text-transform:uppercase;letter-spacing:.9px;margin-bottom:4px}
+.fin-v{font-size:22px;font-weight:700;line-height:1;color:var(--ink)}
+.fin-v.green{color:var(--green)}.fin-v.amber{color:var(--amber)}
+.fin-sub{font-size:10px;color:var(--sub);margin-top:3px}
+.fin-bar{height:3px;background:var(--border);margin-top:8px;border-radius:2px;overflow:hidden}
+.fin-fill{height:100%;background:var(--green);border-radius:2px}
+.body{max-width:640px;margin:0 auto;padding:14px 14px 60px}
+.card{background:var(--card);border-radius:var(--r);margin-bottom:12px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.05),0 0 0 1px rgba(0,0,0,.04)}
+.ch{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border)}
+.ch.dk{background:var(--p1);border-bottom:none}
+.ch.am{background:#7C3100;border-bottom:none}
+.ch.pu{background:#4C1D95;border-bottom:none}
+.ch.gr{background:#064E3B;border-bottom:none}
+.ch-ic{font-size:16px;flex-shrink:0}
+.ch-tt{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--ink);flex:1}
+.ch.dk .ch-tt,.ch.am .ch-tt,.ch.pu .ch-tt,.ch.gr .ch-tt{color:#fff}
+.ch-bg{font-family:'DM Mono',monospace;font-size:10px;color:var(--sub)}
+.ch.dk .ch-bg,.ch.am .ch-bg,.ch.pu .ch-bg,.ch.gr .ch-bg{color:rgba(255,255,255,.4)}
+.cb{padding:13px 14px}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;margin:3px 3px 3px 0}
+.pd{background:#D1FAE5;color:#065F46}.pw{background:#DBEAFE;color:#1D4ED8}.pn{background:#F3F4F6;color:#6B7280}
+.sr{display:flex;align-items:flex-start;gap:9px;padding:8px 0;border-bottom:1px solid var(--border)}
+.sr:last-child{border-bottom:none}
+.sr-n{font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:var(--p2);min-width:20px;padding-top:1px;flex-shrink:0}
+.sr-c{font-family:'DM Mono',monospace;font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px}
+.sr-nm{font-size:13px;font-weight:600;color:var(--ink);line-height:1.3}
+.sr-m{font-size:11px;color:var(--sub);margin-top:2px}
+.sb{font-family:'DM Mono',monospace;font-size:9px;font-weight:600;padding:2px 7px;border-radius:4px;text-transform:uppercase;flex-shrink:0;margin-top:2px}
+.ba{background:#DBEAFE;color:#1555B7}.be{background:#F3F4F6;color:#6B7280}
+.bd{background:#D1FAE5;color:#065F46}.bp{background:#FEE2E2;color:#C62828}
+.pr{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.pr:last-child{border-bottom:none}
+.pi{font-size:18px;flex-shrink:0;margin-top:1px}
+.pt{flex:1}
+.pd2{font-size:13px;font-weight:600;color:var(--ink)}
+.pm{font-size:11px;color:var(--sub);margin-top:2px}
+.pc{font-family:'DM Mono',monospace;font-size:10px;color:var(--amber);background:#FFFBEB;border:1px solid #FDE68A;border-radius:5px;padding:4px 8px;margin-top:5px;word-break:break-all;line-height:1.5}
+.pv{font-size:16px;font-weight:700;color:var(--ink);white-space:nowrap;padding-top:2px}
+.vb{background:linear-gradient(135deg,#7C3100,#B45309);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.vb-ic{font-size:28px;flex-shrink:0}
+.vb-l{font-size:10px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px}
+.vb-v{font-size:22px;font-weight:700;color:#fff}
+.vb-d{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px}
+.pix{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:10px;margin-top:10px}
+.pix-l{font-size:11px;color:var(--sub)}
+.pix-v{font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:var(--ink)}
+.pndr{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border)}
+.pndr:last-child{border-bottom:none}
+.pnd-d{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.pnd-t{flex:1;font-size:12px;font-weight:500}
+.pnd-p{font-family:'DM Mono',monospace;font-size:9px;font-weight:700;text-transform:uppercase}
+.dr{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #F5F3F0}
+.dr:last-child{border-bottom:none}
+.dr-ck{width:18px;height:18px;border-radius:50%;background:#D1FAE5;color:#059669;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0}
+.dr-cd{font-family:'DM Mono',monospace;font-size:9px;color:var(--sub);flex-shrink:0}
+.dr-nm{font-size:12px;font-weight:500;flex:1}
 .fg{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
-.fi{position:relative;aspect-ratio:4/3;overflow:hidden;background:#f5f5f5}
+.fi{position:relative;aspect-ratio:4/3;overflow:hidden;background:#F3F4F6}
 .fi img{width:100%;height:100%;object-fit:cover}
-.fl{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;font-size:9px;padding:8px 6px 4px}
-/* LINKS */
-.lg{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
-.lk{display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--line);border-radius:6px;font-size:11px;font-weight:600;color:var(--ink)}
-.lk-i{font-size:14px;flex-shrink:0}
-/* FOOTER */
-.ftr{background:var(--dk);padding:24px;text-align:center}
-.ftr-brand{font-size:10px;font-weight:800;color:rgba(255,255,255,.3);letter-spacing:3px;text-transform:uppercase;margin-bottom:4px}
-.ftr-name{font-size:14px;font-weight:700;color:#fff;margin-bottom:4px}
-.ftr-meta{font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,.2);line-height:1.8}
-.wa-btn{display:inline-flex;align-items:center;gap:7px;background:#25D366;color:#fff;padding:9px 20px;border-radius:8px;font-size:12px;font-weight:700;margin-top:14px}
-.pill{display:inline-block;padding:3px 10px;border-radius:3px;font-size:11px;font-weight:600;margin:2px 2px;background:#f5f5f5;color:var(--ink)}
-.pill-done{background:#f0f0f0;color:var(--dk)}
-.narr{font-size:12px;line-height:1.7;color:#444;border-left:2px solid var(--dk);padding:10px 14px;margin-top:10px}
-@media(max-width:480px){.kpi-row{flex-wrap:wrap}.kpi{min-width:45%;margin-bottom:10px}.fg{grid-template-columns:repeat(2,1fr)}.lg{grid-template-columns:1fr 1fr}}
+.fl{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.75));color:#fff;font-size:9px;padding:8px 6px 4px;line-height:1.3}
+.lg{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:7px}
+.lk{display:flex;align-items:center;gap:7px;padding:9px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;font-size:11px;font-weight:600;color:var(--ink)}
+.lk:hover{border-color:var(--p2)}
+.lk-i{font-size:16px;flex-shrink:0}.lk-l{flex:1}
+.narr{font-size:12px;line-height:1.7;color:#374151;background:#FAFAF9;border-left:3px solid var(--p2);padding:11px 13px;border-radius:0 8px 8px 0;white-space:pre-wrap}
+footer{background:var(--p1);text-align:center;padding:28px 20px}
+footer strong{font-size:16px;font-weight:700;color:#fff;display:block;margin-bottom:4px}
+footer p{font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,.3);line-height:1.8}
+.wa-btn{display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#fff;padding:10px 22px;border-radius:9px;font-size:13px;font-weight:700;margin-top:16px}
+@media(max-width:480px){
+  .fin{grid-template-columns:1fr 1fr}.fin-item:last-child{grid-column:1/-1;border-right:none;border-top:1px solid var(--border)}
+  .fg{grid-template-columns:repeat(2,1fr)}.lg{grid-template-columns:repeat(2,1fr)}
+  .stats{grid-template-columns:repeat(2,1fr)}
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <!-- HEADER -->
-  <div class="hdr">
-    <div class="hdr-brand">${esc2(c.empresa||'BERTI CONSTRUTORA')}</div>
-    <div class="hdr-title">${esc2(c.obra||'Obra')}</div>
-    <div class="hdr-meta">${esc2(c.razao_cliente||c.cliente||'')}${pi&&pf?` · ${pi} a ${pf}`:''}${c.endereco_obra?`<br>${esc2(c.endereco_obra)}`:''}</div>
-    <div class="hdr-ring">
-      ${ringBig}
-      <div class="hdr-kpis">
-        <div><div class="hdr-kpi-v">${concluidos}/${totalSrv}</div><div class="hdr-kpi-l">Serviços</div></div>
-        <div><div class="hdr-kpi-v">S${semana}</div><div class="hdr-kpi-l">Semana</div></div>
-        <div><div class="hdr-kpi-v">${pctPago}%</div><div class="hdr-kpi-l">Pago</div></div>
+<nav>
+  <div style="display:flex;align-items:center;gap:9px">
+    ${c.logo_b64?`<img src="${c.logo_b64}" style="width:28px;height:28px;border-radius:6px;object-fit:contain;background:rgba(255,255,255,.1)" alt="">`:``}
+    <div><div class="nav-name">${esc2(c.empresa||'Construtora')}</div><div class="nav-tag">${esc2(c.obra||'')}</div></div>
+  </div>
+  ${waTel?`<a href="https://wa.me/${waTel}" target="_blank" class="nav-wa">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.373 0 0 5.373 0 12c0 2.025.507 3.934 1.399 5.61L0 24l6.545-1.376C8.133 23.487 10.025 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/></svg>
+    Gestor
+  </a>`:`<div></div>`}
+</nav>
+<div class="hero">
+  <div class="hero-grid">
+    <div>
+      <div class="hero-eyebrow">${today()} · ${esc2(c.empresa||'')}</div>
+      <div class="hero-title">${esc2(c.obra||'Obra')}</div>
+      <div class="hero-meta">${esc2(c.razao_cliente||c.cliente||'')}${pi&&pf?` · ${pi} a ${pf}`:''}${c.endereco_obra?`<br>${esc2(c.endereco_obra)}`:''}</div>
+      <div class="hero-weeks">
+        <div class="hero-wlbl">Semana</div>${dots}
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,.25);margin-left:4px">${semana}/${totalMed}</div>
+      </div>
+      <div class="pbar">
+        <div class="pbar-done" style="width:${concluidos/Math.max(totalSrv,1)*100}%"></div>
+        <div class="pbar-wip"  style="width:${emAnd/Math.max(totalSrv,1)*100}%"></div>
+      </div>
+      <div class="leg">
+        <div class="leg-item"><span class="leg-dot" style="background:#059669"></span>${concluidos} concluídos</div>
+        <div class="leg-item"><span class="leg-dot" style="background:${p2};opacity:.8"></span>${emAnd} em andamento</div>
+        <div class="leg-item"><span class="leg-dot" style="background:#E5E7EB"></span>${aExec} a executar</div>
       </div>
     </div>
-    <div class="hdr-dots">
-      <div class="hdr-dots-lbl">Semana</div>${dots}
-      <span style="font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,.2);margin-left:3px">${semana}/${totalMed}</span>
-    </div>
+    <div style="flex-shrink:0">${ring}</div>
   </div>
-
-  <!-- 01 RESUMO -->
-  <div class="sec">
-    <div class="sec-num">01</div>
-    <div class="sec-title">Resumo da Obra</div>
-    <div class="kpi-row">
-      <div class="kpi"><div class="kpi-l">Contrato</div><div class="kpi-v">R$ ${fmtNum(valContrato)}</div><div class="kpi-s">${c.forma_pagamento||'—'}</div></div>
-      <div class="kpi"><div class="kpi-l">Pago</div><div class="kpi-v" style="color:#1a3a2a">R$ ${fmtNum(entradas)}</div><div class="kpi-s">${pctPago}% do total</div></div>
-      <div class="kpi"><div class="kpi-l">Em aberto</div><div class="kpi-v">R$ ${fmtNum(emAberto)}</div><div class="kpi-s">${100-pctPago}% restante</div></div>
-    </div>
-    <div style="height:4px;background:#f5f5f5;border-radius:2px;margin-top:12px;overflow:hidden"><div style="height:100%;background:var(--dk);width:${pctPago}%;border-radius:2px"></div></div>
-  </div>
-
-  <!-- 02 SEMANA ATUAL -->
-  <div class="sec">
-    <div class="sec-num">02</div>
-    <div class="sec-title">Semana ${semana}${srvsemana.length?' — '+srvsemana.length+' com avanço':''}</div>
-    ${srvsemana.length?srvsemana.slice(0,8).map(s=>`<span class="pill ${s.status_atual==='CONCLUÍDO'?'pill-done':''}">${s.cod?s.cod+' ':''}${esc2((s.descricao||s.nome||'').substring(0,28))} ${s.status_atual==='CONCLUÍDO'?'✓':(s.pct_atual||0)+'%'}</span>`).join(''):`<div style="font-size:12px;color:var(--sub)">Nenhum avanço registrado.</div>`}
-    ${narrativa?`<div class="narr">${esc2(narrativa)}</div>`:''}
-    ${emExec.length?`<div class="sec-line"></div><div style="font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-family:'DM Mono',monospace">Em execução</div>${emExec.map((s,i)=>`<div class="srv"><div class="srv-cod">${s.cod||String(i+1).padStart(2,'0')}</div><div class="srv-nm">${esc2(s.descricao||s.nome||'')}<span style="font-size:10px;color:var(--sub);font-weight:400"> · ${esc2(s.categoria||'')}${s.equipe?' · '+esc2(s.equipe):''}</span></div><div class="srv-pct">${s.pct_atual||0}%</div></div>`).join('')}`:''}
-  </div>
-
-  <!-- 03 FINANCEIRO -->
-  <div class="sec">
-    <div class="sec-num">03</div>
-    <div class="sec-title">Financeiro</div>
-    ${proxEntrada?`<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fafafa;border-radius:6px;margin-bottom:12px"><div style="font-size:22px">📆</div><div style="flex:1"><div style="font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;font-family:'DM Mono',monospace">Próximo vencimento</div><div style="font-size:18px;font-weight:800;margin-top:2px">R$ ${fmtNum(proxEntrada.valor||0)}</div><div style="font-size:11px;color:var(--sub);margin-top:1px">${esc2(proxEntrada.descricao||'')}${proxEntrada.data?' · '+esc2(proxEntrada.data.includes('-')?proxEntrada.data.split('-').reverse().join('/'):proxEntrada.data):''}</div></div></div>`:`<div style="font-size:12px;color:var(--sub);margin-bottom:10px">Nenhum pagamento pendente.</div>`}
-    <div style="display:flex;justify-content:space-between;align-items:flex-end">
-      <div><div class="kpi-l">Total pago</div><div style="font-size:18px;font-weight:800;color:var(--dk)">R$ ${fmtNum(entradas)}</div></div>
-      <div style="text-align:right"><div class="kpi-l">Saldo em aberto</div><div style="font-size:18px;font-weight:800">R$ ${fmtNum(emAberto)}</div></div>
-    </div>
-    ${c.pix_empresa?`<div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:8px;margin-top:8px;font-size:11px"><span style="color:var(--sub)">PIX</span><span style="font-family:'DM Mono',monospace;font-weight:600">${esc2(c.pix_empresa)}</span></div>`:''}
-  </div>
-
-  <!-- 04 PRÓXIMAS ETAPAS -->
-  <div class="sec">
-    <div class="sec-num">04</div>
-    <div class="sec-title">Próximas Etapas${prox.length?' — '+prox.length+' serviços':''}</div>
-    ${prox.length?prox.map((s,i)=>`<div class="srv"><div class="srv-cod">${s.cod||String(i+1).padStart(2,'0')}</div><div class="srv-nm">${esc2(s.descricao||s.nome||'')}<span style="font-size:10px;color:var(--sub);font-weight:400"> · ${esc2(s.categoria||'')}</span></div><div class="srv-tag">a executar</div></div>`).join(''):`<div style="font-size:12px;color:var(--sub)">Todas as etapas em andamento ou concluídas.</div>`}
-  </div>
-
-  <!-- 05 FOTOS -->
-  ${fotosOk.length?`<div class="sec">
-    <div class="sec-num">05</div>
-    <div class="sec-title">Registro Fotográfico — ${fotos.length} fotos</div>
-    <div class="fg">${fotosOk.map(f=>`<div class="fi"><img src="${f.url||f.src}" alt="${esc2(f.titulo_rel||f.legenda||'')}">${(f.titulo_rel||f.legenda)&&(f.titulo_rel||f.legenda)!=='Sem legenda'?`<div class="fl">${esc2(f.titulo_rel||f.legenda)}</div>`:''}</div>`).join('')}</div>
-  </div>`:''}
-
-  <!-- EXTRAS -->
-  ${pendCliente.length?`<div class="sec">
-    <div class="sec-title">⚡ Aguardando sua decisão</div>
-    ${pendCliente.map(p=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f5f5f5"><div style="width:6px;height:6px;border-radius:50%;background:${p.prioridade==='urgente'?'#C62828':p.prioridade==='alta'?'#C47A1E':'#999'};flex-shrink:0"></div><div style="font-size:12px;flex:1">${esc2(p.descricao||p.titulo||'')}</div><div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--sub);text-transform:uppercase">${p.prioridade||'normal'}</div></div>`).join('')}
-  </div>`:''}
-  ${links.length?`<div class="sec">
-    <div class="sec-title">Documentos</div>
-    <div class="lg">${links.map(l=>`<a href="${l.u}" target="_blank" class="lk"><span class="lk-i">${l.i}</span><span style="flex:1">${esc2(l.k)}</span></a>`).join('')}</div>
-  </div>`:''}
-  ${concluidos?`<div class="sec">
-    <div class="sec-title">Concluídos — ${concluidos}/${totalSrv}</div>
-    ${srvs.filter(s=>s.status_atual==='CONCLUÍDO').map(s=>`<div class="srv"><div style="color:var(--dk);font-size:11px;font-weight:800">✓</div>${s.cod?`<div class="srv-cod">${esc2(s.cod)}</div>`:''}<div class="srv-nm">${esc2(s.descricao||s.nome||'')}</div><div class="srv-pct" style="color:var(--dk)">100%</div></div>`).join('')}
-  </div>`:''}
-
-  <!-- FOOTER -->
-  <div class="ftr">
-    <div class="ftr-brand">${esc2(c.empresa||'BERTI CONSTRUTORA')}</div>
-    <div class="ftr-name">${esc2(c.obra||'')}</div>
-    <div class="ftr-meta">${c.email_empresa?esc2(c.email_empresa):''}${c.tel_empresa?' · '+esc2(c.tel_empresa):''}<br>Semana ${semana}/${totalMed} · ${today()} · ${esc2(nomeGestor)}</div>
-    ${waTel?`<a href="https://wa.me/${waTel}" target="_blank" class="wa-btn">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.373 0 0 5.373 0 12c0 2.025.507 3.934 1.399 5.61L0 24l6.545-1.376C8.133 23.487 10.025 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/></svg>
-      Falar com o gestor
-    </a>`:''}
+  <div class="stats">
+    <div class="stat"><div class="stat-v">${pctGeral}%</div><div class="stat-l">Avanço</div></div>
+    <div class="stat"><div class="stat-v">S${semana}</div><div class="stat-l">Semana</div></div>
+    <div class="stat"><div class="stat-v">${concluidos}/${totalSrv}</div><div class="stat-l">Serviços</div></div>
+    <div class="stat"><div class="stat-v">${pctPago}%</div><div class="stat-l">Pago</div></div>
   </div>
 </div>
+<div class="fin">
+  <div class="fin-item">
+    <div class="fin-lbl">Contrato</div>
+    <div class="fin-v">R$ ${fmtNum(valContrato)}</div>
+    <div class="fin-sub">${c.forma_pagamento||'—'}</div>
+    <div class="fin-bar"><div class="fin-fill" style="width:${pctPago}%"></div></div>
+  </div>
+  <div class="fin-item">
+    <div class="fin-lbl">Já pago</div>
+    <div class="fin-v green">R$ ${fmtNum(entradas)}</div>
+    <div class="fin-sub">${pctPago}% do total</div>
+  </div>
+  <div class="fin-item">
+    <div class="fin-lbl">A pagar</div>
+    <div class="fin-v amber">R$ ${fmtNum(emAberto)}</div>
+    <div class="fin-sub">${100-pctPago}% restante</div>
+  </div>
+</div>
+<div class="body">
+  <div class="card">
+    <div class="ch dk"><div class="ch-ic">📅</div><div class="ch-tt">Esta Semana — Semana ${semana}</div><div class="ch-bg">${srvsemana.length} com avanço</div></div>
+    <div class="cb">
+      ${srvsemana.length?srvsemana.slice(0,6).map(s=>`<span class="pill ${s.status_atual==='CONCLUÍDO'?'pd':'pw'}">${s.cod?s.cod+' — ':''}${esc2((s.descricao||s.nome||'').substring(0,30))}${s.status_atual==='CONCLUÍDO'?' ✓':` → ${s.pct_atual||0}%`}</span>`).join(''):`<div style="font-size:12px;color:var(--sub);padding:4px 0">Nenhum avanço registrado.</div>`}
+      ${narrativa?`<div style="margin-top:12px"><div class="narr">${esc2(narrativa)}</div></div>`:''}
+    </div>
+  </div>
+  ${emExec.length?`<div class="card">
+    <div class="ch"><div class="ch-ic">🔨</div><div class="ch-tt">Em Execução agora</div><div class="ch-bg" style="color:var(--sub)">${emExec.length} serv.</div></div>
+    <div class="cb">${emExec.map((s,i)=>`<div class="sr"><div class="sr-n">0${i+1}</div><div style="flex:1">${s.cod?`<div class="sr-c">${esc2(s.cod)}</div>`:''}<div class="sr-nm">${esc2(s.descricao||s.nome||'')}</div><div class="sr-m">${esc2(s.categoria||'')}${s.pct_atual?` · ${s.pct_atual}%`:''}${s.equipe?` · ${esc2(s.equipe)}`:''}</div></div><span class="sb ba">andamento</span></div>`).join('')}</div>
+  </div>`:''}
+  ${prox.length?`<div class="card">
+    <div class="ch"><div class="ch-ic">📋</div><div class="ch-tt">Próximas Etapas</div><div class="ch-bg" style="color:var(--sub)">${prox.length} serv.</div></div>
+    <div class="cb">${prox.map((s,i)=>`<div class="sr"><div class="sr-n" style="color:var(--sub)">${String(i+1).padStart(2,'0')}</div><div style="flex:1">${s.cod?`<div class="sr-c">${esc2(s.cod)}</div>`:''}<div class="sr-nm">${esc2(s.descricao||s.nome||'')}</div><div class="sr-m">${esc2(s.categoria||'')}${s.setor?` · ${esc2(s.setor)}`:''}</div></div><span class="sb be">a executar</span></div>`).join('')}</div>
+  </div>`:''}
+  <div class="card">
+    <div class="ch am"><div class="ch-ic">💰</div><div class="ch-tt">Pagamentos</div></div>
+    <div class="cb">
+      ${proxEntrada?`<div class="vb"><div class="vb-ic">📆</div><div style="flex:1"><div class="vb-l">Próximo vencimento</div><div class="vb-v">R$ ${fmtNum(proxEntrada.valor||0)}</div><div class="vb-d">${esc2(proxEntrada.descricao||'')}${proxEntrada.data?' · '+esc2(proxEntrada.data.includes('-')?proxEntrada.data.split('-').reverse().join('/'):proxEntrada.data):''}</div>${proxEntrada.forma==='boleto'&&proxEntrada.codigo_barras?`<div style="margin-top:6px;font-family:'DM Mono',monospace;font-size:10px;color:#FDE68A;word-break:break-all">🔷 ${esc2(proxEntrada.codigo_barras)}</div>`:''}</div></div>`:`<div style="font-size:12px;color:var(--sub);padding:4px 0;margin-bottom:10px">Nenhum pagamento pendente.</div>`}
+      <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:10px">
+        <div><div style="font-size:9px;font-family:'DM Mono',monospace;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px">Total pago</div><div style="font-size:16px;font-weight:700;color:var(--green)">R$ ${fmtNum(entradas)}</div></div>
+        <div style="text-align:right"><div style="font-size:9px;font-family:'DM Mono',monospace;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px">Saldo em aberto</div><div style="font-size:16px;font-weight:700;color:var(--amber)">R$ ${fmtNum(emAberto)}</div></div>
+      </div>
+      ${c.pix_empresa?`<div class="pix"><div class="pix-l">PIX:</div><div class="pix-v">${esc2(c.pix_empresa)}</div></div>`:''}
+    </div>
+  </div>
+  ${pendCliente.length?`<div class="card">
+    <div class="ch pu"><div class="ch-ic">📌</div><div class="ch-tt">Aguardando sua decisão</div><div class="ch-bg">${pendCliente.length} item${pendCliente.length!==1?'s':''}</div></div>
+    <div class="cb">${pendCliente.map(p=>`<div class="pndr"><div class="pnd-d" style="background:${p.prioridade==='urgente'?'#C62828':p.prioridade==='alta'?'#C47A1E':'#9CA3AF'}"></div><div class="pnd-t">${esc2(p.descricao||p.titulo||'')}</div><div class="pnd-p" style="color:${p.prioridade==='urgente'?'#C62828':p.prioridade==='alta'?'#C47A1E':'#6B7280'}">${p.prioridade||'normal'}</div></div>`).join('')}</div>
+  </div>`:''}
+  ${links.length?`<div class="card">
+    <div class="ch"><div class="ch-ic">📁</div><div class="ch-tt">Documentos da Obra</div><div class="ch-bg" style="color:var(--sub)">${links.length} arq.</div></div>
+    <div class="cb"><div class="lg">${links.map(l=>`<a href="${l.u}" target="_blank" class="lk"><span class="lk-i">${l.i}</span><span class="lk-l">${esc2(l.k)}</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.5"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg></a>`).join('')}</div></div>
+  </div>`:''}
+  ${fotosOk.length?`<div class="card">
+    <div class="ch"><div class="ch-ic">📷</div><div class="ch-tt">Registro Fotográfico</div><div class="ch-bg" style="color:var(--sub)">${fotos.length} fotos</div></div>
+    <div style="padding:6px"><div class="fg">${fotosOk.map(f=>`<div class="fi"><img src="${f.url||f.src}" alt="${esc2(f.legenda||'')}">${f.legenda&&f.legenda!=='Sem legenda'?`<div class="fl">${esc2(f.legenda)}</div>`:''}</div>`).join('')}</div></div>
+  </div>`:''}
+  ${concluidos?`<div class="card">
+    <div class="ch gr"><div class="ch-ic">✅</div><div class="ch-tt">Concluídos</div><div class="ch-bg">${concluidos}/${totalSrv}</div></div>
+    <div class="cb">${srvs.filter(s=>s.status_atual==='CONCLUÍDO').map(s=>`<div class="dr"><div class="dr-ck">✓</div>${s.cod?`<div class="dr-cd">${esc2(s.cod)}</div>`:''}<div class="dr-nm">${esc2(s.descricao||s.nome||'')}</div><div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--green);font-weight:700">100%</div></div>`).join('')}</div>
+  </div>`:''}
+</div>
+<footer>
+  <strong>${esc2(c.empresa||'Construtora')}</strong>
+  <p>${c.email_empresa?esc2(c.email_empresa):''}${c.tel_empresa?' · '+esc2(c.tel_empresa):''}<br>Semana ${semana}/${totalMed} · ${today()} · ${esc2(nomeGestor)}</p>
+  ${waTel?`<a href="https://wa.me/${waTel}" target="_blank" class="wa-btn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.373 0 0 5.373 0 12c0 2.025.507 3.934 1.399 5.61L0 24l6.545-1.376C8.133 23.487 10.025 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/></svg>
+    Falar com o gestor
+  </a>`:''}
+</footer>
 </body></html>`;
 }
 
@@ -12336,14 +12270,35 @@ function gerarDashboardInterativo() {
 // HELPER: mostrarPreview (abre modal com HTML)
 // ═══════════════════════════════════════════════════════
 function mostrarPreview(html, titulo) {
-  _relCurrentHtml = html;
-  _relCurrentTitle = titulo;
   const safe = html.replace(/"/g, '&quot;');
   document.getElementById('rel-preview-content').innerHTML =
     `<div style="padding:0"><iframe srcdoc="${safe}" style="width:100%;min-height:88vh;border:none"></iframe></div>`;
   document.getElementById('rel-modal-title').textContent = titulo;
   document.getElementById('rel-modal').classList.add('show');
   document.getElementById('rel-modal').scrollTop = 0;
+  // Adiciona botão de download se ainda não existir
+  const barBtns = document.querySelector('.rel-preview-bar-btns');
+  const existingDl = document.getElementById('btn-download-html');
+  if (barBtns && !existingDl) {
+    const dlBtn = document.createElement('button');
+    dlBtn.id = 'btn-download-html';
+    dlBtn.className = 'btn-print';
+    dlBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download HTML`;
+    dlBtn.onclick = () => {
+      const a = document.createElement('a');
+      a.href = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+      a.download = (titulo || 'relatorio').replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.html';
+      a.click();
+    };
+    barBtns.insertBefore(dlBtn, barBtns.firstChild);
+  } else if (existingDl) {
+    existingDl.onclick = () => {
+      const a = document.createElement('a');
+      a.href = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+      a.download = (titulo || 'relatorio').replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.html';
+      a.click();
+    };
+  }
 }
 
 
@@ -14914,471 +14869,6 @@ function gerarMedicaoComAceite(){
   </body></html>`;
   mostrarPreview(html, `Medição Sem ${c.semana} — Aceite Digital`);
 }
-
-
-// ═══════════════════════════════════════════════════════════════════════
-// TAREFA 1 — EXPORTAR TUDO ZIP
-// ═══════════════════════════════════════════════════════════════════════
-function exportarTudoZip(){
-  const c = state.config;
-  if(!c.obra){ toast('Configure a obra primeiro','error'); return; }
-  const semana = c.semana || 1;
-  const prefix = (c.obra||'obra').replace(/[^a-z0-9]/gi,'_').toLowerCase() + '_sem' + semana;
-
-  toast('Gerando ZIP com PDFs... aguarde','info');
-
-  // Coletar HTMLs dos relatórios
-  const htmls = [];
-
-  try { const h = _buildPortalCliente(); if(h) htmls.push({ name: prefix+'_portal_cliente', html: h }); } catch(e){}
-  try { const h = _gerarRelFotograficoHTML(); if(h) htmls.push({ name: prefix+'_fotografico', html: h }); } catch(e){}
-
-  // JSON sempre como texto
-  const textFiles = [];
-  try {
-    const json = JSON.stringify(_buildExportJSON(), null, 2);
-    textFiles.push({ name: prefix+'_dados.json', content: json });
-  } catch(e){}
-  const blocoEl = document.getElementById('export-atualizacao');
-  if(blocoEl && blocoEl.value.trim()){
-    textFiles.push({ name: prefix+'_bloco_atualizacao.txt', content: blocoEl.value });
-  }
-
-  // Gerar PDFs em paralelo
-  const pdfPromises = htmls.map(function(item){
-    return gerarPDFdoHTML(item.html, item.name+'.pdf').then(function(blob){
-      return blob.arrayBuffer().then(function(buf){
-        return { name: item.name+'.pdf', data: new Uint8Array(buf) };
-      });
-    }).catch(function(e){
-      console.warn('ZIP PDF falhou para '+item.name, e);
-      // Fallback: incluir como HTML
-      return { name: item.name+'.html', data: new TextEncoder().encode(item.html) };
-    });
-  });
-
-  Promise.all(pdfPromises).then(function(pdfFiles){
-    const allFiles = [];
-    pdfFiles.forEach(function(f){ allFiles.push(f); });
-    textFiles.forEach(function(f){ allFiles.push({ name: f.name, data: new TextEncoder().encode(f.content) }); });
-
-    if(!allFiles.length){ toast('Nenhum arquivo para exportar','info'); return; }
-    _criarZipEBaixarBin(allFiles, prefix+'.zip');
-    toast('ZIP gerado com '+allFiles.length+' arquivo(s)','success');
-  }).catch(function(e){
-    console.error('ZIP error:', e);
-    toast('Erro ao gerar ZIP','error');
-  });
-}
-
-// ZIP builder que aceita Uint8Array data diretamente (para PDFs binários)
-function _criarZipEBaixarBin(arquivos, nomeZip){
-  const enc = new TextEncoder();
-  const files = arquivos.map(f => ({ name: enc.encode(f.name), data: f.data instanceof Uint8Array ? f.data : enc.encode(f.data) }));
-  let offset = 0;
-  const localHeaders = [];
-  const centralEntries = [];
-
-  files.forEach(f => {
-    const localHeader = new Uint8Array(30 + f.name.length);
-    const dv = new DataView(localHeader.buffer);
-    dv.setUint32(0, 0x04034b50, true);
-    dv.setUint16(4, 20, true);
-    dv.setUint16(6, 0, true);
-    dv.setUint16(8, 0, true);
-    dv.setUint16(10, 0, true);
-    dv.setUint16(12, 0, true);
-    dv.setUint32(14, _crc32(f.data), true);
-    dv.setUint32(18, f.data.length, true);
-    dv.setUint32(22, f.data.length, true);
-    dv.setUint16(26, f.name.length, true);
-    dv.setUint16(28, 0, true);
-    localHeader.set(f.name, 30);
-    localHeaders.push(localHeader);
-
-    const central = new Uint8Array(46 + f.name.length);
-    const cv = new DataView(central.buffer);
-    cv.setUint32(0, 0x02014b50, true);
-    cv.setUint16(4, 20, true);
-    cv.setUint16(6, 20, true);
-    cv.setUint16(8, 0, true);
-    cv.setUint16(10, 0, true);
-    cv.setUint16(12, 0, true);
-    cv.setUint16(14, 0, true);
-    cv.setUint32(16, _crc32(f.data), true);
-    cv.setUint32(20, f.data.length, true);
-    cv.setUint32(24, f.data.length, true);
-    cv.setUint16(28, f.name.length, true);
-    cv.setUint16(30, 0, true);
-    cv.setUint16(32, 0, true);
-    cv.setUint16(34, 0, true);
-    cv.setUint16(36, 0, true);
-    cv.setUint32(38, 0, true);
-    cv.setUint32(42, offset, true);
-    central.set(f.name, 46);
-    centralEntries.push(central);
-    offset += localHeader.length + f.data.length;
-  });
-
-  const centralOffset = offset;
-  let centralSize = 0;
-  centralEntries.forEach(c => centralSize += c.length);
-  const eocd = new Uint8Array(22);
-  const ev = new DataView(eocd.buffer);
-  ev.setUint32(0, 0x06054b50, true);
-  ev.setUint16(4, 0, true);
-  ev.setUint16(6, 0, true);
-  ev.setUint16(8, files.length, true);
-  ev.setUint16(10, files.length, true);
-  ev.setUint32(12, centralSize, true);
-  ev.setUint32(16, centralOffset, true);
-  ev.setUint16(20, 0, true);
-
-  const parts = [];
-  files.forEach((f, i) => { parts.push(localHeaders[i]); parts.push(f.data); });
-  centralEntries.forEach(c => parts.push(c));
-  parts.push(eocd);
-
-  const blob = new Blob(parts, { type: 'application/zip' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = nomeZip;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-}
-
-function _crc32(data){
-  let crc = 0xFFFFFFFF;
-  if(!window._crc32Table){
-    window._crc32Table = new Uint32Array(256);
-    for(let n=0;n<256;n++){
-      let c=n;
-      for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1;
-      window._crc32Table[n] = c;
-    }
-  }
-  const t = window._crc32Table;
-  for(let i=0;i<data.length;i++) crc = t[(crc^data[i])&0xFF]^(crc>>>8);
-  return (crc^0xFFFFFFFF) >>> 0;
-}
-
-// Helpers de geração HTML para o ZIP (reutilizam lógica existente)
-function _gerarRelInternoHTML(){
-  try {
-    // Captura o HTML que abrirRelatorioSemanal() geraria
-    const c = state.config;
-    const srvs = state.servicos || [];
-    if(!c.obra) return null;
-    // Use a simplified version for ZIP
-    return null; // fallback — será incluído se o relatório já foi gerado
-  } catch(e){ return null; }
-}
-function _gerarRelClienteHTML(){ return null; }
-function _gerarRelFotograficoHTML(){
-  // Reutiliza a mesma lógica do abrirRelatorioFotografico, sem abrir modal
-  try {
-    const c = state.config;
-    const t = getRelTema();
-    const p1 = t.p1, p2 = t.p2;
-    const fotos = state.fotos || [];
-    const semana = c.semana || 1;
-    if(!fotos.length) return null;
-    const grupos = {};
-    fotos.forEach(f => { const k = f.ambiente || f.grupo || 'Geral'; (grupos[k] = grupos[k]||[]).push(f); });
-    const fotosHtml = Object.entries(grupos).map(([grp, fts]) => `
-      <div style="break-inside:avoid;margin-bottom:28px">
-        <div style="font-family:sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #333;padding-bottom:5px;margin-bottom:10px">${esc2(grp)}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          ${fts.map(f => `<div style="border:1px solid #ddd"><div style="width:100%;aspect-ratio:4/3;background:#eee;display:flex;align-items:center;justify-content:center;font-size:9px;color:#999">${f.url||f.src?`<img src="${f.url||f.src}" style="width:100%;height:100%;object-fit:cover">`:'FOTO'}</div>
-            <div style="padding:7px 10px;font-size:11px"><strong>${esc2(f.titulo_rel || f.legenda || grp + ' — ' + (f.data||''))}</strong><br><span style="font-size:9px;color:#888">${esc2(f.ambiente||grp)}${f.data?' · '+esc2(f.data):''}</span></div></div>`).join('')}
-        </div>
-      </div>`).join('');
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Relatório Fotográfico — Semana ${semana}</title></head><body style="font-family:sans-serif;padding:32px;max-width:800px;margin:0 auto"><h1 style="font-size:18px">${esc2(c.obra||'')} — Relatório Fotográfico Semana ${semana}</h1><p style="font-size:12px;color:#666">${esc2(c.cliente||'')} · ${today()}</p><hr>${fotosHtml}</body></html>`;
-  } catch(e){ return null; }
-}
-function _buildExportJSON(){
-  try {
-    const c = state.config;
-    return {
-      meta: { obra: c.obra, semana: c.semana, exportado: new Date().toISOString() },
-      config: c,
-      servicos: state.servicos,
-      equipes: state.equipes,
-      pagamentos: state.pagamentos,
-      fotos: (state.fotos||[]).map(f => ({ ambiente: f.ambiente, legenda: f.legenda, data: f.data, url: f.url||'', titulo_rel: f.titulo_rel||'' })),
-      pendencias: state.pendencias,
-      narrativa: state.narrativa||''
-    };
-  } catch(e){ return {}; }
-}
-
-
-// ═══════════════════════════════════════════════════════════════════════
-// TAREFA 2 — EDITOR DE TÍTULOS DO RELATÓRIO FOTOGRÁFICO
-// ═══════════════════════════════════════════════════════════════════════
-function _gerarTituloPadrao(foto){
-  const amb = foto.ambiente || foto.grupo || 'Geral';
-  const data = foto.data || today();
-  return amb + ' — ' + data;
-}
-
-function abrirEditorTitulosFotos(){
-  const fotos = state.fotos || [];
-  if(!fotos.length){ toast('Nenhuma foto registrada','info'); return; }
-
-  // Garantir titulo_rel em todas as fotos
-  fotos.forEach(function(f){
-    if(!f.titulo_rel) f.titulo_rel = _gerarTituloPadrao(f);
-  });
-
-  let html = `<div style="max-width:600px;margin:0 auto;padding:16px">
-    <div style="font-family:var(--font-display);font-size:16px;font-weight:800;color:var(--primary);margin-bottom:4px">✏️ Títulos do Relatório Fotográfico</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.5">Edite os títulos que aparecerão em cada foto no relatório. Padrão: "Ambiente — Data".</div>
-    <div style="display:flex;flex-direction:column;gap:10px" id="editor-titulos-fotos">`;
-
-  fotos.forEach(function(f, i){
-    const thumb = f.url || f.src || '';
-    html += `<div style="display:flex;align-items:center;gap:10px;background:var(--gray-soft);border-radius:8px;padding:8px 10px">
-      <div style="width:56px;height:42px;border-radius:6px;overflow:hidden;background:#ddd;flex-shrink:0">
-        ${thumb ? `<img src="${thumb}" style="width:100%;height:100%;object-fit:cover">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:9px;color:#999">📷</div>`}
-      </div>
-      <div style="flex:1">
-        <input type="text" id="foto-titulo-${i}" value="${esc2(f.titulo_rel||'')}" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:var(--font-body)">
-        <div style="font-size:9px;color:var(--muted);margin-top:2px;font-family:var(--font-mono)">${esc2(f.ambiente||'Geral')} · ${esc2(f.data||'')}</div>
-      </div>
-    </div>`;
-  });
-
-  html += `</div>
-    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
-      <button class="btn btn-outline btn-sm" onclick="resetarTitulosFotos()">↺ Resetar padrão</button>
-      <button class="btn btn-primary btn-sm" onclick="salvarTitulosFotos()">✓ Salvar títulos</button>
-    </div>
-  </div>`;
-
-  abrirModalRel('Editar Títulos — Relatório Fotográfico', html);
-}
-
-function salvarTitulosFotos(){
-  const fotos = state.fotos || [];
-  fotos.forEach(function(f, i){
-    const el = document.getElementById('foto-titulo-' + i);
-    if(el) f.titulo_rel = el.value.trim() || _gerarTituloPadrao(f);
-  });
-  saveState();
-  toast('Títulos salvos!', 'success');
-  fecharModalRel();
-}
-
-function resetarTitulosFotos(){
-  const fotos = state.fotos || [];
-  fotos.forEach(function(f, i){
-    f.titulo_rel = _gerarTituloPadrao(f);
-    var el = document.getElementById('foto-titulo-' + i);
-    if(el) el.value = f.titulo_rel;
-  });
-  toast('Títulos resetados ao padrão', 'info');
-}
-
-
-// ═══════════════════════════════════════════════════════════════════════
-// TAREFA 4 — RESUMO EXECUTIVO CEO
-// ═══════════════════════════════════════════════════════════════════════
-function gerarResumoExecutivo(){
-  const c = state.config;
-  if(!c.obra){ toast('Configure a obra primeiro','error'); return; }
-  const t = getRelTema();
-  const p1 = t.p1, p2 = t.p2;
-  const srvs = state.servicos || [];
-  const pags = state.pagamentos || [];
-  const semana = c.semana || 1;
-  const taxaAdmin = parseFloat(c.taxa_admin) || 15;
-
-  // AVANÇO REAL vs PREVISTO
-  const totalVal = srvs.reduce((a,s) => a + (s.valor||0), 0);
-  let pctReal = 0;
-  if(totalVal > 0) pctReal = srvs.reduce((a,s) => a + (s.pct_atual||0) * (s.valor||0), 0) / totalVal;
-  else if(srvs.length > 0) pctReal = srvs.reduce((a,s) => a + (s.pct_atual||0), 0) / srvs.length;
-
-  let pctPrev = 0;
-  const srvComPrev = srvs.filter(s => s.pct_prev > 0);
-  if(srvComPrev.length > 0){
-    const totalValPrev = srvComPrev.reduce((a,s) => a + (s.valor||0), 0);
-    if(totalValPrev > 0) pctPrev = srvComPrev.reduce((a,s) => a + (s.pct_prev||0) * (s.valor||0), 0) / totalValPrev;
-    else pctPrev = srvComPrev.reduce((a,s) => a + (s.pct_prev||0), 0) / srvComPrev.length;
-  } else {
-    // Estimar previsto pela semana vs total de semanas
-    const totalMed = parseInt(c.medicoes) || 7;
-    pctPrev = Math.min(100, Math.round(semana / totalMed * 100));
-  }
-  const desvioAvanço = Math.round(pctReal - pctPrev);
-
-  // MARGEM: orçado vs realizado vs recebido
-  const valContrato = parseFloat(c.valor_contrato) || totalVal || 0;
-  const orcadoTotal = totalVal; // soma dos valores unitários x qtd
-  const saidas = pags.filter(p => p.tipo === 'SAÍDA').reduce((a,p) => a + (parseFloat(p.valor)||0), 0);
-  const entradas = pags.filter(p => p.tipo === 'ENTRADA').reduce((a,p) => a + (parseFloat(p.valor)||0), 0);
-  const saldo = entradas - saidas;
-  const margemOrcada = valContrato > 0 ? ((valContrato - orcadoTotal) / valContrato * 100) : 0;
-  const custoProjetado = saidas > 0 && pctReal > 0 ? Math.round(saidas / (pctReal/100)) : orcadoTotal;
-  const margemProjetada = valContrato > 0 ? ((valContrato - custoProjetado) / valContrato * 100) : 0;
-
-  // ALERTAS DE DESVIO
-  const alertas = [];
-  if(desvioAvanço < -5) alertas.push({ tipo: '🔴', msg: `Obra atrasada: ${Math.abs(desvioAvanço)}pp abaixo do previsto`, cor: '#DC2626' });
-  if(desvioAvanço > 10) alertas.push({ tipo: '🟢', msg: `Obra adiantada: ${desvioAvanço}pp acima do previsto`, cor: '#059669' });
-  if(margemProjetada < margemOrcada - 5) alertas.push({ tipo: '🔴', msg: `Margem projetada (${margemProjetada.toFixed(1)}%) abaixo da orçada (${margemOrcada.toFixed(1)}%)`, cor: '#DC2626' });
-  if(saldo < 0) alertas.push({ tipo: '🔴', msg: `Caixa negativo: R$ ${fmtNum(Math.abs(saldo))} de déficit`, cor: '#DC2626' });
-  if(saldo > 0 && saldo > valContrato * 0.1) alertas.push({ tipo: '🟢', msg: `Caixa positivo: R$ ${fmtNum(saldo)} disponível`, cor: '#059669' });
-
-  // Serviços atrasados
-  const atrasados = srvs.filter(s => {
-    if(!s.data_fim) return false;
-    const fim = new Date(s.data_fim.includes('/') ? s.data_fim.split('/').reverse().join('-') : s.data_fim);
-    return fim < new Date() && (s.pct_atual||0) < 100;
-  });
-  if(atrasados.length > 0) alertas.push({ tipo: '⚠️', msg: `${atrasados.length} serviço(s) com prazo vencido`, cor: '#D97706' });
-
-  // Categorias com custo elevado
-  const catCustos = {};
-  pags.filter(p => p.tipo === 'SAÍDA').forEach(p => {
-    const cat = p.categoria || 'Outros';
-    catCustos[cat] = (catCustos[cat]||0) + (parseFloat(p.valor)||0);
-  });
-
-  const alertasHtml = alertas.length ? alertas.map(a =>
-    `<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:${a.cor}11;border-left:3px solid ${a.cor};border-radius:0 6px 6px 0;margin-bottom:6px">
-      <span style="font-size:14px">${a.tipo}</span>
-      <span style="font-size:12px;font-weight:600;color:${a.cor}">${esc2(a.msg)}</span>
-    </div>`
-  ).join('') : `<div style="padding:12px;text-align:center;font-size:12px;color:#6b7280">✅ Nenhum alerta de desvio identificado.</div>`;
-
-  // Top 5 custos por categoria
-  const topCats = Object.entries(catCustos).sort((a,b) => b[1]-a[1]).slice(0,5);
-  const maxCat = topCats[0] ? topCats[0][1] : 1;
-
-  const body = `${getBertiCSS(p1,p2)}
-  <style>
-    .rx{max-width:700px;margin:0 auto;background:#fff;font-family:'Barlow Condensed','DM Sans',sans-serif}
-    .rx-hdr{background:#1a3a2a;padding:28px 32px 22px}
-    .rx-brand{font-size:9px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px}
-    .rx-title{font-size:26px;font-weight:800;color:#fff;letter-spacing:-.3px;margin-bottom:3px}
-    .rx-sub{font-size:12px;color:rgba(255,255,255,.35);font-family:'IBM Plex Mono',monospace}
-    .rx-kpis{display:flex;border-top:1px solid rgba(255,255,255,.06);margin:18px -32px 0;padding:0}
-    .rx-kpi{flex:1;padding:16px 20px;border-right:1px solid rgba(255,255,255,.06)}
-    .rx-kpi:last-child{border-right:none}
-    .rx-kpi-v{font-size:30px;font-weight:800;color:#fff;line-height:1;font-family:'DM Sans',sans-serif}
-    .rx-kpi-l{font-size:8px;font-family:'IBM Plex Mono',monospace;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
-    .rx-body{padding:28px 32px 36px}
-    .rx-sec{margin-bottom:28px}
-    .rx-sec-h{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:#1a3a2a;padding-bottom:8px;border-bottom:2px solid #1a3a2a;margin-bottom:14px}
-    .rx-bar{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-    .rx-bar-lbl{font-size:12px;font-weight:700;width:60px;color:#111}
-    .rx-bar-track{flex:1;height:22px;background:#f5f5f5;overflow:hidden;position:relative}
-    .rx-bar-fill{height:100%;display:flex;align-items:center;padding-left:8px;font-size:10px;font-weight:800;color:#fff;min-width:24px}
-    .rx-bar-val{font-size:13px;font-weight:800;width:42px;text-align:right;color:#111}
-    .rx-tbl{width:100%;border-collapse:collapse;font-size:12px;font-family:'DM Sans',sans-serif}
-    .rx-tbl th{background:#1a3a2a;color:#fff;padding:9px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;text-align:left}
-    .rx-tbl th:last-child{text-align:right}
-    .rx-tbl td{padding:8px 14px;border-bottom:1px solid #f0f0f0}
-    .rx-tbl td:last-child{text-align:right;font-weight:700}
-    .rx-tbl tr:nth-child(even){background:#fafafa}
-    .rx-tbl .rx-total td{border-top:2px solid #1a3a2a;font-weight:800;font-size:13px;background:#fff}
-    .rx-cat{display:flex;align-items:center;gap:8px;margin-bottom:5px}
-    .rx-cat-lbl{font-size:11px;color:#666;width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .rx-cat-bar{flex:1;height:14px;background:#f5f5f5;overflow:hidden}
-    .rx-cat-fill{height:100%;background:#1a3a2a}
-    .rx-cat-val{font-size:11px;font-weight:700;width:80px;text-align:right;font-family:'IBM Plex Mono',monospace;color:#111}
-    .rx-alert{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #f5f5f5;font-size:12px}
-    .rx-alert:last-child{border-bottom:none}
-    .rx-alert-ic{font-size:14px;flex-shrink:0;margin-top:1px}
-    .rx-alert-txt{flex:1;color:#111;font-weight:500}
-  </style>
-  <body style="background:#f0f0f0;padding:20px 0">
-  <div class="rx">
-    <div class="rx-hdr">
-      <div class="rx-brand">${esc2(c.empresa||'BERTI CONSTRUTORA')}</div>
-      <div class="rx-title">Resumo Executivo</div>
-      <div class="rx-sub">${esc2(c.obra||'')} · Semana ${semana} · ${today()}</div>
-      <div class="rx-kpis">
-        <div class="rx-kpi"><div class="rx-kpi-v">${Math.round(pctReal)}%</div><div class="rx-kpi-l">Avanço real</div></div>
-        <div class="rx-kpi"><div class="rx-kpi-v" style="color:rgba(255,255,255,.35)">${Math.round(pctPrev)}%</div><div class="rx-kpi-l">Previsto</div></div>
-        <div class="rx-kpi"><div class="rx-kpi-v">${margemProjetada.toFixed(1)}%</div><div class="rx-kpi-l">Margem proj.</div></div>
-        <div class="rx-kpi"><div class="rx-kpi-v">${saldo >= 0 ? '' : '−'}R$${fmtNum(Math.abs(saldo))}</div><div class="rx-kpi-l">${saldo >= 0 ? 'Saldo' : 'Déficit'}</div></div>
-      </div>
-    </div>
-
-    <div class="rx-body">
-
-      <div class="rx-sec">
-        <div class="rx-sec-h">Avanço: Real vs Previsto</div>
-        <div class="rx-bar">
-          <div class="rx-bar-lbl">Real</div>
-          <div class="rx-bar-track"><div class="rx-bar-fill" style="width:${Math.min(100,pctReal)}%;background:#1a3a2a">${Math.round(pctReal)}%</div></div>
-          <div class="rx-bar-val">${Math.round(pctReal)}%</div>
-        </div>
-        <div class="rx-bar">
-          <div class="rx-bar-lbl" style="color:#999">Previsto</div>
-          <div class="rx-bar-track"><div class="rx-bar-fill" style="width:${Math.min(100,pctPrev)}%;background:#bbb">${Math.round(pctPrev)}%</div></div>
-          <div class="rx-bar-val" style="color:#999">${Math.round(pctPrev)}%</div>
-        </div>
-        <div style="text-align:right;font-size:12px;font-weight:700;color:#111;margin-top:4px">
-          Desvio: ${desvioAvanço > 0 ? '+' : ''}${desvioAvanço}pp ${desvioAvanço < -5 ? '▼' : desvioAvanço > 5 ? '▲' : ''}
-        </div>
-      </div>
-
-      <div class="rx-sec">
-        <div class="rx-sec-h">Margem Financeira</div>
-        <table class="rx-tbl">
-          <thead><tr><th>Métrica</th><th>Valor</th></tr></thead>
-          <tbody>
-            <tr><td>Valor do contrato</td><td>R$ ${fmtNum(valContrato)}</td></tr>
-            <tr><td>Orçamento base (custo)</td><td>R$ ${fmtNum(orcadoTotal)}</td></tr>
-            <tr><td>Gasto realizado</td><td>R$ ${fmtNum(saidas)}</td></tr>
-            <tr><td>Recebido do cliente</td><td>R$ ${fmtNum(entradas)}</td></tr>
-            <tr><td>Custo projetado (estimado)</td><td>R$ ${fmtNum(custoProjetado)}</td></tr>
-            <tr class="rx-total"><td>Margem orçada</td><td>${margemOrcada.toFixed(1)}%</td></tr>
-            <tr class="rx-total"><td>Margem projetada</td><td>${margemProjetada.toFixed(1)}%</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      ${topCats.length ? `<div class="rx-sec">
-        <div class="rx-sec-h">Custos por Categoria</div>
-        ${topCats.map(([cat,val]) => `<div class="rx-cat">
-          <div class="rx-cat-lbl">${esc2(cat)}</div>
-          <div class="rx-cat-bar"><div class="rx-cat-fill" style="width:${(val/maxCat*100).toFixed(1)}%"></div></div>
-          <div class="rx-cat-val">R$ ${fmtNum(val)}</div>
-        </div>`).join('')}
-      </div>` : ''}
-
-      <div class="rx-sec">
-        <div class="rx-sec-h">Alertas</div>
-        ${alertas.length ? alertas.map(a =>
-          `<div class="rx-alert"><div class="rx-alert-ic">${a.tipo}</div><div class="rx-alert-txt">${esc2(a.msg)}</div></div>`
-        ).join('') : `<div class="rx-alert"><div class="rx-alert-ic">✓</div><div class="rx-alert-txt" style="color:#666">Nenhum alerta de desvio.</div></div>`}
-      </div>
-
-      ${atrasados.length ? `<div class="rx-sec">
-        <div class="rx-sec-h">Serviços com Prazo Vencido (${atrasados.length})</div>
-        <table class="rx-tbl">
-          <thead><tr><th>Código</th><th>Serviço</th><th style="text-align:center">%</th><th>Prazo</th></tr></thead>
-          <tbody>${atrasados.slice(0,10).map(s => `<tr><td style="font-family:'IBM Plex Mono',monospace;font-weight:700">${esc2(s.cod||'')}</td><td>${esc2(s.nome||s.descricao||'')}</td><td style="text-align:center">${s.pct_atual||0}%</td><td>${esc2(s.data_fim||'—')}</td></tr>`).join('')}</tbody>
-        </table>
-      </div>` : ''}
-
-    </div>
-    <div class="rdp">
-      <div class="rdp-l">${esc2(c.empresa||'Berti Construtora LTDA')}</div>
-      <div class="rdp-c">Resumo Executivo — ${esc2(c.obra||'')}</div>
-      <div class="rdp-r">${today()} · Semana ${semana}</div>
-    </div>
-  </div>
-  </body>`;
-
-  abrirModalRel(`Resumo Executivo — Semana ${semana}`, body);
-}
-
 
 // ═══════════════════════════════════════════════════════════════════════
 // ── INJETAR detectores de atraso e presença no renderDrawer ─────────
