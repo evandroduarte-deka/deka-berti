@@ -8903,6 +8903,8 @@ const GSCRIPT_CODE = `function doPost(e) {
           if (item.data_inicio !== undefined) cron.getRange(cronRow, 8).setValue(item.data_inicio || '');
           // I=FIM (col 9)
           if (item.data_fim !== undefined) cron.getRange(cronRow, 9).setValue(item.data_fim || '');
+          // J=PRAZO em dias (col 10) — calculado no Cockpit
+          if (item.prazo_dias !== undefined) cron.getRange(cronRow, 10).setValue(item.prazo_dias || 0);
           // K=% PREV (col 11) — decimal 0-1
           if (item.pct_prev !== undefined) cron.getRange(cronRow, 11).setValue(parseFloat(item.pct_prev) || 0);
           result.updates++;
@@ -8912,6 +8914,33 @@ const GSCRIPT_CODE = `function doPost(e) {
       }
     } catch(err) {
       result.errors.push('Cronograma: ' + err.message);
+    }
+  }
+
+  // ── Config da obra: atualiza aba _CONFIG ──────────────────────────────────
+  if (data.config) {
+    try {
+      var cfg = ss.getSheetByName('_CONFIG');
+      if (cfg) {
+        if (data.config.obra)                cfg.getRange('C5').setValue(data.config.obra);
+        if (data.config.razao_cliente)       cfg.getRange('C6').setValue(data.config.razao_cliente);
+        if (data.config.cnpj_cliente)        cfg.getRange('C8').setValue(data.config.cnpj_cliente);
+        if (data.config.endereco_obra)       cfg.getRange('C11').setValue(data.config.endereco_obra);
+        if (data.config.valor_contrato)      cfg.getRange('C16').setValue(data.config.valor_contrato);
+        if (data.config.medicoes)            cfg.getRange('C18').setValue(data.config.medicoes);
+        if (data.config.taxa_admin !== undefined) cfg.getRange('C22').setValue(data.config.taxa_admin);
+        if (data.config.responsavel_tecnico) cfg.getRange('C23').setValue(data.config.responsavel_tecnico);
+        if (data.config.nome_gestor)         cfg.getRange('C24').setValue(data.config.nome_gestor);
+        // Semana e período — células livres (DEV-05 ajusta endereços quando planilha for atualizada)
+        try { cfg.getRange('C36').setValue(data.config.semana || 1); } catch(e) {}
+        try { cfg.getRange('C37').setValue(data.config.periodo_ini || ''); } catch(e) {}
+        try { cfg.getRange('C38').setValue(data.config.periodo_fim || ''); } catch(e) {}
+        result.updates++;
+      } else {
+        result.errors.push('Aba _CONFIG não encontrada');
+      }
+    } catch(err) {
+      result.errors.push('Config: ' + err.message);
     }
   }
 
@@ -9188,15 +9217,27 @@ async function aplicarNaPlanilha(){
 
     // TAREFA 2 — Cronograma: datas e ambiente por serviço
     // Apps Script escreve cols B(ambiente) H(inicio) I(fim) K(pct_prev)
+    // Cronograma: datas, ambiente e prazo por serviço
+    // Apps Script escreve cols B(ambiente) H(inicio) I(fim) J(prazo) K(pct_prev)
     cronograma: (state.servicos || [])
       .filter(s => s.data_inicio || s.data_fim || s.setor || s.ambiente)
-      .map(s => ({
-        cod:         s.cod          || '',
-        ambiente:    s.setor || s.ambiente || '',
-        data_inicio: s.data_inicio  || '',
-        data_fim:    s.data_fim     || '',
-        pct_prev:    (s.pct_atual   || 0) / 100  // % previsto em decimal
-      })),
+      .map(s => {
+        // Calcular prazo em dias entre data_inicio e data_fim
+        let prazo = parseInt(s.prazo_dias) || 0;
+        if(!prazo && s.data_inicio && s.data_fim){
+          const ini = new Date(s.data_inicio + 'T00:00:00');
+          const fim = new Date(s.data_fim    + 'T00:00:00');
+          prazo = Math.max(0, Math.round((fim - ini) / 86400000));
+        }
+        return {
+          cod:         s.cod          || '',
+          ambiente:    s.setor || s.ambiente || '',
+          data_inicio: s.data_inicio  || '',
+          data_fim:    s.data_fim     || '',
+          prazo_dias:  prazo,
+          pct_prev:    (s.pct_atual   || 0) / 100  // % previsto em decimal
+        };
+      }),
 
     // TAREFA 3 — Config da obra: atualiza aba _CONFIG da planilha
     config: {
