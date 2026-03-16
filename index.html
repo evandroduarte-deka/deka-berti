@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Mestre de Obra — Berti Construtora</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Jost:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Jost:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --primary: #0D2016;
@@ -1523,13 +1523,22 @@ body.tabs-active .sec-chevron{display:flex}
 body.tabs-active .sec-num{width:22px;height:22px;font-size:10px}
 body.tabs-active .sec-title{font-size:12px;text-transform:uppercase;letter-spacing:.5px}
 body.tabs-active main{padding:0 0 80px;max-width:100%}
-body.tabs-active .tab-panel.active{max-width:100%;margin:0 auto;padding:12px 12px 80px}
+body.tabs-active .tab-panel.active{max-width:900px;margin:0 auto;padding:12px 12px 80px}
 body.tabs-active #tab-cronograma.active{max-width:100%!important;margin:0!important;padding:0 0 80px 0!important}
 
 /* Seção única na aba — sempre expandida, header não é clicável */
 .sec-unica > .sec-header { cursor: default; pointer-events: none; }
 .sec-unica > .sec-header .sec-chevron { display: none; }
 .sec-unica > .sec-body { display: block !important; max-height: none !important; }
+
+/* ── Blocos expandíveis SOMENTE na aba Registro ──
+   Todas as demais abas: sem header, sem card, conteúdo direto */
+.tab-panel:not(#tab-registro) > .sec > .sec-header { display: none; }
+.tab-panel:not(#tab-registro) > .sec > .sec-body { display: block !important; }
+.tab-panel:not(#tab-registro) > .sec {
+  background: none; border: none; box-shadow: none;
+  border-radius: 0; margin-bottom: 0; overflow: visible;
+}
 
 /* ───── CRONÔMETRO DE VISITA ───── */
 .cronometro-bar{
@@ -4520,9 +4529,9 @@ const MODELOS = {
   },
   artistico: {
     name: 'Artístico',
-    desc: 'Expressivo · personalidade · cantos suaves',
+    desc: 'Expressivo · cores fortes · personalidade',
     radius: '12px', radiusLg: '18px',
-    fontDisplay: "'Playfair Display', serif",
+    fontDisplay: "'Space Grotesk', sans-serif",
     fontBody: "'DM Sans', sans-serif",
     preview: { corner: '12px', weight: '700' }
   },
@@ -8722,13 +8731,7 @@ function renderHistoricoVisitas(){
 // ───────────────────────────────────────────────
 // GOOGLE SHEETS VIA APPS SCRIPT
 // ───────────────────────────────────────────────
-const GSCRIPT_CODE = `// ══════════════════════════════════════════════════════════
-// Mestre de Obra — Apps Script v3 (BATCH OTIMIZADO)
-// Todas as escritas usam setValues() em lote — sem setValue() individual
-// Execução típica: <3s para 50+ serviços (antes: timeout com 5+)
-// ══════════════════════════════════════════════════════════
-
-function doPost(e) {
+const GSCRIPT_CODE = `function doPost(e) {
   var data = JSON.parse(e.postData.contents);
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var result = { status: 'ok', updates: 0, errors: [] };
@@ -8737,19 +8740,24 @@ function doPost(e) {
   if (data.acao === 'novoFornecedor' && data.fornecedor) {
     try {
       var f = data.fornecedor;
+      // Abre a Base de Dados pelo ID enviado pelo Cockpit
       var targetSS = data.baseDadosId
-        ? SpreadsheetApp.openById(data.baseDadosId) : ss;
+        ? SpreadsheetApp.openById(data.baseDadosId)
+        : ss; // fallback: planilha ativa
       var fornSheet = targetSS.getSheetByName('🤝 Fornecedores');
-      if (!fornSheet) throw new Error('Aba Fornecedores não encontrada na Base de Dados');
+      if (!fornSheet) throw new Error('Aba "🤝 Fornecedores" não encontrada na Base de Dados');
       fornSheet.appendRow([
         f.equipe_cod, f.nome, f.tipo, f.especialidade,
         f.cnpj_cpf, f.responsavel, f.telefone, f.email,
         f.banco, f.pix, f.obs_obras, f.avaliacao, f.ativo
       ]);
+      result.updates++;
+      // Log na Base de Dados
       if (data.log) {
         var logSheet = targetSS.getSheetByName('📝 Log');
         if (logSheet) {
-          var logNum = String(logSheet.getLastRow() - 4).padStart(3, '0');
+          var lastLogRow = logSheet.getLastRow();
+          var logNum = String(lastLogRow - 4).padStart(3, '0');
           logSheet.appendRow([logNum, data.log.data, data.log.hora || '', data.log.aba, data.log.descricao, data.log.autor]);
         }
       }
@@ -8759,44 +8767,52 @@ function doPost(e) {
     }
   }
 
-  // ════════════════════════════════════════════════════════
-  // ORÇAMENTO — BATCH: monta arrays em memória, escreve 2x
-  // Cols A-F (dados) + Cols H-J (equipe/status)
-  // G(=E*F) e K(=Medições!G) são fórmulas — NUNCA sobrescrever
-  // ════════════════════════════════════════════════════════
+  // ── Orçamento: campos editáveis (cols A–F, H–J) ── BUG-ORC-01/02/03/04 fix
+  // data.servicos = chave correta do payload; data.orcamento = fallback legado
+  // cols G (=E*F) e K (=Medições!G) são fórmulas — NUNCA sobrescrever
   var orcItems = data.servicos || data.orcamento || [];
-  // Mapa cod→linha absoluta (ex: SRV-001→6, SRV-002→7)
-  // Construído aqui, reutilizado por Medições e Cronograma
-  // Elimina dependência de fórmulas que referenciam Orçamento!A
-  var codRowMap = {};
   if (orcItems.length) {
     try {
       var orc = ss.getSheetByName('Orçamento') || ss.getSheetByName('Orcamento');
       if (orc) {
-        var needed = orcItems.length + 5;
         var orcLastRow = orc.getLastRow();
+        // Garante linhas suficientes (dados a partir linha 6)
+        var needed = orcItems.length + 5;
         if (orcLastRow < needed) orc.insertRowsAfter(orcLastRow, needed - orcLastRow);
-        var totalRows = Math.max(orc.getLastRow() - 5, orcItems.length);
-        var codigos = orc.getRange(6, 1, totalRows, 1).getValues().map(function(r){return r[0];});
-        var existAF = orc.getRange(6, 1, totalRows, 6).getValues();
-        var existHJ = orc.getRange(6, 8, totalRows, 3).getValues();
-
+        // Ler códigos existentes (col A, a partir linha 6)
+        var totalRows = Math.max(orcLastRow - 5, orcItems.length);
+        var codigos = orc.getRange(6, 1, totalRows, 1).getValues();
         orcItems.forEach(function(item) {
-          var idx = codigos.indexOf(item.cod);
-          if (idx === -1) {
+          var targetRow = -1;
+          // Localizar linha pelo código
+          for (var i = 0; i < codigos.length; i++) {
+            if (codigos[i][0] === item.cod) { targetRow = i + 6; break; }
+          }
+          // Próxima linha vazia
+          if (targetRow === -1) {
             for (var i = 0; i < codigos.length; i++) {
-              if (!codigos[i]) { idx = i; codigos[i] = item.cod; break; }
+              if (!codigos[i][0]) { targetRow = i + 6; codigos[i][0] = item.cod; break; }
             }
           }
-          if (idx === -1) { idx = codigos.length; codigos.push(item.cod); existAF.push(['','','','','','']); existHJ.push(['','','']); }
-          existAF[idx] = [item.cod, item.categoria||'', item.descricao||'', item.unidade||'vb', item.quantidade||1, item.valor_unitario||0];
-          existHJ[idx] = [item.equipe_cod||'', item.equipe||'', item.status||'A EXECUTAR'];
-          // Registrar no mapa: cod → linha absoluta na planilha
-          codRowMap[item.cod] = idx + 6;
+          if (targetRow === -1) { targetRow = orc.getLastRow() + 1; }
+          // Escrever apenas cols sem fórmula:
+          // A=CÓD  B=CAT  C=DESCRIÇÃO  D=UNID  E=QTDE  F=UNIT(R$)
+          // G=TOTAL(R$) ← FÓRMULA =E*F — NUNCA SOBRESCREVER
+          // H=EQUIPE_COD  I=EQUIPE/FORNEC  J=STATUS
+          // K=%CONCLUSÃO ← FÓRMULA =Medições!G — NUNCA SOBRESCREVER
+          orc.getRange(targetRow, 1).setValue(item.cod);
+          orc.getRange(targetRow, 2).setValue(item.categoria || '');
+          orc.getRange(targetRow, 3).setValue(item.descricao || '');
+          orc.getRange(targetRow, 4).setValue(item.unidade || 'vb');
+          orc.getRange(targetRow, 5).setValue(item.quantidade || 1);
+          orc.getRange(targetRow, 6).setValue(item.valor_unitario || 0);
+          // col 7 = fórmula E×F — não escrever
+          orc.getRange(targetRow, 8).setValue(item.equipe_cod || '');
+          orc.getRange(targetRow, 9).setValue(item.equipe || '');
+          orc.getRange(targetRow, 10).setValue(item.status || 'A EXECUTAR');
+          // col 11 = fórmula Medições!G — não escrever
           result.updates++;
         });
-        orc.getRange(6, 1, existAF.length, 6).setValues(existAF);
-        orc.getRange(6, 8, existHJ.length, 3).setValues(existHJ);
       } else {
         result.errors.push('Aba Orçamento não encontrada');
       }
@@ -8805,9 +8821,7 @@ function doPost(e) {
     }
   }
 
-  // ════════════════════════════════════════════════════════
-  // FINANCEIRO — BATCH: monta array de linhas novas, 1 setValues()
-  // ════════════════════════════════════════════════════════
+  // ── Financeiro: 12 colunas + Nº sequencial ── D59 fix
   if (data.financeiro && data.financeiro.length) {
     try {
       var fin = ss.getSheetByName('Financeiro');
@@ -8817,18 +8831,19 @@ function doPost(e) {
         if (finLastRow >= 9) {
           var lastNums = fin.getRange(9, 1, finLastRow - 8, 1).getValues();
           for (var i = lastNums.length - 1; i >= 0; i--) {
-            if (lastNums[i][0] && !isNaN(parseInt(lastNums[i][0]))) { lastNum = parseInt(lastNums[i][0]); break; }
+            if (lastNums[i][0] && !isNaN(parseInt(lastNums[i][0]))) {
+              lastNum = parseInt(lastNums[i][0]);
+              break;
+            }
           }
         }
-        var finRows = [];
         data.financeiro.forEach(function(p) {
           lastNum++;
-          finRows.push([String(lastNum).padStart(3,'0'), p.data, p.descricao, p.tipo, p.categoria, p.fornecedor, p.srv_cod||'', p.nf||'', p.valor, p.forma||'', p.status||'PENDENTE', p.obs||'']);
+          var numStr = String(lastNum).padStart(3, '0');
+          // Colunas: Nº · DATA · DESCRIÇÃO · TIPO · CATEGORIA · FORNECEDOR/CLIENTE · SRV_COD · NF/RECIBO · VALOR · FORMA PGTO · STATUS · OBS
+          fin.appendRow([numStr, p.data, p.descricao, p.tipo, p.categoria, p.fornecedor, p.srv_cod||'', p.nf||'', p.valor, p.forma||'', p.status||'PENDENTE', p.obs||'']);
           result.updates++;
         });
-        // UMA escrita batch — substitui N appendRow() individuais
-        var startRow = Math.max(finLastRow + 1, 9);
-        fin.getRange(startRow, 1, finRows.length, 12).setValues(finRows);
       } else {
         result.errors.push('Aba Financeiro não encontrada');
       }
@@ -8837,21 +8852,32 @@ function doPost(e) {
     }
   }
 
-  // ════════════════════════════════════════════════════════
-  // MEDIÇÕES — usa codRowMap do Orçamento (não lê fórmulas)
-  // Col F = % exec. essa medição (decimal) ← ÚNICO ponto de escrita
-  // Cols A-D, G-I = fórmulas — NUNCA sobrescrever
-  // ════════════════════════════════════════════════════════
+  // ── Medições: escreve APENAS col F (% exec essa medição) ── BUG-MED-01/02 fix
+  // Cols A-D = fórmulas automáticas de Orçamento
+  // Col E = % acum. anterior (histórico — não sobrescrever)
+  // Col F = % exec. essa medição ← ÚNICO ponto de escrita do cockpit (decimal: 0.75 = 75%)
+  // Cols G/H/I = fórmulas calculadas — NUNCA sobrescrever
   if (data.medicoes && data.medicoes.length) {
     try {
       var med = ss.getSheetByName('Medições') || ss.getSheetByName('Medicoes');
       if (med) {
+        // Ler códigos da col A a partir linha 6
+        var medLastRow = med.getLastRow();
+        var medTotal = Math.max(medLastRow - 5, 1);
+        var medCods = med.getRange(6, 1, medTotal, 1).getValues();
         data.medicoes.forEach(function(m) {
-          var row = codRowMap[m.cod];
-          if (!row) { result.errors.push('Medições: código sem linha no Orçamento — ' + m.cod); return; }
+          var medRow = -1;
+          for (var i = 0; i < medCods.length; i++) {
+            if (medCods[i][0] === m.cod) { medRow = i + 6; break; }
+          }
+          if (medRow === -1) { result.errors.push('Medições: código não encontrado — ' + m.cod); return; }
+          // Escrever apenas col F = % exec. essa medição (decimal)
           var pctF = typeof m.pct === 'number' ? m.pct : (parseFloat(m.pct) || 0);
-          med.getRange(row, 6).setValue(pctF);
-          if (m.obs !== undefined && m.obs !== null) med.getRange(row, 10).setValue(m.obs);
+          med.getRange(medRow, 6).setValue(pctF);
+          // Col J = OBS (opcional)
+          if (m.obs !== undefined && m.obs !== null) {
+            med.getRange(medRow, 10).setValue(m.obs);
+          }
           result.updates++;
         });
       } else {
@@ -8862,22 +8888,32 @@ function doPost(e) {
     }
   }
 
-  // ════════════════════════════════════════════════════════
-  // CRONOGRAMA — usa codRowMap do Orçamento (não lê fórmulas)
+
+  // ── Cronograma: colunas manuais B/H/I/K por código ── GAP-CRON fix
+  // Cols A/C/D/E/F/G/J/L = fórmulas automáticas de Orçamento — NUNCA sobrescrever
   // Cols manuais: B=AMBIENTE · H=INÍCIO · I=FIM · K=% PREV (decimal)
-  // Cols A/C/D/E/F/G/J/L = fórmulas — NUNCA sobrescrever
-  // ════════════════════════════════════════════════════════
   if (data.cronograma && data.cronograma.length) {
     try {
       var cron = ss.getSheetByName('Cronograma');
       if (cron) {
+        var cronLastRow = cron.getLastRow();
+        var cronTotal = Math.max(cronLastRow - 5, 1);
+        // Col A tem fórmula =Orçamento!A — ler para localizar linha por código
+        var cronCods = cron.getRange(6, 1, cronTotal, 1).getValues();
         data.cronograma.forEach(function(item) {
-          var row = codRowMap[item.cod];
-          if (!row) { result.errors.push('Cronograma: código sem linha no Orçamento — ' + item.cod); return; }
-          if (item.ambiente !== undefined) cron.getRange(row, 2).setValue(item.ambiente || '');
-          if (item.data_inicio !== undefined) cron.getRange(row, 8).setValue(item.data_inicio || '');
-          if (item.data_fim !== undefined) cron.getRange(row, 9).setValue(item.data_fim || '');
-          if (item.pct_prev !== undefined) cron.getRange(row, 11).setValue(parseFloat(item.pct_prev) || 0);
+          var cronRow = -1;
+          for (var i = 0; i < cronCods.length; i++) {
+            if (cronCods[i][0] === item.cod) { cronRow = i + 6; break; }
+          }
+          if (cronRow === -1) { result.errors.push('Cronograma: código não encontrado — ' + item.cod); return; }
+          // B=AMBIENTE / SETOR (col 2)
+          if (item.ambiente !== undefined) cron.getRange(cronRow, 2).setValue(item.ambiente || '');
+          // H=INÍCIO (col 8)
+          if (item.data_inicio !== undefined) cron.getRange(cronRow, 8).setValue(item.data_inicio || '');
+          // I=FIM (col 9)
+          if (item.data_fim !== undefined) cron.getRange(cronRow, 9).setValue(item.data_fim || '');
+          // K=% PREV (col 11) — decimal 0-1
+          if (item.pct_prev !== undefined) cron.getRange(cronRow, 11).setValue(parseFloat(item.pct_prev) || 0);
           result.updates++;
         });
       } else {
@@ -8888,47 +8924,7 @@ function doPost(e) {
     }
   }
 
-  // ── _CONFIG: dados da obra ──
-  if (data.config) {
-    try {
-      var cfg = ss.getSheetByName('_CONFIG');
-      if (cfg) {
-        var c = data.config;
-        // C5:C14 — bloco contíguo de dados da obra
-        cfg.getRange(5, 3, 10, 1).setValues([
-          [c.obra||''],              // C5  NOME DA OBRA
-          [c.razao_cliente||''],     // C6  RAZÃO SOCIAL CLIENTE
-          [c.cliente||''],           // C7  APELIDO CLIENTE
-          [c.cnpj_cliente||''],      // C8  CNPJ/CPF CLIENTE
-          [c.email_cliente||''],     // C9  EMAIL CLIENTE
-          [c.telefone_cliente||''],  // C10 TELEFONE CLIENTE
-          [c.endereco_obra||''],     // C11 ENDEREÇO DA OBRA
-          [c.tipo_obra||''],         // C12 TIPO DE OBRA
-          [c.periodo_ini||''],       // C13 DATA INÍCIO
-          [c.periodo_fim||'']        // C14 DATA TÉRMINO PREVISTO
-        ]);
-        // C16 VALOR CONTRATO (C15 é header "VALORES" — não escrever)
-        cfg.getRange(16, 3).setValue(c.valor_contrato||0);
-        // C18:C20 — medições / periodicidade / pagamento (C17 é fórmula orçado)
-        cfg.getRange(18, 3, 3, 1).setValues([
-          [c.medicoes||4],
-          [c.periodicidade||'mensal'],
-          [c.forma_pagamento||'PIX']
-        ]);
-        // C22 TAXA ADM (decimal: 15 → 0.15)
-        cfg.getRange(22, 3).setValue(c.taxa_admin ? c.taxa_admin/100 : 0.15);
-        // C26 ESCOPO RESUMIDO
-        if (c.escopo_resumo) cfg.getRange(26, 3).setValue(c.escopo_resumo);
-        // C36 SEMANA ATUAL
-        cfg.getRange(36, 3).setValue(data.semana || 1);
-        result.updates++;
-      }
-    } catch(err) {
-      result.errors.push('_CONFIG: ' + err.message);
-    }
-  }
-
-  // ── Log: Nº sequencial + 6 colunas ──
+  // ── Log: Nº sequencial + 6 colunas ── D59 fix
   if (data.log) {
     try {
       var log = ss.getSheetByName('Log');
@@ -8938,26 +8934,31 @@ function doPost(e) {
         if (logLastRow >= 5) {
           var lastLogNums = log.getRange(5, 1, logLastRow - 4, 1).getValues();
           for (var i = lastLogNums.length - 1; i >= 0; i--) {
-            if (lastLogNums[i][0] && !isNaN(parseInt(lastLogNums[i][0]))) { lastLogNum = parseInt(lastLogNums[i][0]); break; }
+            if (lastLogNums[i][0] && !isNaN(parseInt(lastLogNums[i][0]))) {
+              lastLogNum = parseInt(lastLogNums[i][0]);
+              break;
+            }
           }
         }
         lastLogNum++;
-        log.appendRow([String(lastLogNum).padStart(3,'0'), data.log.data, data.log.hora, data.log.aba, data.log.descricao, data.log.autor]);
+        var logNumStr = String(lastLogNum).padStart(3, '0');
+        // Colunas: Nº · DATA · HORA · ABA ALTERADA · DESCRIÇÃO · RESPONSÁVEL
+        log.appendRow([logNumStr, data.log.data, data.log.hora, data.log.aba, data.log.descricao, data.log.autor]);
         result.updates++;
+      } else {
+        result.errors.push('Aba Log não encontrada');
       }
     } catch(err) {
       result.errors.push('Log: ' + err.message);
     }
   }
 
-  // Forçar flush de todas as escritas pendentes
-  SpreadsheetApp.flush();
   if (result.errors.length > 0) result.status = 'partial';
   return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
 }
 
 function doGet(e) {
-  return ContentService.createTextOutput(JSON.stringify({status:'ok',msg:'Mestre de Obra API v3 — batch otimizado'})).setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput(JSON.stringify({status:'ok',msg:'Mestre de Obra API ativa'})).setMimeType(ContentService.MimeType.JSON);
 }`;
 
 function populateGscriptCode(){
@@ -9145,19 +9146,14 @@ async function aplicarNaPlanilha(){
   const url = getGscriptUrl();
   if(!url){ toast('Configure o Google Apps Script em Configuração > Integrações','error'); return; }
 
-  toast('Sincronizando com planilha...','');
+  toast('Atualizando planilha...','');
   const c = state.config;
   const srvs = state.servicos;
-  const now = new Date();
-  const dataHoje = now.toLocaleDateString('pt-BR');
-  const horaAgora = now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 
-  // ── Montar payload COMPLETO — Orçamento + Medições + Cronograma + Financeiro + Config + Log
+  // Montar payload — alinhado com Apps Script (action + servicos + pagamentos)
   const payload = {
     action: 'sync_completo',
     semana: c.semana || 1,
-
-    // Orçamento — cols A-F + H-J (G e K são fórmulas)
     servicos: srvs.map(s => ({
       cod:            s.cod            || '',
       categoria:      s.categoria      || '',
@@ -9169,29 +9165,11 @@ async function aplicarNaPlanilha(){
       equipe_cod:     s.equipe_cod || s.equipe      || '',
       equipe:         s.equipe                      || '',
       status:         s.status_atual   || 'A EXECUTAR',
-      pct:            (s.pct_atual || 0) / 100,
+      pct:            (s.pct_atual || 0) / 100,   // planilha espera decimal: 0.50 = 50%
       data_inicio:    s.data_inicio    || '',
       data_fim:       s.data_fim       || '',
       prazo_dias:     parseInt(s.prazo_dias) || 0
     })),
-
-    // Medições — col F (% exec decimal) + col J (obs)
-    medicoes: srvs.map(s => ({
-      cod: s.cod || '',
-      pct: (s.pct_atual || 0) / 100,
-      obs: ''
-    })),
-
-    // Cronograma — cols B/H/I/K (ambiente, início, fim, % prev)
-    cronograma: srvs.map(s => ({
-      cod:         s.cod          || '',
-      ambiente:    s.ambiente     || '',
-      data_inicio: s.data_inicio  || '',
-      data_fim:    s.data_fim     || '',
-      pct_prev:    (s.pct_atual || 0) / 100
-    })),
-
-    // Financeiro — lançamentos novos
     financeiro: (state.pagamentos||[]).map((p, idx) => ({
       numero:    String(idx + 1).padStart(3,'0'),
       data:      p.data ? fmtDateNum(p.data) : '',
@@ -9205,32 +9183,11 @@ async function aplicarNaPlanilha(){
       forma:     p.forma      || '',
       status:    p.status     || 'PENDENTE',
       obs:       p.obs        || ''
-    })),
-
-    // Config — dados da obra para aba _CONFIG
-    config: {
-      obra:              c.obra              || '',
-      razao_cliente:     c.razao_cliente     || '',
-      cliente:           c.cliente           || '',
-      cnpj_cliente:      c.cnpj_cliente      || '',
-      email_cliente:     c.email_cliente     || '',
-      telefone_cliente:  c.telefone_cliente  || '',
-      endereco_obra:     c.endereco_obra     || '',
-      tipo_obra:         c.tipo_obra         || '',
-      escopo_resumo:     c.escopo_resumo     || '',
-      periodo_ini:       c.periodo_ini       || '',
-      periodo_fim:       c.periodo_fim       || '',
-      valor_contrato:    parseFloat(c.valor_contrato) || 0,
-      forma_pagamento:   c.forma_pagamento   || 'PIX',
-      medicoes:          parseInt(c.medicoes) || 4,
-      periodicidade:     c.periodicidade     || 'mensal',
-      taxa_admin:        parseFloat(c.taxa_admin) || 15
-    }
-    // Log omitido do sync — aba Log tem validação de dados que rejeita categorias via script
-    // O script v3 registra no Log apenas se o campo existir no payload
+    }))
   };
 
   try {
+    // Apps Script requer no-cors via text/plain para evitar preflight
     const resp = await fetch(url, {
       method:   'POST',
       headers:  { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -9238,34 +9195,19 @@ async function aplicarNaPlanilha(){
       redirect: 'follow'
     });
 
-    // Apps Script com redirect pode retornar opaque — tratar como sucesso
-    let result = {};
-    try { result = await resp.json(); } catch(e){ result = { status: 'ok' }; }
+    let result = { ok: false };
+    try { result = await resp.json(); } catch(e){ result = { ok: true }; }
 
-    const isOk = result.status === 'ok' || result.status === 'partial' || result.ok;
-    if(isOk){
-      const nS = srvs.length;
-      const nP = (state.pagamentos||[]).length;
-      const nU = result.updates || nS;
-      const errs = (result.errors||[]).length;
-      let msg = '✅ Planilha sincronizada! ' + nS + ' serviços';
-      if(nP) msg += ' · ' + nP + ' pagamentos';
-      if(errs) msg += ' · ' + errs + ' avisos';
-      toast(msg, errs ? 'warning' : 'success');
-      if(errs) console.warn('Sync avisos:', result.errors);
+    if(result.ok){
+      const nSrvs = payload.servicos.length;
+      const nPags = payload.pagamentos.length;
+      toast('✅ Planilha atualizada! '+nSrvs+' serviços · '+nPags+' pagamentos', 'success');
     } else {
-      toast('⚠️ ' + (result.msg || result.message || 'Resposta inesperada'), 'warning');
-      console.warn('Sync resultado:', result);
+      toast('⚠️ ' + (result.msg || 'Resposta inesperada da planilha'), 'warning');
     }
   } catch(e){
-    // ERR_FAILED com CORS opaco pode ocorrer mesmo com sucesso no Apps Script
-    // Se o erro é de rede/CORS, informar que os dados PODEM ter chegado
-    if(e.message && (e.message.includes('Failed to fetch') || e.message.includes('ERR_FAILED'))){
-      toast('⚠️ Requisição enviada mas sem confirmação (CORS). Verifique a planilha.', 'warning');
-    } else {
-      toast('Erro: ' + e.message, 'error');
-    }
-    console.error('Sync erro:', e);
+    toast('Erro: ' + e.message, 'error');
+    console.error(e);
   }
 }
 
