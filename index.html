@@ -9488,13 +9488,27 @@ function _carregarDiaComOffset(){
     _atualizarReadOnly();
     return;
   }
-  // Semana passada — carrega dados arquivados mas permite edição
-  const semanaAlvo = (state.config.semana || 1) + diarioSemanaOffset;
-  const visitaSemana = (state.visitas || []).find(v => v.semana === semanaAlvo);
-  const ta = document.getElementById('transcricao');
-  if(ta){
-    ta.value = visitaSemana ? (visitaSemana.narrativa_revisada || visitaSemana.narrativa_original || 'Sem registro para esta semana.') : 'Sem registro para esta semana.';
+  // Semana passada — carregar dados do histórico por data ISO
+  var _datas = getDiasData(diarioSemanaOffset);
+  var dd = _datas[diarioDiaSelecionado]; // "09/03" etc
+  var isoKey = '';
+  if(dd){
+    var pp = dd.split('/');
+    if(pp.length===2) isoKey = new Date().getFullYear()+'-'+pp[1]+'-'+pp[0];
   }
+
+  // Texto: ler do diario_historico
+  var hist = state.diario_historico || {};
+  var textoHist = hist[isoKey] ? (hist[isoKey].texto||'') : '';
+
+  // Presença: ler do presenca_historico
+  var presHist = (state.presenca_historico || {})[isoKey] || {};
+
+  var ta = document.getElementById('transcricao');
+  if(ta) ta.value = textoHist || '';
+
+  renderPresencaDiario(presHist);
+  atualizarBadgeSalvo(hist[isoKey] || null);
   _atualizarReadOnly();
 }
 
@@ -9604,7 +9618,12 @@ function selecionarDia(dia){
   salvarDiaLocal(diarioDiaSelecionado, false);
   diarioDiaSelecionado = dia;
   renderDiarioBar();
-  carregarDia(dia);
+  // Usar carregamento com offset — respeita semana sendo visualizada
+  if(diarioSemanaOffset === 0){
+    carregarDia(dia);
+  } else {
+    _carregarDiaComOffset();
+  }
 }
 
 function carregarDia(dia){
@@ -9661,24 +9680,35 @@ function salvarDiaLocal(dia, comToast){
     const el = document.getElementById('pres-' + eq.cod);
     presenca[eq.cod] = el ? (el.dataset.estado || 'nd') : 'nd';
   });
-  state.diario[dia] = {
-    data: getDiasData()[dia],
-    texto,
-    presenca,
-    salvo_em: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})
-  };
-  // Arquivar presença no histórico permanente
-  if(!state.presenca_historico) state.presenca_historico = {};
+
+  var salvo_em = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+
+  // Calcular data ISO do dia sendo salvo
   var _pdate = getDiasData(diarioSemanaOffset||0)[dia];
+  var _isoKey = '';
   if(_pdate){
     var _pp = _pdate.split('/');
-    if(_pp.length===2){ var _ik = new Date().getFullYear()+'-'+_pp[1]+'-'+_pp[0]; state.presenca_historico[_ik] = JSON.parse(JSON.stringify(presenca)); }
+    if(_pp.length===2) _isoKey = new Date().getFullYear()+'-'+_pp[1]+'-'+_pp[0];
   }
+
+  // Salvar no diario corrente (semana atual)
+  if(diarioSemanaOffset === 0){
+    state.diario[dia] = { data: _pdate, texto, presenca, salvo_em };
+  }
+
+  // Arquivar no histórico permanente (presença + texto)
+  if(_isoKey){
+    if(!state.presenca_historico) state.presenca_historico = {};
+    state.presenca_historico[_isoKey] = JSON.parse(JSON.stringify(presenca));
+    if(!state.diario_historico) state.diario_historico = {};
+    state.diario_historico[_isoKey] = { texto, salvo_em };
+  }
+
   saveState();
-  if(comToast) toast('✓ Dia salvo — sem custo de API', 'success');
-  atualizarBadgeSalvo(state.diario[dia]);
+  if(comToast) toast('✓ Dia salvo', 'success');
+  atualizarBadgeSalvo(diarioSemanaOffset===0 ? state.diario[dia] : {salvo_em});
   renderDiarioBar();
-  renderEquipes(); // atualiza heatmap de presença
+  renderEquipes();
 }
 
 function salvarDia(){
