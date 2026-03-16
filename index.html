@@ -8765,6 +8765,10 @@ function doPost(e) {
   // G(=E*F) e K(=Medições!G) são fórmulas — NUNCA sobrescrever
   // ════════════════════════════════════════════════════════
   var orcItems = data.servicos || data.orcamento || [];
+  // Mapa cod→linha absoluta (ex: SRV-001→6, SRV-002→7)
+  // Construído aqui, reutilizado por Medições e Cronograma
+  // Elimina dependência de fórmulas que referenciam Orçamento!A
+  var codRowMap = {};
   if (orcItems.length) {
     try {
       var orc = ss.getSheetByName('Orçamento') || ss.getSheetByName('Orcamento');
@@ -8773,28 +8777,24 @@ function doPost(e) {
         var orcLastRow = orc.getLastRow();
         if (orcLastRow < needed) orc.insertRowsAfter(orcLastRow, needed - orcLastRow);
         var totalRows = Math.max(orc.getLastRow() - 5, orcItems.length);
-        // Ler códigos existentes — UMA leitura
         var codigos = orc.getRange(6, 1, totalRows, 1).getValues().map(function(r){return r[0];});
-        // Ler dados atuais para preservar fórmulas nas cols G e K
         var existAF = orc.getRange(6, 1, totalRows, 6).getValues();
         var existHJ = orc.getRange(6, 8, totalRows, 3).getValues();
 
         orcItems.forEach(function(item) {
           var idx = codigos.indexOf(item.cod);
           if (idx === -1) {
-            // Procurar linha vazia
             for (var i = 0; i < codigos.length; i++) {
               if (!codigos[i]) { idx = i; codigos[i] = item.cod; break; }
             }
           }
           if (idx === -1) { idx = codigos.length; codigos.push(item.cod); existAF.push(['','','','','','']); existHJ.push(['','','']); }
-          // Montar linha A-F em memória
           existAF[idx] = [item.cod, item.categoria||'', item.descricao||'', item.unidade||'vb', item.quantidade||1, item.valor_unitario||0];
-          // Montar linha H-J em memória
           existHJ[idx] = [item.equipe_cod||'', item.equipe||'', item.status||'A EXECUTAR'];
+          // Registrar no mapa: cod → linha absoluta na planilha
+          codRowMap[item.cod] = idx + 6;
           result.updates++;
         });
-        // DUAS escritas batch — substitui 9×N setValue() individuais
         orc.getRange(6, 1, existAF.length, 6).setValues(existAF);
         orc.getRange(6, 8, existHJ.length, 3).setValues(existHJ);
       } else {
@@ -8804,10 +8804,6 @@ function doPost(e) {
       result.errors.push('Orçamento: ' + err.message);
     }
   }
-
-  // ── FLUSH obrigatório: Medições e Cronograma usam fórmulas que referenciam Orçamento!A
-  // Sem flush, códigos novos escritos acima não aparecem nas fórmulas dessas abas
-  if (orcItems.length) SpreadsheetApp.flush();
 
   // ════════════════════════════════════════════════════════
   // FINANCEIRO — BATCH: monta array de linhas novas, 1 setValues()
@@ -8842,7 +8838,7 @@ function doPost(e) {
   }
 
   // ════════════════════════════════════════════════════════
-  // MEDIÇÕES — BATCH: lê F e J inteiras, altera em memória, 1 escrita
+  // MEDIÇÕES — usa codRowMap do Orçamento (não lê fórmulas)
   // Col F = % exec. essa medição (decimal) ← ÚNICO ponto de escrita
   // Cols A-D, G-I = fórmulas — NUNCA sobrescrever
   // ════════════════════════════════════════════════════════
@@ -8850,26 +8846,14 @@ function doPost(e) {
     try {
       var med = ss.getSheetByName('Medições') || ss.getSheetByName('Medicoes');
       if (med) {
-        var medLastRow = med.getLastRow();
-        var medTotal = Math.max(medLastRow - 5, 1);
-        var medCods = med.getRange(6, 1, medTotal, 1).getValues().map(function(r){return r[0];});
-        var medF = med.getRange(6, 6, medTotal, 1).getValues();
-        var medJ = med.getRange(6, 10, medTotal, 1).getValues();
-        var medChanged = false;
         data.medicoes.forEach(function(m) {
-          var idx = medCods.indexOf(m.cod);
-          if (idx === -1) { result.errors.push('Medições: código não encontrado — ' + m.cod); return; }
+          var row = codRowMap[m.cod];
+          if (!row) { result.errors.push('Medições: código sem linha no Orçamento — ' + m.cod); return; }
           var pctF = typeof m.pct === 'number' ? m.pct : (parseFloat(m.pct) || 0);
-          medF[idx][0] = pctF;
-          if (m.obs !== undefined && m.obs !== null) medJ[idx][0] = m.obs;
-          medChanged = true;
+          med.getRange(row, 6).setValue(pctF);
+          if (m.obs !== undefined && m.obs !== null) med.getRange(row, 10).setValue(m.obs);
           result.updates++;
         });
-        if (medChanged) {
-          // DUAS escritas batch — substitui 2×N setValue() individuais
-          med.getRange(6, 6, medTotal, 1).setValues(medF);
-          med.getRange(6, 10, medTotal, 1).setValues(medJ);
-        }
       } else {
         result.errors.push('Aba Medições não encontrada');
       }
@@ -8879,39 +8863,23 @@ function doPost(e) {
   }
 
   // ════════════════════════════════════════════════════════
-  // CRONOGRAMA — BATCH: lê cols B/H/I/K, altera em memória, 1 escrita
+  // CRONOGRAMA — usa codRowMap do Orçamento (não lê fórmulas)
+  // Cols manuais: B=AMBIENTE · H=INÍCIO · I=FIM · K=% PREV (decimal)
   // Cols A/C/D/E/F/G/J/L = fórmulas — NUNCA sobrescrever
   // ════════════════════════════════════════════════════════
   if (data.cronograma && data.cronograma.length) {
     try {
       var cron = ss.getSheetByName('Cronograma');
       if (cron) {
-        var cronLastRow = cron.getLastRow();
-        var cronTotal = Math.max(cronLastRow - 5, 1);
-        var cronCods = cron.getRange(6, 1, cronTotal, 1).getValues().map(function(r){return r[0];});
-        // Ler as 4 colunas editáveis de uma vez
-        var cronB = cron.getRange(6, 2, cronTotal, 1).getValues();
-        var cronH = cron.getRange(6, 8, cronTotal, 1).getValues();
-        var cronI = cron.getRange(6, 9, cronTotal, 1).getValues();
-        var cronK = cron.getRange(6, 11, cronTotal, 1).getValues();
-        var cronChanged = false;
         data.cronograma.forEach(function(item) {
-          var idx = cronCods.indexOf(item.cod);
-          if (idx === -1) { result.errors.push('Cronograma: código não encontrado — ' + item.cod); return; }
-          if (item.ambiente !== undefined) cronB[idx][0] = item.ambiente || '';
-          if (item.data_inicio !== undefined) cronH[idx][0] = item.data_inicio || '';
-          if (item.data_fim !== undefined) cronI[idx][0] = item.data_fim || '';
-          if (item.pct_prev !== undefined) cronK[idx][0] = parseFloat(item.pct_prev) || 0;
-          cronChanged = true;
+          var row = codRowMap[item.cod];
+          if (!row) { result.errors.push('Cronograma: código sem linha no Orçamento — ' + item.cod); return; }
+          if (item.ambiente !== undefined) cron.getRange(row, 2).setValue(item.ambiente || '');
+          if (item.data_inicio !== undefined) cron.getRange(row, 8).setValue(item.data_inicio || '');
+          if (item.data_fim !== undefined) cron.getRange(row, 9).setValue(item.data_fim || '');
+          if (item.pct_prev !== undefined) cron.getRange(row, 11).setValue(parseFloat(item.pct_prev) || 0);
           result.updates++;
         });
-        if (cronChanged) {
-          // QUATRO escritas batch — substitui 4×N setValue() individuais
-          cron.getRange(6, 2, cronTotal, 1).setValues(cronB);
-          cron.getRange(6, 8, cronTotal, 1).setValues(cronH);
-          cron.getRange(6, 9, cronTotal, 1).setValues(cronI);
-          cron.getRange(6, 11, cronTotal, 1).setValues(cronK);
-        }
       } else {
         result.errors.push('Aba Cronograma não encontrada');
       }
