@@ -6920,67 +6920,95 @@ const PRES_ICON = {sim:'✓', nao:'✗', nd:'—'};
 
 function _renderHeatmapPresenca(){
   if(!state.equipes.length) return '';
-  var datas = getDiasData(0);
-  var hoje = getDiaAtualSigla();
 
-  // Header
-  var thCols = DIAS_SEMANA.map(function(d){
-    var isHoje = d === hoje;
-    return '<th style="padding:4px 2px;text-align:center;min-width:38px;font-size:9px;font-weight:700;color:'+(isHoje?'var(--accent)':'var(--muted)')+';text-transform:uppercase;letter-spacing:.3px;border-bottom:2px solid '+(isHoje?'var(--accent)':'var(--border)')+'">'+DIAS_LABELS[d]+'<div style="font-weight:400;font-size:8px;margin-top:1px;color:var(--muted)">'+datas[d]+'</div></th>';
-  }).join('');
+  // Build date range from obra period
+  var c = state.config;
+  var ini = c.periodo_ini ? new Date((c.periodo_ini.includes('/')?c.periodo_ini.split('/').reverse().join('-'):c.periodo_ini)+'T00:00:00') : new Date();
+  var fim = c.periodo_fim ? new Date((c.periodo_fim.includes('/')?c.periodo_fim.split('/').reverse().join('-'):c.periodo_fim)+'T00:00:00') : new Date();
+  // Ensure we cover at least current week
+  var todayD = new Date(); todayD.setHours(0,0,0,0);
+  if(fim < todayD) fim = todayD;
+  var dow = ini.getDay(); ini.setDate(ini.getDate()-(dow===0?6:dow-1)); // align Monday
 
-  // Rows — read from state.diario[dia].presenca[eq.cod]
+  var allDays = [];
+  var cur = new Date(ini);
+  while(cur <= fim){ allDays.push(new Date(cur)); cur.setDate(cur.getDate()+1); }
+  if(!allDays.length) allDays.push(new Date());
+
+  var dowL = ['D','S','T','Q','Q','S','S'];
+
+  // Merge presenca sources: presenca_historico + current state.diario
+  var presMap = {}; // { 'YYYY-MM-DD': { 'EQ-OBR-01': 'sim', ... } }
+  // Historical
+  var hist = state.presenca_historico || {};
+  Object.keys(hist).forEach(function(k){ presMap[k] = hist[k]; });
+  // Current diario — overwrite with fresh data
+  var _datas = getDiasData(0);
   var _diario = state.diario || {};
-  var trs = state.equipes.map(function(eq){
-    var diasPres = DIAS_SEMANA.filter(function(d){
-      var de = _diario[d];
-      if(!de || !de.presenca) return false;
-      var raw = de.presenca[eq.cod];
-      return raw === true || raw === 'sim';
-    }).length;
-    var nomeLabel = eq.nome || eq.responsavel || eq.cod;
+  DIAS_SEMANA.forEach(function(dia){
+    var de = _diario[dia];
+    if(!de || !de.presenca) return;
+    var dd = _datas[dia]; if(!dd) return;
+    var pp = dd.split('/');
+    if(pp.length===2){ var ik = new Date().getFullYear()+'-'+pp[1]+'-'+pp[0]; presMap[ik] = de.presenca; }
+  });
 
-    var tds = DIAS_SEMANA.map(function(d){
-      var de = _diario[d];
-      var v = 'nd';
-      if(de && de.presenca){
-        var raw = de.presenca[eq.cod];
-        if(raw === true || raw === 'sim') v = 'sim';
-        else if(raw === false || raw === 'nao') v = 'nao';
-        // undefined or 'nd' stays 'nd'
-      }
-      var icon, bg, brd;
-      if(v === 'sim'){ icon='✓'; bg='#065F46'; brd='#065F46'; }
-      else if(v === 'nao'){ icon='✗'; bg='var(--danger)'; brd='var(--danger)'; }
-      else { icon=''; bg='var(--border)'; brd='var(--border)'; }
-      return '<td style="padding:3px;text-align:center"><div style="width:30px;height:22px;border-radius:4px;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;background:'+bg+';border:1px solid '+brd+';'+(v==='nd'?'opacity:.25':'')+'" title="'+(v==='sim'?'Presente':v==='nao'?'Ausente':'Não marcado')+'">'+icon+'</div></td>';
-    }).join('');
+  // Month headers
+  var monThs = '';
+  var prevM = -1;
+  allDays.forEach(function(d,i){
+    var isFirst = i===0 || allDays[i-1].getMonth()!==d.getMonth();
+    if(isFirst){
+      var span=1; for(var j=i+1;j<allDays.length&&allDays[j].getMonth()===d.getMonth();j++) span++;
+      monThs += '<th colspan="'+span+'" style="padding:3px 2px;text-align:center;font-size:8px;font-weight:700;color:var(--muted);background:var(--primary);color:#fff;letter-spacing:.5px;text-transform:uppercase">'+d.toLocaleDateString('pt-BR',{month:'short'}).toUpperCase().replace('.','')+' '+d.getFullYear()+'</th>';
+    }
+  });
 
-    return '<tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px"><div style="font-size:11px;font-weight:600;color:var(--ink,#111)">'+esc(nomeLabel)+'</div><div style="font-size:9px;color:var(--muted);font-family:var(--font-mono)">'+esc(eq.cod)+'</div></td>'+tds+'<td style="padding:4px 8px;text-align:center;font-family:var(--font-mono);font-size:11px;font-weight:700;color:'+(diasPres>0?'#065F46':'var(--muted)')+'">'+diasPres+'d</td></tr>';
+  // Day headers
+  var dayThs = allDays.map(function(d){
+    var isToday = d.getTime()===todayD.getTime();
+    var isWe = d.getDay()===0||d.getDay()===6;
+    return '<th style="padding:2px 1px;text-align:center;min-width:26px;font-size:7px;font-weight:600;color:'+(isToday?'#1D4ED8':isWe?'#ccc':'var(--muted)')+';border-bottom:1.5px solid '+(isToday?'#1D4ED8':'var(--border)')+';background:'+(isToday?'rgba(59,130,246,.08)':isWe?'#fafafa':'#fff')+'">'+dowL[d.getDay()]+'<br>'+d.getDate()+'</th>';
   }).join('');
 
-  // Summary
-  var totalEqs = state.equipes.length;
-  var _deHoje = _diario[hoje];
-  var presHoje = state.equipes.filter(function(eq){
-    if(!_deHoje || !_deHoje.presenca) return false;
-    var raw = _deHoje.presenca[eq.cod];
-    return raw === true || raw === 'sim';
-  }).length;
+  // Rows
+  var trs = state.equipes.map(function(eq){
+    var totalPres = 0;
+    var tds = allDays.map(function(d){
+      var iso = d.toISOString().slice(0,10);
+      var dayPres = presMap[iso];
+      var v = 'nd';
+      if(dayPres){
+        var raw = dayPres[eq.cod];
+        if(raw===true||raw==='sim'){ v='sim'; totalPres++; }
+        else if(raw===false||raw==='nao') v='nao';
+      }
+      var isWe = d.getDay()===0||d.getDay()===6;
+      var bg, clr;
+      if(v==='sim'){ bg='#065F46'; clr='#fff'; }
+      else if(v==='nao'){ bg='var(--danger)'; clr='#fff'; }
+      else { bg=isWe?'#f5f5f5':'var(--border)'; clr='transparent'; }
+      return '<td style="padding:1px;text-align:center"><div style="width:22px;height:16px;border-radius:3px;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:'+clr+';background:'+bg+';'+(v==='nd'?'opacity:.2':'')+'"></div></td>';
+    }).join('');
+    var nomeLabel = eq.nome||eq.responsavel||eq.cod;
+    return '<tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;white-space:nowrap;position:sticky;left:0;background:var(--surface);z-index:2;border-right:2px solid var(--border)"><div style="font-size:10px;font-weight:600;color:var(--ink,#111)">'+esc(nomeLabel)+'</div><div style="font-size:8px;color:var(--muted);font-family:var(--font-mono)">'+esc(eq.cod)+'</div></td>'+tds+'<td style="padding:3px 6px;text-align:center;font-family:var(--font-mono);font-size:10px;font-weight:700;color:'+(totalPres>0?'#065F46':'var(--muted)')+';position:sticky;right:0;background:var(--surface);z-index:2;border-left:2px solid var(--border)">'+totalPres+'d</td></tr>';
+  }).join('');
 
-  return '<div style="border:1.5px solid var(--border);border-radius:10px;background:var(--surface);padding:16px;margin-bottom:16px;overflow-x:auto">'
-    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
-    + '<div style="font-size:12px;font-weight:800;color:var(--ink,#111);text-transform:uppercase;letter-spacing:.5px">📋 Presença da Semana</div>'
-    + '<div style="font-size:11px;color:var(--muted)">Hoje: <strong style="color:'+(presHoje>0?'#065F46':'var(--danger)')+'">'+presHoje+'/'+totalEqs+'</strong> equipes</div>'
+  return '<div style="border:1.5px solid var(--border);border-radius:10px;background:var(--surface);padding:12px;margin-bottom:16px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+    + '<div style="font-size:12px;font-weight:800;color:var(--ink,#111);text-transform:uppercase;letter-spacing:.5px">📋 Presença — Período Completo</div>'
+    + '<div style="font-size:10px;color:var(--muted)">'+allDays.length+' dias</div>'
     + '</div>'
-    + '<table style="width:100%;border-collapse:collapse;font-size:11px">'
-    + '<thead><tr><th style="padding:4px 6px;text-align:left;font-size:10px;color:var(--muted);font-weight:600;border-bottom:2px solid var(--border);min-width:120px">Equipe</th>'+thCols+'<th style="padding:4px 6px;text-align:center;font-size:9px;color:var(--muted);font-weight:700;border-bottom:2px solid var(--border)">Total</th></tr></thead>'
+    + '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">'
+    + '<table style="border-collapse:collapse;font-size:10px;width:max-content;min-width:100%">'
+    + '<thead><tr><th style="padding:3px 6px;text-align:left;font-size:9px;color:#fff;background:var(--primary);position:sticky;left:0;z-index:3;min-width:100px">Equipe</th>'+monThs+'<th style="position:sticky;right:0;z-index:3;background:var(--primary);color:#fff;font-size:8px;padding:3px 6px">Total</th></tr>'
+    + '<tr><th style="position:sticky;left:0;z-index:3;background:var(--surface);border-bottom:1.5px solid var(--border);border-right:2px solid var(--border)"></th>'+dayThs+'<th style="position:sticky;right:0;z-index:3;background:var(--surface);border-bottom:1.5px solid var(--border);border-left:2px solid var(--border)"></th></tr></thead>'
     + '<tbody>'+trs+'</tbody>'
-    + '</table>'
-    + '<div style="display:flex;gap:16px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">'
-    + '<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted)"><div style="width:14px;height:14px;border-radius:3px;background:#065F46;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:700">✓</div> Presente</div>'
-    + '<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted)"><div style="width:14px;height:14px;border-radius:3px;background:var(--danger);display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:700">✗</div> Ausente</div>'
-    + '<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted)"><div style="width:14px;height:14px;border-radius:3px;background:var(--border);opacity:.4"></div> Não marcado</div>'
+    + '</table></div>'
+    + '<div style="display:flex;gap:12px;margin-top:8px;font-size:9px;color:var(--muted)">'
+    + '<span style="display:flex;align-items:center;gap:3px"><span style="width:12px;height:8px;border-radius:2px;background:#065F46"></span>Presente</span>'
+    + '<span style="display:flex;align-items:center;gap:3px"><span style="width:12px;height:8px;border-radius:2px;background:var(--danger)"></span>Ausente</span>'
+    + '<span style="display:flex;align-items:center;gap:3px"><span style="width:12px;height:8px;border-radius:2px;background:var(--border);opacity:.3"></span>Não marcado</span>'
     + '</div></div>';
 }
 
@@ -7827,6 +7855,24 @@ function confirmarAvancarSemana(){
   const novaIni = (document.getElementById('avs-ini')||{}).value || '';
   const novaFim = (document.getElementById('avs-fim')||{}).value || '';
   document.getElementById('modal-avanca-semana')?.remove();
+
+  // Arquivar presença da semana no histórico permanente
+  if(!state.presenca_historico) state.presenca_historico = {};
+  var _datas = getDiasData(0);
+  var _diario = state.diario || {};
+  DIAS_SEMANA.forEach(function(dia){
+    var de = _diario[dia];
+    if(!de || !de.presenca) return;
+    var isoDate = _datas[dia]; // ex: "16/03"
+    if(!isoDate) return;
+    // Convert dd/mm to full ISO using current periodo
+    var parts = isoDate.split('/');
+    if(parts.length === 2){
+      var year = new Date().getFullYear();
+      var isoKey = year+'-'+parts[1]+'-'+parts[0]; // YYYY-MM-DD
+      state.presenca_historico[isoKey] = JSON.parse(JSON.stringify(de.presenca));
+    }
+  });
 
   // Arquivar semana atual nos serviços (status_anterior = status_atual)
   state.servicos = state.servicos.map(s=>({...s, status_anterior: s.status_atual, pct_anterior: s.pct_atual, observacao:''}));
@@ -9621,6 +9667,13 @@ function salvarDiaLocal(dia, comToast){
     presenca,
     salvo_em: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})
   };
+  // Arquivar presença no histórico permanente
+  if(!state.presenca_historico) state.presenca_historico = {};
+  var _pdate = getDiasData(diarioSemanaOffset||0)[dia];
+  if(_pdate){
+    var _pp = _pdate.split('/');
+    if(_pp.length===2){ var _ik = new Date().getFullYear()+'-'+_pp[1]+'-'+_pp[0]; state.presenca_historico[_ik] = JSON.parse(JSON.stringify(presenca)); }
+  }
   saveState();
   if(comToast) toast('✓ Dia salvo — sem custo de API', 'success');
   atualizarBadgeSalvo(state.diario[dia]);
