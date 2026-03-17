@@ -230,6 +230,8 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .gt-srv-cell .gt-sc{font-size:8px;color:var(--muted);font-family:var(--font-mono)}
 .gt-cat-cell{font-size:8px;font-weight:800;color:#fff;background:var(--primary);padding:4px 6px;text-transform:uppercase;letter-spacing:.5px;position:sticky;left:0;z-index:3;border-bottom:1px solid rgba(255,255,255,.1)}
 .gt-day{height:22px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity .1s}
+.gt-day.gt-week-start{border-left:2.5px solid var(--accent)}
+.gt-table th.gt-week-start{border-left:2.5px solid var(--accent)}
 .gt-day:active{opacity:.6}
 .gt-day.gt-we{background:#fafafa}
 .gt-day.gt-today-col{background:rgba(59,130,246,.05)}
@@ -5852,7 +5854,8 @@ function renderGT(){
   days.forEach(function(d){
     var isT = d.getTime()===today.getTime();
     var isW = d.getDay()===0||d.getDay()===6;
-    h += '<th class="'+(isT?'gt-today':'')+(isW?' gt-we':'')+'" style="min-width:'+_gtColW+'px;width:'+_gtColW+'px" title="'+d.toLocaleDateString('pt-BR')+'">'+dowL[d.getDay()]+'<br>'+d.getDate()+'</th>';
+    var isMon = d.getDay()===1;
+    h += '<th class="'+(isT?'gt-today':'')+(isW?' gt-we':'')+(isMon?' gt-week-start':'')+'" style="min-width:'+_gtColW+'px;width:'+_gtColW+'px" title="'+d.toLocaleDateString('pt-BR')+'">'+dowL[d.getDay()]+'<br>'+d.getDate()+'</th>';
   });
   h += '</tr></thead><tbody>';
 
@@ -5890,6 +5893,7 @@ function renderGT(){
       var isOn = (s.dias_marcados||[]).indexOf(iso)>=0;
       var isT=d.getTime()===today.getTime();
       var isW=d.getDay()===0||d.getDay()===6;
+      var isMon=d.getDay()===1;
 
       // Check etapas
       var etapaOn = false;
@@ -5905,11 +5909,9 @@ function renderGT(){
 
       var etapaHtml = '';
       if(etapaOn && !isOn) {
-        // Etapa sem barra principal — mostrar como bloco completo com cor levemente diferente
         bg = cor; 
         etapaHtml = '<div style="position:absolute;inset:1px;background:'+cor+';opacity:.45;border-radius:2px"></div>';
       } else if(etapaOn && isOn) {
-        // Etapa + barra principal sobrepostas — indicador sutil no fundo
         etapaHtml = '<div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.5);border-radius:0 0 2px 2px"></div>';
       }
 
@@ -5917,7 +5919,7 @@ function renderGT(){
       var clickEtapa = 0;
       if(selEtapa > 0) clickEtapa = selEtapa;
 
-      h+='<td class="gt-day'+(isW?' gt-we':'')+(isT?' gt-today-col':'')+(isOn?' gt-on':'')+selCls+'" style="min-width:'+_gtColW+'px;width:'+_gtColW+'px;'+(bg?'background:'+bg:'')+';position:relative" data-gantt-cell="1" data-srv-idx="'+idx+'" data-day-idx="'+di+'"';
+      h+='<td class="gt-day'+(isW?' gt-we':'')+(isT?' gt-today-col':'')+(isOn?' gt-on':'')+(isMon?' gt-week-start':'')+selCls+'" style="min-width:'+_gtColW+'px;width:'+_gtColW+'px;'+(bg?'background:'+bg:'')+';position:relative" data-gantt-cell="1" data-srv-idx="'+idx+'" data-day-idx="'+di+'"';
       // If bar is on and no selection active, allow drag; otherwise click
       if(isOn && !_ganttSelectState){
         h+=' onmousedown="ganttBarMouseDown(event,'+idx+',0,'+di+')" style="background:'+bg+';position:relative;cursor:grab"';
@@ -11048,20 +11050,52 @@ function aplicarExtracoes(){
   let count = 0;
   try {
 
-  // Serviços
+  // Serviços — atualiza status, pct E cronograma (datas)
+  // Calcula data ISO do dia selecionado para preencher cronograma
+  var _datasVisita = getDiasData(diarioSemanaOffset||0);
+  var _ddVisita = _datasVisita[diarioDiaSelecionado||'seg'] || '';
+  var _isoHoje = '';
+  if(_ddVisita){
+    var _pp = _ddVisita.split('/');
+    if(_pp.length===2) _isoHoje = new Date().getFullYear()+'-'+_pp[1]+'-'+_pp[0];
+  }
+  if(!_isoHoje) _isoHoje = new Date().toISOString().slice(0,10);
+
   (d.servicos_atualizados||[]).forEach((s,i)=>{
     const chk = document.getElementById('chk-srv-'+i);
     if(!chk || !chk.checked) return;
     const idx = state.servicos.findIndex(x=>x.cod===s.cod);
     if(idx>=0){
-      if(s.status_atual) state.servicos[idx].status_atual = s.status_atual;
-      if(s.pct_atual !== undefined) state.servicos[idx].pct_atual = parseInt(s.pct_atual)||0;
-      if(s.observacao) state.servicos[idx].observacao = s.observacao;
+      var srv = state.servicos[idx];
+      var pctAnterior = srv.pct_atual || 0;
+      var pctNovo = s.pct_atual !== undefined ? (parseInt(s.pct_atual)||0) : pctAnterior;
+
+      if(s.status_atual) srv.status_atual = s.status_atual;
+      if(s.pct_atual !== undefined) srv.pct_atual = pctNovo;
+      if(s.observacao) srv.observacao = s.observacao;
+
+      // ── Atualizar cronograma automaticamente ──
+      // Serviço iniciou (era 0%, agora >0%) e não tem data_inicio → marcar hoje
+      if(pctAnterior === 0 && pctNovo > 0 && !srv.data_inicio){
+        srv.data_inicio = _isoHoje;
+      }
+      // Serviço concluído (chegou a 100%) e não tem data_fim → marcar hoje
+      if(pctNovo >= 100 && !srv.data_fim){
+        srv.data_fim = _isoHoje;
+      }
+      // Se tem data_inicio mas não data_fim e está em andamento → data_fim provisória = hoje
+      if(srv.data_inicio && !srv.data_fim && pctNovo > 0 && pctNovo < 100){
+        srv.data_fim = _isoHoje;
+      }
+      // Recalcular dias_marcados para o Gantt renderizar as barras
+      if(srv.data_inicio){
+        srv.dias_marcados = _gerarDiasMarcados(srv.data_inicio, srv.data_fim || srv.data_inicio);
+      }
       count++;
     }
   });
 
-  // Presença
+  // Presença — atualiza equipe E diário do dia selecionado
   (d.presenca||[]).forEach((p,i)=>{
     const chk = document.getElementById('chk-pres-'+i);
     if(!chk || !chk.checked) return;
@@ -11072,6 +11106,32 @@ function aplicarExtracoes(){
         if(p[dia] && p[dia]!=='nd') state.equipes[idx].presenca[dia] = p[dia];
       });
       if(p.nota) state.equipes[idx].nota = p.nota;
+
+      // Sincronizar com o diário do dia selecionado (tela de Visita)
+      var diaAtual = diarioDiaSelecionado || 'seg';
+      if(!state.diario) state.diario = {};
+      if(!state.diario[diaAtual]) state.diario[diaAtual] = { texto:'', presenca:{}, salvo_em:'' };
+      if(!state.diario[diaAtual].presenca) state.diario[diaAtual].presenca = {};
+      // Marcar presença do dia atual baseado nos dados da IA
+      if(p[diaAtual] && p[diaAtual]!=='nd'){
+        state.diario[diaAtual].presenca[p.cod] = p[diaAtual];
+      } else {
+        // Se a IA só disse que estava presente (sem especificar dia), marcar no dia selecionado
+        var temPresenca = DIAS_SEMANA.some(function(dia){ return p[dia]==='sim'; });
+        if(temPresenca){
+          // Marcar como presente no dia que tem 'sim'
+          DIAS_SEMANA.forEach(function(dia){
+            if(p[dia] && p[dia]!=='nd'){
+              if(!state.diario[dia]) state.diario[dia] = { texto:'', presenca:{}, salvo_em:'' };
+              if(!state.diario[dia].presenca) state.diario[dia].presenca = {};
+              state.diario[dia].presenca[p.cod] = p[dia];
+            }
+          });
+        } else {
+          // IA detectou presença mas sem dia específico — marcar no dia selecionado
+          state.diario[diaAtual].presenca[p.cod] = 'sim';
+        }
+      }
       count++;
     }
   });
@@ -11142,6 +11202,10 @@ function aplicarExtracoes(){
   renderNotas();
   renderCronograma();
   renderDrawer();
+  // Re-renderizar presença na tela de visita
+  var _diaPresAtual = (state.diario||{})[diarioDiaSelecionado];
+  renderPresencaDiario(_diaPresAtual ? (_diaPresAtual.presenca||{}) : {});
+  renderDiarioBar();
 
   // Save to visit history
   const narrativaOriginal = document.getElementById('transcricao').value.trim();
