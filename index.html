@@ -3786,6 +3786,27 @@ function sanitizeState(s){
   if(!s.planejamento)              s.planejamento = { objetivo:'', tarefas:[] };
   if(!s.presenca_historico)        s.presenca_historico = {};
   if(!s.diario_historico)          s.diario_historico = {};
+
+  // Migração: copiar dados legados de state.diario para diario_historico
+  var _diasOrd = ['seg','ter','qua','qui','sex','sab','dom'];
+  _diasOrd.forEach(function(dia){
+    var entry = s.diario && s.diario[dia];
+    if(entry && entry.data && (entry.texto || entry.presenca)){
+      var pp = entry.data.split('/');
+      if(pp.length === 2){
+        var isoKey = (s.config.periodo_ini||'').substring(0,4) || new Date().getFullYear();
+        isoKey = isoKey + '-' + pp[1] + '-' + pp[0];
+        // Só migra se o histórico ainda não tem esse dia
+        if(!s.diario_historico[isoKey] && entry.texto){
+          s.diario_historico[isoKey] = { texto: entry.texto, salvo_em: entry.salvo_em || '' };
+        }
+        if(!s.presenca_historico[isoKey] && entry.presenca && Object.keys(entry.presenca).length){
+          s.presenca_historico[isoKey] = JSON.parse(JSON.stringify(entry.presenca));
+        }
+      }
+    }
+  });
+
   return s;
 }
 
@@ -9691,12 +9712,22 @@ function _carregarDiaComOffset(){
     if(pp.length===2) isoKey = new Date().getFullYear()+'-'+pp[1]+'-'+pp[0];
   }
 
-  // Texto: ler do diario_historico
+  // Texto: ler do diario_historico, com fallback para state.diario da semana corrente
   var hist = state.diario_historico || {};
   var textoHist = hist[isoKey] ? (hist[isoKey].texto||'') : '';
 
-  // Presença: ler do presenca_historico
+  // Fallback: se não achou no histórico, tenta state.diario (dados legados)
+  if(!textoHist && diarioSemanaOffset === -1){
+    var diaEntry = (state.diario||{})[diarioDiaSelecionado];
+    if(diaEntry && diaEntry.texto) textoHist = diaEntry.texto;
+  }
+
+  // Presença: ler do presenca_historico, com fallback para state.diario
   var presHist = (state.presenca_historico || {})[isoKey] || {};
+  if(!Object.keys(presHist).length && diarioSemanaOffset === -1){
+    var diaEntry2 = (state.diario||{})[diarioDiaSelecionado];
+    if(diaEntry2 && diaEntry2.presenca) presHist = diaEntry2.presenca;
+  }
 
   var ta = document.getElementById('transcricao');
   if(ta) ta.value = textoHist || '';
