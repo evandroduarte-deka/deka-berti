@@ -3837,7 +3837,7 @@ function sbSave(obraKey, stateObj){
       const payload = {
         obra_key:   obraKey,
         data:       stateObj,
-        updated_at: new Date().toISOString()
+        updated_at: stateObj._savedAt || new Date().toISOString()
       };
       const r = await fetch(SB_URL + '/rest/v1/' + SB_TABLE, {
         method:  'POST',
@@ -3966,6 +3966,21 @@ async function sbSyncManual(){
   const tsRemoto = new Date(remoto.updated_at).getTime();
 
   if(tsRemoto > tsLocal){
+    // Verificar se local é mais rico que remoto
+    const localRichness = _calcDataRichness(state);
+    const remoteRichness = _calcDataRichness(remoto.data);
+    if(localRichness > remoteRichness + 2){
+      const dtRemoto = new Date(remoto.updated_at).toLocaleString('pt-BR');
+      const conf = confirm('⚠️ A nuvem tem dados de ' + dtRemoto + ', mas seus dados locais parecem mais completos ('+ localRichness + ' pontos local vs ' + remoteRichness + ' nuvem).\n\nDeseja SUBSTITUIR seus dados locais pelos da nuvem?\n\n• SIM = Puxar da nuvem (pode perder edições)\n• NÃO = Manter local e enviar para a nuvem');
+      if(!conf){
+        // Enviar local para nuvem
+        const sbData = JSON.parse(JSON.stringify(state));
+        sbData.fotos = (sbData.fotos||[]).map(function(f){ return f.cloud&&f.url ? {...f,src:f.url,b64:undefined} : {...f,b64:undefined}; });
+        sbSave(obraKey, sbData);
+        toast('✓ Dados locais enviados para a nuvem','success');
+        return;
+      }
+    }
     state = migrateState(remoto.data);
     sanitizeState(state);
     currentObraKey = 'cockpit_' + obraKey;
@@ -4287,13 +4302,35 @@ function loadState(key){
 }
 
 // Carrega nuvem em background e atualiza silenciosamente se for mais novo
+// PROTEÇÃO: compara completude dos dados além do timestamp para evitar sobrescrever dados locais mais ricos
 async function sbLoadBackground(obraKey){
   try {
     const remoto = await sbLoad(obraKey);
-    if(!remoto) return;
+    if(!remoto || !remoto.data) return;
     const tsLocal  = state._savedAt ? new Date(state._savedAt).getTime() : 0;
     const tsRemoto = new Date(remoto.updated_at).getTime();
-    if(tsRemoto > tsLocal + 5000){ // 5s de tolerância
+
+    // Se local é mais recente, apenas sobe o local para a nuvem
+    if(tsLocal >= tsRemoto) return;
+
+    // Comparar "riqueza" dos dados — servicos com pct > 0, presença preenchida, etc.
+    const localRichness = _calcDataRichness(state);
+    const remoteRichness = _calcDataRichness(remoto.data);
+
+    // Se nuvem é mais nova MAS local tem dados mais ricos (mais serviços com progresso,
+    // mais presença, mais pagamentos), NÃO sobreescrever — avisar o usuário
+    if(localRichness > remoteRichness + 2){
+      console.warn('[Supabase] Nuvem mais recente mas local mais completo. local=' + localRichness + ' remoto=' + remoteRichness);
+      toast('⚠️ Nuvem desatualizada — seus dados locais são mais completos. Salvando na nuvem...','warning',4000);
+      // Forçar upload do local para a nuvem
+      const sbData = JSON.parse(JSON.stringify(state));
+      sbData.fotos = (sbData.fotos||[]).map(function(f){ return f.cloud&&f.url ? {...f,src:f.url,b64:undefined} : {...f,b64:undefined}; });
+      sbSave(obraKey, sbData);
+      return;
+    }
+
+    // Nuvem mais nova e mais completa (ou similar) — aceitar
+    if(tsRemoto > tsLocal + 5000){
       state = migrateState(remoto.data);
       sanitizeState(state);
       currentObraKey = 'cockpit_' + obraKey;
@@ -4303,6 +4340,40 @@ async function sbLoadBackground(obraKey){
       toast('☁ Dados sincronizados da nuvem','success');
     }
   } catch(e){ /* silencioso */ }
+}
+
+// Calcula "riqueza" dos dados para comparação de completude
+function _calcDataRichness(s){
+  if(!s) return 0;
+  var score = 0;
+  var srvs = s.servicos || [];
+  // Pontos por serviços com progresso
+  score += srvs.filter(function(x){ return (x.pct_atual||0) > 0; }).length * 3;
+  // Pontos por serviços com datas no cronograma
+  score += srvs.filter(function(x){ return x.data_inicio && x.data_fim; }).length;
+  // Pontos por presença registrada
+  var diario = s.diario || {};
+  ['seg','ter','qua','qui','sex','sab','dom'].forEach(function(d){
+    if(diario[d] && diario[d].presenca){
+      var vals = Object.values(diario[d].presenca);
+      score += vals.filter(function(v){ return v === 'sim' || v === 'nao'; }).length;
+    }
+  });
+  // Pontos por equipes com presença
+  (s.equipes||[]).forEach(function(eq){
+    if(eq.presenca){
+      score += Object.values(eq.presenca).filter(function(v){ return v === 'sim' || v === 'nao'; }).length;
+    }
+  });
+  // Pontos por pagamentos
+  score += (s.pagamentos||[]).length * 2;
+  // Pontos por fotos
+  score += (s.fotos||[]).length;
+  // Pontos por pendências
+  score += (s.pendencias||[]).length;
+  // Pontos por narrativa
+  if((s.narrativa||'').trim()) score += 2;
+  return score;
 }
 
 function restoreUI(){
@@ -8210,11 +8281,14 @@ function hideConfirm(){ document.getElementById('confirm-overlay').classList.rem
 
 function copiar(id){
   const el = document.getElementById(id);
-  if(!el) return;
-  el.select();
-  try {
-    navigator.clipboard.writeText(el.value).then(()=>toast('Copiado para o clipboard!','success')).catch(()=>{ document.execCommand('copy'); toast('Copiado!','success'); });
-  } catch(e){ document.execCommand('copy'); toast('Copiado!','success'); }
+  if(!el || !el.value.trim()){ toast('Nada para copiar — gere o conteúdo primeiro','error'); return; }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(el.value).then(()=>toast('✅ Copiado!','success')).catch(()=>{
+      el.select(); el.setSelectionRange(0, 99999); document.execCommand('copy'); toast('✅ Copiado!','success');
+    });
+  } else {
+    el.select(); el.setSelectionRange(0, 99999); document.execCommand('copy'); toast('✅ Copiado!','success');
+  }
 }
 
 function updateSubtitle(id, text){ const el=document.getElementById(id); if(el) el.textContent=text; }
@@ -8239,7 +8313,7 @@ function toast(msg, type='', duration=2800){
 function getVal(id){ const e=document.getElementById(id); return e?e.value:''; }
 function setVal(id, val){ const e=document.getElementById(id); if(e) e.value=val; }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function slugify(s){ return s.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'').slice(0,30); }
+function slugify(s){ return s.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'').replace(/-{2,}/g,'-').slice(0,80); }
 function fmtNum(n){ return n.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}); }
 function today(){
   const d=new Date();
@@ -11721,13 +11795,14 @@ function _gerarRelSemanal(){
   // Alertas
   const alts = pendencias.filter(p=>p.status==='ABERTA').slice(0,6);
 
-  // Equipe / presença — lê de state.diario
+  // Equipe / presença — lê de state.diario com fallback para eq.presenca
   const _presKeys  = ['seg','ter','qua','qui','sex','sab','dom'];
   const _presLabel = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
   const presRows = equipes.length ? equipes.map(eq=>{
     const dias = _presKeys.map(d=>{
       const diaEntry = (state.diario || {})[d];
-      const pres = diaEntry && diaEntry.presenca && diaEntry.presenca[eq.cod];
+      let pres = diaEntry && diaEntry.presenca && diaEntry.presenca[eq.cod];
+      if(pres === undefined || pres === null) pres = eq.presenca && eq.presenca[d];
       const v = pres === true || pres === 'sim' ? 'sim' : pres === false || pres === 'nao' ? 'nao' : 'nd';
       const icon = v === 'sim' ? '✓' : v === 'nao' ? '✗' : '—';
       const cls  = v === 'sim' ? 'ck' : v === 'nao' ? 'cx' : 'dc';
@@ -11735,7 +11810,8 @@ function _gerarRelSemanal(){
     }).join('');
     const total = _presKeys.filter(d=>{
       const de = (state.diario||{})[d];
-      const p = de && de.presenca && de.presenca[eq.cod];
+      let p = de && de.presenca && de.presenca[eq.cod];
+      if(p === undefined || p === null) p = eq.presenca && eq.presenca[d];
       return p === true || p === 'sim';
     }).length;
     return `<tr><td style="font-weight:700">${esc2(eq.nome||eq.responsavel||'')}</td>${dias}<td class="mono" style="text-align:center;font-weight:700">${total}d</td></tr>`;
@@ -11852,7 +11928,7 @@ ${cabHeader}
 // ═══════════════════════════════════════════════════════════════
 // RELATÓRIO SEMANAL CLIENTE — padrão BERTI
 // ═══════════════════════════════════════════════════════════════
-function gerarRelatorioSemanalCliente(){
+async function gerarRelatorioSemanalCliente(){
   const c = state.config;
   const t = getRelTema();
   const p1 = t.p1, p2 = t.p2;
@@ -11862,13 +11938,40 @@ function gerarRelatorioSemanalCliente(){
   const srvs = state.servicos || [];
   const pags = state.pagamentos || [];
   const fotos = state.fotos || [];
-  const narrativa = (document.getElementById('narrativa-visita')||{}).value || state.narrativa || '';
+  const narrativaOriginal = (document.getElementById('narrativa-visita')||{}).value || state.narrativa || '';
 
   const totalVal = srvs.reduce((a,s)=>a+(s.valor||0),0);
   let pctGeral = 0;
   if(totalVal>0) pctGeral = srvs.reduce((a,s)=>a+(s.pct_atual||0)*(s.valor||0),0)/totalVal;
   else if(srvs.length>0) pctGeral = srvs.reduce((a,s)=>a+(s.pct_atual||0),0)/srvs.length;
   pctGeral = Math.round(pctGeral);
+
+  // ── Narrativa para o cliente (didática, sem códigos SRV/EQ) ──
+  let narrativa = '';
+  const concluidos_lst = srvs.filter(s=>(s.pct_atual||0)>=100).map(s=>s.descricao||'').filter(Boolean);
+  const emAnd_lst = srvs.filter(s=>(s.pct_atual||0)>0&&(s.pct_atual||0)<100).map(s=>(s.descricao||'')+' ('+s.pct_atual+'%)').filter(Boolean);
+  const apiKey = localStorage.getItem('mdo_api_key');
+  if(narrativaOriginal && apiKey){
+    toast('Gerando narrativa para o cliente...','info');
+    try {
+      const promptNarr = 'Você é redator de relatórios de obra para LEIGOS (clientes que não entendem construção).\n'
+        +'Reescreva o resumo da semana abaixo em linguagem simples, clara e profissional.\n\n'
+        +'REGRAS:\n- NÃO use códigos internos (SRV-XXX, EQ-XXX, FOR-XXX ou similares)\n'
+        +'- NÃO use jargão técnico sem explicar\n- Escreva em 2-3 parágrafos curtos\n'
+        +'- Estrutura: (1) O que foi feito nesta semana, (2) Como está o andamento geral, (3) O que vem a seguir\n'
+        +'- Tom confiante e transparente\n- Máximo 150 palavras\n\n'
+        +'DADOS:\nObra: '+(c.obra||'—')+'\nSemana: '+(c.semana||1)+'\nAvanço geral: '+pctGeral+'%\n'
+        +'Serviços concluídos ('+concluidos_lst.length+'): '+(concluidos_lst.join(', ')||'nenhum')+'\n'
+        +'Em andamento ('+emAnd_lst.length+'): '+(emAnd_lst.join(', ')||'nenhum')+'\n\n'
+        +'NARRATIVA ORIGINAL (interna):\n'+narrativaOriginal+'\n\nReescreva para o cliente:';
+      narrativa = await callClaude({ messages:[{role:'user',content:promptNarr}], max_tokens:400 });
+    } catch(e){
+      console.warn('Fallback narrativa cliente:', e);
+      narrativa = narrativaOriginal.replace(/\b(SRV|EQ|FOR)-[\w-]+/gi,'').replace(/\s{2,}/g,' ').trim();
+    }
+  } else if(narrativaOriginal){
+    narrativa = narrativaOriginal.replace(/\b(SRV|EQ|FOR)-[\w-]+/gi,'').replace(/\s{2,}/g,' ').trim();
+  }
 
   const emAnd = srvs.filter(s=>(s.pct_atual||0)>0&&(s.pct_atual||0)<100).length;
   const concluidos = srvs.filter(s=>(s.pct_atual||0)>=100).length;
@@ -11897,14 +12000,30 @@ function gerarRelatorioSemanalCliente(){
 
   // Próxima semana — serviços programados com datas do cronograma
   function _fmtCli(d){ if(!d) return '—'; var dt=new Date(d.includes('/')?d.split('/').reverse().join('-'):d); return isNaN(dt)?'—':String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0'); }
+  function _toDateCli(d){ if(!d) return null; var dt=new Date((d.includes('/')?d.split('/').reverse().join('-'):d)+'T00:00:00'); return isNaN(dt)?null:dt; }
+  // Calcula intervalo da próxima semana (dia seguinte ao periodo_fim + 6 dias)
+  var _proxIni = null, _proxFim = null;
+  if(c.periodo_fim){
+    _proxIni = _toDateCli(c.periodo_fim);
+    if(_proxIni){ _proxIni = new Date(_proxIni.getTime()+86400000); _proxFim = new Date(_proxIni.getTime()+6*86400000); }
+  }
   const proxSrvs = srvs.filter(s=>{
     var pct = s.pct_atual||0;
-    return pct < 100 && (s.status_atual==='EM ANDAMENTO'||(s.pct_atual||0)===0||pct>0);
+    if(pct >= 100) return false;
+    if(_proxIni && _proxFim){
+      var sIni = _toDateCli(s.data_inicio);
+      var sFim = _toDateCli(s.data_fim);
+      if(!sIni && !sFim) return false;
+      var ini = sIni || sFim;
+      var fim = sFim || sIni;
+      return ini <= _proxFim && fim >= _proxIni;
+    }
+    return pct < 100;
   }).sort(function(a,b){
     var da = (a.dias_marcados&&a.dias_marcados.length)?a.dias_marcados[0]:(a.data_inicio||'9999');
     var db = (b.dias_marcados&&b.dias_marcados.length)?b.dias_marcados[0]:(b.data_inicio||'9999');
     return da<db?-1:da>db?1:0;
-  }).slice(0,8);
+  }).slice(0,10);
   const proxRows = proxSrvs.length ? proxSrvs.map((s,i)=>{
     var dtIni = _fmtCli(s.data_inicio);
     var dtFim = _fmtCli(s.data_fim);
@@ -11969,7 +12088,7 @@ ${cabHeader}
   <div class="fb-div"></div>
   <div class="fb">
     <div class="fb-l">Próx. Medição</div>
-    <div class="fb-v sm">${esc2(c.periodo_fim||'—')}</div>
+    <div class="fb-v sm">${esc2(fmtDate(c.periodo_fim)||'—')}</div>
     <div class="fb-s">Medição ${semana+1} de ${totalMed}</div>
   </div>
 </div>
@@ -11988,7 +12107,7 @@ ${cabHeader}
     <div class="ks-l">Em Andamento</div>
   </div>
   <div class="ks">
-    <div class="ks-v" style="font-size:26px;line-height:1.15">${esc2(c.data_fim||c.periodo_fim||'—')}</div>
+    <div class="ks-v" style="font-size:26px;line-height:1.15">${esc2(fmtDate(c.data_fim||c.periodo_fim)||'—')}</div>
     <div class="ks-l">Entrega Prevista</div>
   </div>
 </div>
