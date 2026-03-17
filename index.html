@@ -2973,7 +2973,7 @@ body.tabs-active #tab-cronograma.active{max-width:100%!important;margin:0!import
         <div id="plan-loading" style="display:none;text-align:center;padding:12px;color:var(--muted);font-size:12px"><div class="pia-spinner" style="display:inline-block;margin-right:8px"></div>Gerando planejamento...</div>
 
         <!-- Kanban board -->
-        <div id="plan-kanban" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;min-width:0">
+        <div id="plan-kanban" style="display:flex;flex-direction:column;gap:6px">
         </div>
 
         <!-- Resultado IA raw (colapsável) -->
@@ -14888,55 +14888,58 @@ function planRender(){
   if(!state.planejamento) state.planejamento = { objetivo:'', tarefas:[] };
   var tarefas = state.planejamento.tarefas || [];
   var diasOrdem = ['seg','ter','qua','qui','sex','sab','dom'];
-  var diasLabel = {seg:'SEG',ter:'TER',qua:'QUA',qui:'QUI',sex:'SEX',sab:'SÁB',dom:'DOM'};
+  var diasLabel = {seg:'SEGUNDA',ter:'TERÇA',qua:'QUARTA',qui:'QUINTA',sex:'SEXTA',sab:'SÁBADO',dom:'DOMINGO'};
+  var diasShort = {seg:'SEG',ter:'TER',qua:'QUA',qui:'QUI',sex:'SEX',sab:'SÁB',dom:'DOM'};
   var datas = getDiasData(0);
   var hojeSigla = getDiaAtualSigla();
 
   var tipoColors = {'📱 WHATSAPP':'#25D366','🏗️ OBRA':'#D97706','📞 TELEFONE':'#3B82F6','💻 ESCRITÓRIO':'#6B7280'};
   var stColors = {pendente:'#FEF3C7',concluida:'#D1FAE5',cancelada:'#FEE2E2'};
 
-  kb.innerHTML = diasOrdem.map(function(dia){
+  var html = '';
+  diasOrdem.forEach(function(dia){
     var isHoje = dia === hojeSigla;
     var dtLabel = datas[dia] || '';
     var diaTarefas = tarefas.filter(function(t){
       return t.dia===dia && _planFilters[t.status||'pendente'];
     });
+    if(!diaTarefas.length) return;
     diaTarefas.sort(function(a,b){ return (a.hora||'').localeCompare(b.hora||''); });
 
-    var cards = diaTarefas.map(function(t){
+    html += '<div style="margin-bottom:12px">';
+    html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:'+(isHoje?'var(--primary)':'var(--bg)')+';color:'+(isHoje?'#fff':'var(--ink)')+';border-radius:6px;font-size:12px;font-weight:800">';
+    html += diasLabel[dia]+' · '+dtLabel;
+    if(isHoje) html += '<span style="font-size:9px;opacity:.7;font-weight:400;margin-left:4px">HOJE</span>';
+    html += '</div>';
+
+    diaTarefas.forEach(function(t){
       var bgTipo = tipoColors[t.tipo] || '#6B7280';
       var bgSt = stColors[t.status||'pendente'] || '#fff';
       var isDone = t.status==='concluida';
-      return '<div style="background:'+bgSt+';border:1px solid var(--border);border-left:3px solid '+bgTipo+';border-radius:6px;padding:8px;margin-bottom:6px;font-size:10px;'+(isDone?'opacity:.6':'')+'">'
-        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
-        +'<span style="font-weight:700;font-family:var(--font-mono);font-size:9px;color:'+bgTipo+'">'+esc(t.hora||'')+' '+esc(t.tipo||'')+'</span>'
-        +'<button onclick="planRemoverTarefa('+t.id+')" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--muted);padding:0">✕</button>'
-        +'</div>'
-        +'<textarea onchange="planUpdateTarefa('+t.id+',\'descricao\',this.value)" style="width:100%;font-size:10px;border:none;background:transparent;resize:none;padding:0;color:var(--ink);'+(isDone?'text-decoration:line-through':'')+'\" rows="2">'+esc(t.descricao||'')+'</textarea>'
-        +(t.para?'<div style="font-size:9px;color:var(--muted);margin-top:2px">→ '+esc(t.para)+'</div>':'')
-        +(t.mensagem?'<div onclick="navigator.clipboard.writeText(this.innerText);toast(\'📋 Copiado!\',\'success\')" style="background:#E8F5E9;border-radius:4px;padding:4px 6px;margin-top:4px;font-size:9px;color:#1B5E20;cursor:pointer" title="Clique para copiar">'+esc(t.mensagem)+'</div>':'')
-        +'<div style="display:flex;gap:4px;margin-top:6px">'
-        +'<select onchange="planUpdateTarefa('+t.id+',\'status\',this.value)" style="font-size:9px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:var(--surface);flex:1">'
-        +'<option value="pendente"'+(t.status==='pendente'?' selected':'')+'>⏳ Pendente</option>'
-        +'<option value="concluida"'+(t.status==='concluida'?' selected':'')+'>✅ Concluída</option>'
-        +'<option value="cancelada"'+(t.status==='cancelada'?' selected':'')+'>❌ Cancelada</option>'
-        +'</select>'
-        +'<select onchange="planUpdateTarefa('+t.id+',\'dia\',this.value)" style="font-size:9px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:var(--surface)">'
-        +diasOrdem.map(function(d2){ return '<option value="'+d2+'"'+(t.dia===d2?' selected':'')+'>'+diasLabel[d2]+'</option>'; }).join('')
-        +'</select>'
-        +'</div>'
-        +(isDone&&t.concluida_em?'<div style="font-size:8px;color:var(--muted);margin-top:3px;font-family:var(--font-mono)">✓ '+esc(t.concluida_em)+'</div>':'')
-        +'</div>';
-    }).join('');
+      html += '<div style="background:'+bgSt+';border:1px solid var(--border);border-left:4px solid '+bgTipo+';border-radius:6px;padding:10px 12px;margin-top:4px;'+(isDone?'opacity:.5':'')+'">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
+      html += '<div style="display:flex;align-items:center;gap:6px">';
+      html += '<span style="font-weight:700;font-family:var(--font-mono);font-size:10px;color:'+bgTipo+'">'+esc(t.hora||'')+' '+esc(t.tipo||'')+'</span>';
+      if(t.para) html += '<span style="font-size:9px;color:var(--muted)">→ '+esc(t.para)+'</span>';
+      html += '</div>';
+      html += '<div style="display:flex;gap:4px;align-items:center">';
+      html += '<select onchange="planUpdateTarefa('+t.id+',\'status\',this.value)" style="font-size:9px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:var(--surface)">';
+      html += '<option value="pendente"'+(t.status==='pendente'?' selected':'')+'>⏳</option>';
+      html += '<option value="concluida"'+(t.status==='concluida'?' selected':'')+'>✅</option>';
+      html += '<option value="cancelada"'+(t.status==='cancelada'?' selected':'')+'>❌</option>';
+      html += '</select>';
+      html += '<button onclick="planRemoverTarefa('+t.id+')" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--muted);padding:2px">✕</button>';
+      html += '</div></div>';
+      html += '<div style="font-size:11px;color:var(--ink);'+(isDone?'text-decoration:line-through':'')+'">'+esc(t.descricao||'')+'</div>';
+      if(t.mensagem) html += '<div onclick="navigator.clipboard.writeText(this.textContent);toast(\'📋 Copiado!\',\'success\')" style="background:#E8F5E9;border-left:3px solid #25D366;border-radius:0 6px 6px 0;padding:6px 10px;margin-top:6px;font-size:11px;color:#1B5E20;cursor:pointer;line-height:1.4" title="Clique para copiar">'+esc(t.mensagem)+'</div>';
+      if(isDone&&t.concluida_em) html += '<div style="font-size:8px;color:var(--muted);margin-top:3px;font-family:var(--font-mono)">✓ '+esc(t.concluida_em)+'</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  });
 
-    return '<div style="min-width:120px">'
-      +'<div style="text-align:center;padding:6px;background:'+(isHoje?'var(--primary)':'var(--bg)')+';color:'+(isHoje?'#fff':'var(--ink)')+';border-radius:6px 6px 0 0;font-size:11px;font-weight:800">'
-      +diasLabel[dia]+'<div style="font-size:9px;font-weight:400;opacity:.7">'+dtLabel+'</div></div>'
-      +'<div style="min-height:80px;padding:6px;background:var(--bg);border-radius:0 0 6px 6px;border:1px solid var(--border);border-top:none">'
-      +cards
-      +'<button onclick="planAddTarefa(\''+dia+'\')" style="width:100%;padding:4px;font-size:9px;color:var(--muted);background:transparent;border:1px dashed var(--border);border-radius:4px;cursor:pointer;margin-top:4px">+</button>'
-      +'</div></div>';
-  }).join('');
+  if(!html) html = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">Nenhuma tarefa. Clique "Gerar Planejamento com IA" ou "+ Tarefa manual".</div>';
+  kb.innerHTML = html;
 }
 
 function planAddTarefa(dia){
