@@ -11059,10 +11059,8 @@ function aplicarExtracoes(){
   if(!extracaoAtual){ fecharApplyModal(); return; }
   const d = extracaoAtual;
   let count = 0;
-  try {
 
-  // Serviços — atualiza status, pct E cronograma (datas)
-  // Calcula data ISO do dia selecionado para preencher cronograma
+  // Data ISO do dia da visita (escopo global da função)
   var _datasVisita = getDiasData(diarioSemanaOffset||0);
   var _ddVisita = _datasVisita[diarioDiaSelecionado||'seg'] || '';
   var _isoHoje = '';
@@ -11072,6 +11070,9 @@ function aplicarExtracoes(){
   }
   if(!_isoHoje) _isoHoje = new Date().toISOString().slice(0,10);
 
+  try {
+
+  // Serviços — atualiza status, pct E cronograma (datas)
   (d.servicos_atualizados||[]).forEach((s,i)=>{
     const chk = document.getElementById('chk-srv-'+i);
     if(!chk || !chk.checked) return;
@@ -11086,19 +11087,16 @@ function aplicarExtracoes(){
       if(s.observacao) srv.observacao = s.observacao;
 
       // ── Atualizar cronograma automaticamente ──
-      // Regra: se o serviço tem progresso (>0%) e não tem data_inicio → preencher
       if(pctNovo > 0 && !srv.data_inicio){
         srv.data_inicio = _isoHoje;
       }
-      // Se concluiu (100%) e não tem data_fim → marcar hoje
       if(pctNovo >= 100 && !srv.data_fim){
         srv.data_fim = _isoHoje;
       }
-      // Se tem data_inicio mas não data_fim → data_fim provisória = hoje
       if(srv.data_inicio && !srv.data_fim){
         srv.data_fim = _isoHoje;
       }
-      // Recalcular dias_marcados para o Gantt renderizar as barras
+      // Sempre recalcular dias_marcados quando há datas
       if(srv.data_inicio){
         srv.dias_marcados = _gerarDiasMarcados(srv.data_inicio, srv.data_fim || srv.data_inicio);
       }
@@ -11214,10 +11212,11 @@ function aplicarExtracoes(){
     if(pct >= 100 && !srv.data_fim){
       srv.data_fim = _isoHoje;
     }
-    if(srv.data_inicio && !srv.data_fim){
+    if(srv.data_inicio && !srv.data_fim && pct > 0){
       srv.data_fim = _isoHoje;
     }
-    if(srv.data_inicio && (!srv.dias_marcados || !srv.dias_marcados.length)){
+    // Sempre recalcular dias_marcados se tem datas
+    if(srv.data_inicio){
       srv.dias_marcados = _gerarDiasMarcados(srv.data_inicio, srv.data_fim || srv.data_inicio);
     }
   });
