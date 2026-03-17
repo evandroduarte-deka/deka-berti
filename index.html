@@ -2309,6 +2309,14 @@ body.tabs-active #tab-cronograma.active{max-width:100%!important;margin:0!import
       </div>
     </div>
 
+    <!-- Teste rápido IA -->
+    <div id="ia-test-bloco" style="margin-bottom:12px">
+      <button onclick="testarIA()" id="btn-testar-ia" style="font-size:11px;font-weight:600;background:none;border:1.5px solid var(--border);color:var(--muted);padding:8px 14px;border-radius:var(--radius);cursor:pointer;width:100%;text-align:left;display:flex;align-items:center;gap:8px">
+        <span style="font-size:14px">⚡</span> Testar conexão IA (Worker + Fallback)
+      </button>
+      <div id="ia-test-result" style="display:none;margin-top:6px;padding:10px 12px;border-radius:var(--radius);font-size:11px;font-family:var(--font-mono);white-space:pre-wrap;line-height:1.5;max-height:200px;overflow:auto"></div>
+    </div>
+
     <!-- API ImgBB -->
     <div id="api-imgbb-bloco" style="margin-bottom:12px">
       <div id="api-imgbb-status-view" style="display:none;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius)">
@@ -8299,8 +8307,8 @@ async function callClaude(opts){
       signal: controller.signal
     });
     clearTimeout(timer);
+    const data = await resp.json();
     if(resp.ok){
-      const data = await resp.json();
       if(data.content){
         const raw = data.content.map(function(b){ return b.text||''; }).join('').trim();
         if(opts.onProgress) opts.onProgress('Pronto!', 100);
@@ -8308,10 +8316,14 @@ async function callClaude(opts){
       }
       if(data.error) throw new Error(data.error.message || 'Erro do Worker');
     }
-    throw new Error('Worker retornou HTTP ' + resp.status);
+    // Lê o corpo do erro para diagnóstico real
+    const errMsg = (data.error && data.error.message) || JSON.stringify(data);
+    throw new Error('Worker HTTP ' + resp.status + ': ' + errMsg);
   } catch(workerErr){
     if(workerErr.name === 'AbortError') throw new Error('Tempo limite excedido (45s).');
     console.warn('Worker falhou, tentando fallback Apps Script:', workerErr.message);
+    // Guarda erro do worker para mostrar se fallback também falhar
+    var _workerErrMsg = workerErr.message;
     // Continua para fallback abaixo
   }
 
@@ -8334,16 +8346,89 @@ async function callClaude(opts){
       }
       throw new Error(d.msg || 'Erro no Apps Script proxy');
     } catch(proxyErr){
-      throw new Error('IA indisponível: ' + proxyErr.message);
+      throw new Error('IA indisponível — Worker: ' + (_workerErrMsg||'sem resposta') + ' · Fallback: ' + proxyErr.message);
     }
   }
 
-  throw new Error('IA não configurada. Verifique sua conexão com o Cloudflare Worker.');
+  throw new Error('IA indisponível — Worker: ' + (_workerErrMsg||'sem configuração') + '. Verifique a chave no Cloudflare.');
 }
 
 function parseClaudeJSON(raw){
   const clean = raw.replace(/^```json\n?/,'').replace(/^```\n?/,'').replace(/```$/,'').trim();
   return JSON.parse(clean);
+}
+
+// ───────────────────────────────────────────────
+// TESTE RÁPIDO DA IA — DIAGNÓSTICO
+// ───────────────────────────────────────────────
+async function testarIA(){
+  var btn = document.getElementById('btn-testar-ia');
+  var res = document.getElementById('ia-test-result');
+  btn.disabled = true;
+  btn.innerHTML = '<span style="font-size:14px">⏳</span> Testando...';
+  res.style.display = 'block';
+  res.style.background = 'var(--bg)';
+  res.style.border = '1.5px solid var(--border)';
+  res.style.color = 'var(--ink)';
+  var log = '';
+
+  // Teste 1: Worker
+  log += '── Worker (Cloudflare) ──\n';
+  try {
+    var t0 = Date.now();
+    var r = await fetch('https://anthropic-proxy.berti-b52.workers.dev', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:30,messages:[{role:'user',content:'Responda apenas: OK'}]})
+    });
+    var d = await r.json();
+    var ms = Date.now() - t0;
+    if(r.ok && d.content){
+      log += '✅ OK (' + ms + 'ms)\n';
+      log += '   Modelo: claude-sonnet-4-20250514\n';
+      log += '   Resposta: ' + (d.content[0]||{}).text + '\n';
+    } else {
+      log += '❌ HTTP ' + r.status + '\n';
+      if(d.error) log += '   Erro: ' + (d.error.message || JSON.stringify(d.error)) + '\n';
+      else log += '   Body: ' + JSON.stringify(d).substring(0,200) + '\n';
+      // Se 401, chave inválida
+      if(r.status === 401) log += '   → CHAVE INVÁLIDA. Gere nova em console.anthropic.com\n';
+      // Se 400, pode ser modelo ou body
+      if(r.status === 400) log += '   → Verifique a chave e o modelo no Worker\n';
+    }
+  } catch(e){
+    log += '❌ Falha: ' + e.message + '\n';
+  }
+
+  // Teste 2: Fallback Apps Script
+  log += '\n── Apps Script (Fallback) ──\n';
+  var proxyUrl = (typeof getSyncScript === 'function') ? getSyncScript() : '';
+  if(proxyUrl){
+    try {
+      var params = new URLSearchParams({
+        action:'claude_proxy', model:'claude-sonnet-4-20250514',
+        max_tokens:'30', messages:JSON.stringify([{role:'user',content:'Responda apenas: OK'}]),
+        system:''
+      });
+      var r2 = await fetch(proxyUrl + '?' + params.toString());
+      var d2 = await r2.json();
+      if(d2.ok){
+        log += '✅ OK — Resposta: ' + d2.text.substring(0,60) + '\n';
+      } else {
+        log += '❌ Erro: ' + (d2.msg||JSON.stringify(d2)) + '\n';
+      }
+    } catch(e2){
+      log += '❌ Falha: ' + e2.message + '\n';
+    }
+  } else {
+    log += '⚠️ Sem URL de Sync configurada\n';
+  }
+
+  res.textContent = log;
+  var hasError = log.includes('❌');
+  res.style.border = '1.5px solid ' + (hasError ? '#F87171' : '#6EE7B7');
+  btn.disabled = false;
+  btn.innerHTML = '<span style="font-size:14px">⚡</span> Testar conexão IA (Worker + Fallback)';
 }
 
 // ───────────────────────────────────────────────
