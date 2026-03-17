@@ -15076,26 +15076,39 @@ async function planGerarIA(){
     var raw = await callClaude({
       system: 'Você é o gerente de produção da obra. Gere tarefas distribuídas para cada dia da semana no formato JSON.\n\nPara cada tarefa:\n- dia: seg/ter/qua/qui/sex/sab/dom\n- hora: HH:MM\n- tipo: "📱 WHATSAPP" ou "🏗️ OBRA" ou "📞 TELEFONE" ou "💻 ESCRITÓRIO"\n- descricao: ação concreta e específica\n- para: destinatário (nome + telefone se disponível)\n- mensagem: texto pronto para enviar (APENAS para tipo WHATSAPP, com saudação e contexto)\n\nResposta APENAS JSON válido sem texto antes ou depois:\n[{"dia":"seg","hora":"07:30","tipo":"📱 WHATSAPP","descricao":"...","para":"...","mensagem":"..."},...]',
       messages: [{role:'user', content: 'HOJE: '+diaStr+'\nOBJETIVO DA SEMANA: '+objetivo+'\nENDEREÇO: '+(ctx.c.endereco_obra||'')+'\n'+ctx.resumo+'\nSERVIÇOS POR DIA:\n'+srvDiaCtx+'\nEQUIPES:\n'+ctx.eqCtx+'\nPENDÊNCIAS:\n'+ctx.pendCtx+'\nGere o JSON com as tarefas distribuídas pela semana.'}],
-      max_tokens: 1500
+      max_tokens: 4000
     });
 
     // Parse JSON — aceita array direto ou objeto com array dentro
     var rawClean = raw.replace(/```json|```/g,'').trim();
     var tarefasIA = null;
+    // Tenta parse direto
     try {
       var parsed = JSON.parse(rawClean);
       if(Array.isArray(parsed)) tarefasIA = parsed;
       else if(parsed && typeof parsed === 'object'){
-        // Procura primeiro array dentro do objeto (ex: {tarefas:[...]})
         var keys = Object.keys(parsed);
         for(var ki=0;ki<keys.length;ki++){
           if(Array.isArray(parsed[keys[ki]])){ tarefasIA = parsed[keys[ki]]; break; }
         }
       }
     } catch(e2){
-      // Fallback: regex para encontrar array no texto
+      // Fallback 1: regex para encontrar array
       var match = rawClean.match(/\[[\s\S]*\]/);
       if(match) try { tarefasIA = JSON.parse(match[0]); } catch(e3){}
+      // Fallback 2: JSON truncado — corta no último objeto completo
+      if(!tarefasIA){
+        var arrStart = rawClean.indexOf('[');
+        if(arrStart>=0){
+          var partial = rawClean.substring(arrStart);
+          // Encontra o último '}' que fecha um objeto completo
+          var lastBrace = partial.lastIndexOf('}');
+          if(lastBrace>0){
+            var fixed = partial.substring(0, lastBrace+1) + ']';
+            try { tarefasIA = JSON.parse(fixed); } catch(e4){}
+          }
+        }
+      }
     }
     if(tarefasIA && tarefasIA.length){
       if(!state.planejamento) state.planejamento = { objetivo:'', tarefas:[] };
