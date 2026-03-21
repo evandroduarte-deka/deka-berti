@@ -6553,44 +6553,8 @@ function orcRemoverAditivo(idx){
 }
 
 
-function abrirModalAditivo(sugestao){
-  // sugestao = {descricao, categoria, valor} — pré-preenche se vier da IA
-  sugestao = sugestao || {};
-  var proxCod = 'SRV-' + String(state.servicos.length + 1).padStart(3,'0');
-  // Garantir que o código não existe
-  while(state.servicos.find(function(s){ return s.cod === proxCod; })){
-    var n = parseInt(proxCod.split('-')[1]) + 1;
-    proxCod = 'SRV-' + String(n).padStart(3,'0');
-  }
-  var modal = document.createElement('div');
-  modal.id = 'modal-aditivo';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px';
-  modal.innerHTML = `
-    <div style="background:var(--surface);border-radius:12px;width:100%;max-width:480px;overflow:hidden">
-      <div style="background:var(--primary);padding:16px 20px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-family:var(--font-display);font-size:14px;font-weight:800;color:#fff">＋ Novo Aditivo</span>
-        <button onclick="document.getElementById('modal-aditivo').remove()" style="background:transparent;border:none;color:rgba(255,255,255,.7);font-size:18px;cursor:pointer">✕</button>
-      </div>
-      <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
-        <div class="field"><label>Código</label><input id="adit-cod" type="text" value="${proxCod}" style="font-family:var(--font-mono);font-size:13px"></div>
-        <div class="field"><label>Descrição *</label><input id="adit-desc" type="text" placeholder="Ex: Instalação de ponto extra de elétrica" value="${esc(sugestao.descricao||'')}"></div>
-        <div class="field"><label>Categoria</label>
-          <select id="adit-cat">
-            ${['Preliminares','Demolições','Infraestrutura','Alvenaria','Construções e Regularizações','Impermeabilização','Pintura','Hidráulica','Elétrica','Ar-condicionado','Drywall / Forro','Revestimento','Cobertura','Serralheria','Estruturas Especiais','PPCI / Incêndio','Projetos','Marcenaria','Limpeza','Administração'].map(function(ct){ return '<option value="'+ct+'"'+(ct===(sugestao.categoria||'')?' selected':'')+'>'+ct+'</option>'; }).join('')}
-          </select>
-        </div>
-        <div class="field"><label>Valor (R$)</label><input id="adit-valor" type="number" min="0" step="100" placeholder="0" value="${sugestao.valor||''}"></div>
-        <div class="field"><label>Unidade</label><input id="adit-unid" type="text" placeholder="vb, m², m, un..." value="${sugestao.unidade||'vb'}"></div>
-        <div class="field"><label>Justificativa</label><textarea id="adit-just" rows="2" placeholder="Motivo do aditivo / observações...">${sugestao.justificativa||''}</textarea></div>
-        <div style="display:flex;gap:8px;margin-top:4px">
-          <button onclick="document.getElementById('modal-aditivo').remove()" class="btn btn-outline" style="flex:1">Cancelar</button>
-          <button onclick="confirmarAditivo()" class="btn" style="flex:2;background:var(--primary);color:#fff;border:none">✓ Adicionar ao Orçamento</button>
-        </div>
-      </div>
-    </div>`;
-  document.body.appendChild(modal);
-  setTimeout(function(){ var el = document.getElementById('adit-desc'); if(el) el.focus(); }, 100);
-}
+// v48-auditado: abrirModalAditivo/confirmarAditivo legados removidos
+// Versão ativa está mais abaixo (usa IDs adt-*)
 
 function sugerirAditivo(desc, cat){
   fecharApplyModal();
@@ -6600,41 +6564,8 @@ function sugerirAditivo(desc, cat){
 
 function fecharModalAditivo(){ var m=document.getElementById("modal-aditivo"); if(m) m.remove(); }
 
-function confirmarAditivo(){
-  var cod  = (document.getElementById('adit-cod').value||'').trim();
-  var desc = (document.getElementById('adit-desc').value||'').trim();
-  var cat  = document.getElementById('adit-cat').value;
-  var val  = parseFloat(document.getElementById('adit-valor').value) || 0;
-  var unid = (document.getElementById('adit-unid').value||'vb').trim();
-  var just = (document.getElementById('adit-just').value||'').trim();
-
-  if(!desc){ toast('Descrição obrigatória', 'error'); return; }
-  if(state.servicos.find(function(s){ return s.cod===cod; })){
-    toast('Código ' + cod + ' já existe — escolha outro', 'error'); return;
-  }
-
-  state.servicos.push({
-    cod: cod,
-    descricao: desc,
-    categoria: cat,
-    setor: cat,
-    unidade: unid,
-    valor: val,
-    pct_anterior: 0,
-    pct_atual: 0,
-    status_anterior: 'A EXECUTAR',
-    status_atual: 'A EXECUTAR',
-    equipe: '',
-    observacao: just,
-    aditivo: true,
-    data_aditivo: now()
-  });
-
-  document.getElementById('modal-aditivo').remove();
-  renderServicos();
-  saveState();
-  toast('✅ Aditivo ' + cod + ' adicionado ao orçamento!', 'success');
-}
+// v48-auditado: confirmarAditivo legado removido (usava IDs adit-* inexistentes)
+// Versão ativa usa IDs adt-* e está na linha ~6870
 
 function toggleCard(idx){
   const card = document.getElementById('srvcard-'+idx);
@@ -10096,7 +10027,7 @@ function extrairIdDeUrl(str){
   return m ? m[1] : null;
 }
 
-function getBaseDadosId(){ return localStorage.getItem('mdo_base_dados_id')||''; }
+// v48-auditado: getBaseDadosId legado removido — versão completa está na linha 15242
 
 function carregarGscriptUrl(){
   // Delega para o novo sistema
@@ -19611,7 +19542,7 @@ function showTab(tab){
 
 // ── DATE HELPERS ───────────────────────────────────────
 function isoToPtBr(s){ if(!s) return ''; var p=s.split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:''; }
-function addDays(iso, n){ var d=new Date(iso+'T12:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+function _addDaysISO(iso, n){ var d=new Date(iso+'T12:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
 function isoToTs(s){ return s ? new Date(s+'T12:00:00').getTime() : 0; }
 function daysBetween(a,b){ return Math.round((isoToTs(b)-isoToTs(a))/(86400000)); }
 function inRange(day, ini, fim){ return ini && fim && day >= ini && day <= fim; }
@@ -19718,7 +19649,7 @@ function renderCalendario(){
   var cur = rangeStart;
   while(cur <= rangeEnd){
     days.push(cur);
-    cur = addDays(cur,1);
+    cur = _addDaysISO(cur,1);
   }
 
   // Build conflict map
@@ -19728,7 +19659,7 @@ function renderCalendario(){
     while(d <= s.data_fim){
       if(!conflictMap[d]) conflictMap[d] = 0;
       conflictMap[d]++;
-      d = addDays(d,1);
+      d = _addDaysISO(d,1);
     }
   });
 
@@ -19840,7 +19771,7 @@ function checarConflitos(){
     while(d <= s.data_fim){
       if(!dayMap[d]) dayMap[d]=[];
       dayMap[d].push(s);
-      d = addDays(d,1);
+      d = _addDaysISO(d,1);
     }
   });
 
@@ -19855,7 +19786,7 @@ function checarConflitos(){
   confDays.forEach(function(day){
     var srvCods = dayMap[day].map(function(s){return s.cod;}).sort().join('|');
     var last = periodos[periodos.length-1];
-    if(last && last.cods===srvCods && addDays(last.fim,1)===day){
+    if(last && last.cods===srvCods && _addDaysISO(last.fim,1)===day){
       last.fim = day;
     } else {
       periodos.push({
