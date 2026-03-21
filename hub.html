@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Berti · Painel</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0C0F14;--s1:#111520;--s2:#171C28;--s3:#1E2435;--bdr:#252D3F;--ink:#E8ECF4;--sub:#8892A8;--dim:#555F75;--grn:#34D399;--grn2:#059669;--gold:#D4A853;--red:#EF6B6B;--blue:#60A5FA;--cyan:#22D3EE;--f:'DM Sans',sans-serif;--mono:'DM Mono',monospace}
+body{font-family:var(--f);background:var(--bg);color:var(--ink);min-height:100vh;overflow-x:hidden}
+::selection{background:var(--grn2);color:#fff}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--s1)}::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px}
+
+/* HEADER */
+.hd{padding:32px 32px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.hd-left{display:flex;align-items:center;gap:14px}
+.hd-mark{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--ink);letter-spacing:-1px}
+.hd-mark span{color:var(--grn)}
+.hd-tag{font-size:10px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;background:var(--s2);padding:4px 10px;border-radius:3px}
+.hd-time{font-family:var(--mono);font-size:11px;color:var(--dim)}
+
+/* GRID */
+.grid{padding:24px 32px 48px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.grid{grid-template-columns:1fr;padding:16px}}
+
+/* CARD */
+.card{background:var(--s1);border:1px solid var(--bdr);border-radius:8px;overflow:hidden;transition:border-color .2s,transform .15s}
+.card:hover{border-color:var(--grn2);transform:translateY(-2px)}
+.card.span2{grid-column:span 2}
+@media(max-width:560px){.card.span2{grid-column:span 1}}
+.card-hd{padding:16px 18px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--bdr)}
+.card-icon{width:28px;height:28px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.card-icon.g{background:rgba(52,211,153,.12);color:var(--grn)}
+.card-icon.b{background:rgba(96,165,250,.12);color:var(--blue)}
+.card-icon.y{background:rgba(212,168,83,.12);color:var(--gold)}
+.card-icon.r{background:rgba(239,107,107,.12);color:var(--red)}
+.card-icon.c{background:rgba(34,211,238,.12);color:var(--cyan)}
+.card-title{font-size:12px;font-weight:700;color:var(--ink);letter-spacing:.03em}
+.card-sub{font-size:10px;color:var(--dim)}
+.card-body{padding:10px 18px 16px}
+
+/* LINKS */
+.lnk{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:5px;text-decoration:none;color:var(--ink);transition:background .15s;cursor:pointer;border:none;background:none;width:100%;text-align:left;font-family:var(--f);font-size:12px}
+.lnk:hover{background:var(--s3)}
+.lnk-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.lnk-dot.on{background:var(--grn)}.lnk-dot.off{background:var(--dim)}.lnk-dot.warn{background:var(--gold)}
+.lnk-name{flex:1;font-weight:600;font-size:12px}
+.lnk-desc{font-size:10px;color:var(--sub)}
+.lnk-arrow{font-size:10px;color:var(--dim);transition:color .15s}
+.lnk:hover .lnk-arrow{color:var(--grn)}
+
+/* KEY ROWS */
+.key-row{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:5px;transition:background .15s}
+.key-row:hover{background:var(--s3)}
+.key-label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;min-width:60px;flex-shrink:0}
+.key-val{font-family:var(--mono);font-size:11px;color:var(--sub);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.key-val.masked{filter:blur(4px);transition:filter .2s}.key-val.masked:hover{filter:none}
+.btn-copy{background:var(--s3);border:1px solid var(--bdr);color:var(--sub);font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:3px;cursor:pointer;flex-shrink:0;transition:all .15s}
+.btn-copy:hover{background:var(--grn2);color:#fff;border-color:var(--grn2)}
+.btn-copy.ok{background:var(--grn2);color:#fff;border-color:var(--grn2)}
+
+/* DATA ROW */
+.data-row{display:flex;align-items:baseline;gap:8px;padding:6px 12px;font-size:11px}
+.data-lbl{color:var(--dim);min-width:80px;flex-shrink:0;font-size:10px;letter-spacing:.3px}
+.data-val{color:var(--ink);font-weight:500}
+.data-val.mono{font-family:var(--mono);color:var(--sub)}
+
+/* SEPARATOR */
+.sep{height:1px;background:var(--bdr);margin:6px 12px}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--grn2);color:#fff;font-size:12px;font-weight:600;padding:10px 20px;border-radius:6px;opacity:0;transition:all .3s;z-index:999;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* SEARCH */
+.search-bar{padding:16px 32px 0}
+.search-input{width:100%;background:var(--s1);border:1px solid var(--bdr);color:var(--ink);font-family:var(--f);font-size:13px;padding:12px 16px 12px 40px;border-radius:6px;outline:none;transition:border-color .2s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23555F75' stroke-width='2'%3E%3Ccircle cx='7' cy='7' r='5'/%3E%3Cline x1='11' y1='11' x2='14' y2='14'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:14px center}
+.search-input:focus{border-color:var(--grn2)}
+.search-input::placeholder{color:var(--dim)}
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <div class="hd-left">
+    <div class="hd-mark">BERTI<span>.</span></div>
+    <div class="hd-tag">Painel de Controle</div>
+  </div>
+  <div class="hd-time" id="clock"></div>
+</div>
+
+<div class="search-bar">
+  <input class="search-input" id="search" placeholder="Buscar sistema, link ou chave..." oninput="filtrar(this.value)" autofocus>
+</div>
+
+<div class="grid" id="grid">
+
+  <!-- SISTEMAS PRINCIPAIS -->
+  <div class="card" data-search="cockpit obra sistema principal">
+    <div class="card-hd">
+      <div class="card-icon g">⚡</div>
+      <div><div class="card-title">Sistemas Principais</div><div class="card-sub">Acesso rápido à operação</div></div>
+    </div>
+    <div class="card-body">
+      <a class="lnk" href="https://berti-design.github.io/mestre-obra-berti" target="_blank">
+        <div class="lnk-dot on"></div><div class="lnk-name">Cockpit v48</div><div class="lnk-arrow">↗</div>
+      </a>
+      <a class="lnk" href="https://berti-design.github.io/mestre-obra-berti/brain.html" target="_blank">
+        <div class="lnk-dot on"></div><div class="lnk-name">Brain v10 — Central de Operações</div><div class="lnk-arrow">↗</div>
+      </a>
+      <a class="lnk" href="https://berti-design.github.io/mestre-obra-berti/comercial.html" target="_blank">
+        <div class="lnk-dot on"></div><div class="lnk-name">Comercial v3 — Agente Sócio</div><div class="lnk-arrow">↗</div>
+      </a>
+      <a class="lnk" href="https://claude.ai" target="_blank">
+        <div class="lnk-dot on"></div><div class="lnk-name">Claude.ai — Projetos</div><div class="lnk-arrow">↗</div>
+      </a>
+      <a class="lnk" href="https://docs.google.com/spreadsheets/d/1etxcTQsqHDNwAeHRZ4LjtwolvppjMY9_taa3crndh8M/edit" target="_blank">
+        <div class="lnk-dot on"></div><div class="lnk-name">Planilha Master — Badida</div><div class="lnk-arrow">↗</div>
+      </a>
+      <a class="lnk" href="https://drive.google.com" target="_blank">
+        <div class="lnk-dot on"></div><div class="lnk-name">Google Drive</div><div class="lnk-arrow">↗</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- BACKEND -->
+  <div class="card" data-search="backend supabase cloudflare github worker">
+    <div class="card-hd">
+      <div class="card-icon b">☁</div>
+      <div><div class="card-title">Backend & Infra</div><div class="card-sub">Servidores e bancos de dados</div></div>
+    </div>
+    <div class="card-body">
+      <a class="lnk" href="https://supabase.com/dashboard/project/tdylutdfzgtcfyhynenk" target="_blank">
+        <div class="lnk-dot on"></div><div class="lnk-name">Supabase — cockpit_obras</div><div class="lnk-arrow">↗</div>
+      </a>
+      <a class="lnk" href="https://dash.cloudflare.com" target="_blank">
+        <div class="lnk-dot on"></div><div class="lnk-name">Cloudflare Workers</div><div class="lnk-arrow">↗</div>
+      </a>
+      <a class="lnk" href="https://github.com/berti-design/mestre-obra-berti" target="_blank">
+        <div class="lnk-dot on"></div><div class="lnk-name">GitHub — mestre-obra-berti</div><div class="lnk-arrow">↗</div>
+      </a>
+      <a class="lnk" href="https://console.anthropic.com" target="_blank">
+        <div class="lnk-dot warn"></div><div class="lnk-name">Anthropic Console</div><div class="lnk-arrow">↗</div>
+      </a>
+      <a class="lnk" href="https://api.imgbb.com" target="_blank">
+        <div class="lnk-dot on"></div><div class="lnk-name">ImgBB — API de fotos</div><div class="lnk-arrow">↗</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- CHAVES API -->
+  <div class="card" data-search="api key chave supabase anon imgbb anthropic worker">
+    <div class="card-hd">
+      <div class="card-icon y">🔑</div>
+      <div><div class="card-title">Chaves de API</div><div class="card-sub">Clique na chave para revelar · botão para copiar</div></div>
+    </div>
+    <div class="card-body">
+      <div class="key-row">
+        <div class="key-label">Supabase</div>
+        <div class="key-val masked" id="k-sb">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkeWx1dGRmemd0Y2Z5aHluZW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyODQxMjcsImV4cCI6MjA4ODg2MDEyN30.k44CAV8O8AGhq4lzy-Ms5CF6JsW2fgMqLEegKb4K-pg</div>
+        <button class="btn-copy" onclick="copiar('k-sb',this)">copiar</button>
+      </div>
+      <div class="sep"></div>
+      <div class="key-row">
+        <div class="key-label">Worker</div>
+        <div class="key-val masked" id="k-wk">anthropic-proxy.berti-b52.workers.dev</div>
+        <button class="btn-copy" onclick="copiar('k-wk',this)">copiar</button>
+      </div>
+      <div class="sep"></div>
+      <div class="key-row">
+        <div class="key-label">ImgBB</div>
+        <div class="key-val masked" id="k-img">[configurar na aba Obra do cockpit]</div>
+        <button class="btn-copy" onclick="copiar('k-img',this)">copiar</button>
+      </div>
+      <div class="sep"></div>
+      <div class="key-row">
+        <div class="key-label">SB URL</div>
+        <div class="key-val" id="k-sburl">https://tdylutdfzgtcfyhynenk.supabase.co</div>
+        <button class="btn-copy" onclick="copiar('k-sburl',this)">copiar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DADOS DA EMPRESA -->
+  <div class="card span2" data-search="empresa cnpj pix banco nubank jessica evandro berti dados">
+    <div class="card-hd">
+      <div class="card-icon c">🏢</div>
+      <div><div class="card-title">Berti Construtora LTDA</div><div class="card-sub">Dados oficiais da empresa</div></div>
+    </div>
+    <div class="card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+      <div>
+        <div class="data-row"><div class="data-lbl">CNPJ</div><div class="data-val mono" id="d-cnpj">59.622.624/0001-93</div><button class="btn-copy" onclick="copiar('d-cnpj',this)" style="margin-left:4px">copiar</button></div>
+        <div class="data-row"><div class="data-lbl">Resp. Técnica</div><div class="data-val">Jéssica Berti Martins</div></div>
+        <div class="data-row"><div class="data-lbl">CAU</div><div class="data-val mono">A129520-9</div></div>
+        <div class="data-row"><div class="data-lbl">Gestor</div><div class="data-val">Evandro Luiz Duarte</div></div>
+        <div class="data-row"><div class="data-lbl">Endereço</div><div class="data-val">R. Mateus Leme, 1970 — Centro Cívico, Curitiba/PR</div></div>
+      </div>
+      <div>
+        <div class="data-row"><div class="data-lbl">Telefone</div><div class="data-val mono" id="d-tel">(41) 9183-6651</div><button class="btn-copy" onclick="copiar('d-tel',this)" style="margin-left:4px">copiar</button></div>
+        <div class="data-row"><div class="data-lbl">E-mail</div><div class="data-val mono" id="d-email">berti@curitibaconstrutora.com.br</div><button class="btn-copy" onclick="copiar('d-email',this)" style="margin-left:4px">copiar</button></div>
+        <div class="data-row"><div class="data-lbl">PIX</div><div class="data-val mono" id="d-pix">59.622.624/0001-93</div><button class="btn-copy" onclick="copiar('d-pix',this)" style="margin-left:4px">copiar</button></div>
+        <div class="data-row"><div class="data-lbl">Banco</div><div class="data-val">NuBank · Ag. 0001 · Cc. 583989144-1</div></div>
+        <div class="data-row"><div class="data-lbl">Site</div><div class="data-val"><a href="https://berti-design.github.io/mestre-obra-berti" target="_blank" style="color:var(--grn);text-decoration:none">mestre-obra-berti ↗</a></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OBRA ATIVA -->
+  <div class="card" data-search="badida tmk obra ativa shopping barigui joel">
+    <div class="card-hd">
+      <div class="card-icon r">🏗</div>
+      <div><div class="card-title">Obra Ativa — Badida</div><div class="card-sub">ParkShopping Barigui</div></div>
+    </div>
+    <div class="card-body">
+      <div class="data-row"><div class="data-lbl">Cliente</div><div class="data-val">TMK Comércio de Alimentos LTDA</div></div>
+      <div class="data-row"><div class="data-lbl">Contato</div><div class="data-val">Joel</div></div>
+      <div class="data-row"><div class="data-lbl">Local</div><div class="data-val">ParkShopping Barigui — Loja 303</div></div>
+      <div class="data-row"><div class="data-lbl">Tipo</div><div class="data-val">Reforma comercial · Obra noturna</div></div>
+      <div class="sep"></div>
+      <a class="lnk" href="https://docs.google.com/spreadsheets/d/1etxcTQsqHDNwAeHRZ4LjtwolvppjMY9_taa3crndh8M/edit" target="_blank">
+        <div class="lnk-dot on"></div><div class="lnk-name">Planilha da obra</div><div class="lnk-arrow">↗</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- FERRAMENTAS -->
+  <div class="card" data-search="ferramenta gerador proposta manual whatsapp">
+    <div class="card-hd">
+      <div class="card-icon g">🛠</div>
+      <div><div class="card-title">Ferramentas</div><div class="card-sub">Geradores e utilitários</div></div>
+    </div>
+    <div class="card-body">
+      <button class="lnk" onclick="abrirArquivo('berti_gerador_propostas_v2.html')">
+        <div class="lnk-dot on"></div><div class="lnk-name">Gerador de Propostas v2</div><div class="lnk-desc">HTML local</div>
+      </button>
+      <button class="lnk" onclick="abrirArquivo('manual_mestre_de_obra.html')">
+        <div class="lnk-dot on"></div><div class="lnk-name">Manual Operacional</div><div class="lnk-desc">HTML local</div>
+      </button>
+      <a class="lnk" href="https://wa.me/5541991836651" target="_blank">
+        <div class="lnk-dot on"></div><div class="lnk-name">WhatsApp Berti</div><div class="lnk-arrow">↗</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- URLS IMPORTANTES -->
+  <div class="card" data-search="url script apps sync planilha deploy">
+    <div class="card-hd">
+      <div class="card-icon b">🔗</div>
+      <div><div class="card-title">URLs de Serviço</div><div class="card-sub">Endpoints e deploys</div></div>
+    </div>
+    <div class="card-body">
+      <div class="key-row">
+        <div class="key-label">Worker</div>
+        <div class="key-val" id="u-wk">https://anthropic-proxy.berti-b52.workers.dev</div>
+        <button class="btn-copy" onclick="copiar('u-wk',this)">copiar</button>
+      </div>
+      <div class="sep"></div>
+      <div class="key-row">
+        <div class="key-label">Supabase</div>
+        <div class="key-val" id="u-sb">https://tdylutdfzgtcfyhynenk.supabase.co/rest/v1/cockpit_obras</div>
+        <button class="btn-copy" onclick="copiar('u-sb',this)">copiar</button>
+      </div>
+      <div class="sep"></div>
+      <div class="key-row">
+        <div class="key-label">Cockpit</div>
+        <div class="key-val" id="u-ck">https://berti-design.github.io/mestre-obra-berti</div>
+        <button class="btn-copy" onclick="copiar('u-ck',this)">copiar</button>
+      </div>
+      <div class="sep"></div>
+      <div class="key-row">
+        <div class="key-label">Brain</div>
+        <div class="key-val" id="u-br">https://berti-design.github.io/mestre-obra-berti/brain.html</div>
+        <button class="btn-copy" onclick="copiar('u-br',this)">copiar</button>
+      </div>
+      <div class="sep"></div>
+      <div class="key-row">
+        <div class="key-label">Comercial</div>
+        <div class="key-val" id="u-cm">https://berti-design.github.io/mestre-obra-berti/comercial.html</div>
+        <button class="btn-copy" onclick="copiar('u-cm',this)">copiar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTAS RÁPIDAS -->
+  <div class="card" data-search="nota lembrete rascunho">
+    <div class="card-hd">
+      <div class="card-icon y">📝</div>
+      <div><div class="card-title">Notas Rápidas</div><div class="card-sub">Salva automaticamente no navegador</div></div>
+    </div>
+    <div class="card-body">
+      <textarea id="notas" style="width:100%;min-height:120px;background:var(--s2);border:1px solid var(--bdr);color:var(--ink);font-family:var(--mono);font-size:11px;padding:12px;border-radius:4px;resize:vertical;outline:none;line-height:1.6" placeholder="Anote aqui. Salva automaticamente..." oninput="salvarNotas()"></textarea>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// Clock
+function updateClock(){
+  var d = new Date();
+  var opts = {weekday:'long',day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'};
+  document.getElementById('clock').textContent = d.toLocaleDateString('pt-BR',opts);
+}
+updateClock(); setInterval(updateClock, 30000);
+
+// Copy
+function copiar(id, btn){
+  var el = document.getElementById(id);
+  var txt = el.textContent || el.innerText;
+  navigator.clipboard.writeText(txt).then(function(){
+    btn.textContent = '✓';
+    btn.classList.add('ok');
+    toast('Copiado!');
+    setTimeout(function(){ btn.textContent='copiar'; btn.classList.remove('ok'); }, 2000);
+  }).catch(function(){
+    // Fallback
+    var range = document.createRange();
+    range.selectNodeContents(el);
+    var sel = window.getSelection();
+    sel.removeAllRanges(); sel.addRange(range);
+    document.execCommand('copy');
+    sel.removeAllRanges();
+    btn.textContent = '✓'; btn.classList.add('ok');
+    toast('Copiado!');
+    setTimeout(function(){ btn.textContent='copiar'; btn.classList.remove('ok'); }, 2000);
+  });
+}
+
+// Toast
+function toast(msg){
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(function(){ el.classList.remove('show'); }, 2000);
+}
+
+// Search / Filter
+function filtrar(q){
+  q = q.toLowerCase().trim();
+  document.querySelectorAll('.card').forEach(function(card){
+    var search = (card.getAttribute('data-search')||'') + ' ' + card.textContent;
+    card.style.display = !q || search.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+// Local files
+function abrirArquivo(nome){
+  toast('Abra o arquivo ' + nome + ' na mesma pasta deste HTML');
+}
+
+// Notes - auto save
+function salvarNotas(){
+  localStorage.setItem('berti_hub_notas', document.getElementById('notas').value);
+}
+function carregarNotas(){
+  var n = localStorage.getItem('berti_hub_notas');
+  if(n) document.getElementById('notas').value = n;
+}
+
+// Reveal masked keys on click
+document.querySelectorAll('.key-val.masked').forEach(function(el){
+  el.addEventListener('click', function(){
+    el.classList.toggle('masked');
+  });
+});
+
+// Init
+carregarNotas();
+
+// Keyboard shortcut: / to focus search
+document.addEventListener('keydown', function(e){
+  if(e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA'){
+    e.preventDefault();
+    document.getElementById('search').focus();
+  }
+  if(e.key === 'Escape'){
+    document.getElementById('search').value = '';
+    filtrar('');
+    document.getElementById('search').blur();
+  }
+});
+</script>
+</body>
+</html>
