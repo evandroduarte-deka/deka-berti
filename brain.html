@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Jost:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════════════════
-   BRAIN v10 — COMMAND TERMINAL (AUDITADO)
+   BRAIN v11 — COMMAND CENTER (ORGANISMO)
    Visual: Angular · Dense · Monochromatic · One Accent
    Referência: Bloomberg · Palantir · War Room
 ═══════════════════════════════════════════════════════ */
@@ -531,7 +531,7 @@ canvas{display:block}
 <div class="topbar">
   <div class="tb-brand">
     <div class="tb-logo">BRAIN<span style="color:var(--gold)">.</span></div>
-    <div class="tb-version" style="color:var(--gold);border:1px solid var(--gold2)">v10</div>
+    <div class="tb-version" style="color:var(--gold);border:1px solid var(--gold2)">v11</div>
   </div>
   <div class="tb-status-strip">
     <div class="tb-stat"><div class="tb-stat-val hot" id="kp-crit">0</div><div class="tb-stat-lbl">Críticos</div></div>
@@ -934,60 +934,161 @@ async function supaFetch(endpoint, opts){
 }
 
 // ── Carrega obras do cockpit_obras ──
-// v10 — Extração correta: data contém o state completo do cockpit
-// state.config.obra, state.servicos[], state.pendencias[]
-// pctGeral calculado com mesma lógica de calcPctGeral() do cockpit
+// v11 — Extração completa: servicos detalhados, pendencias, equipes
+// O Brain lê TUDO para poder coordenar a operação
 async function carregarObras(){
   try{
     var rows = await supaFetch('cockpit_obras?select=obra_key,data,updated_at&order=updated_at.desc&limit=20');
     CTXS = {};
+    var hoje = new Date(); hoje.setHours(0,0,0,0);
     rows.forEach(function(row){
       var d = {};
       try{ d = typeof row.data === 'string' ? JSON.parse(row.data) : (row.data||{}); }catch(e){}
       var key = row.obra_key || ('obra-'+Date.now());
-      // Extrair config e arrays do state do cockpit
       var cfg  = d.config     || {};
       var srvs = Array.isArray(d.servicos)  ? d.servicos  : [];
       var pend = Array.isArray(d.pendencias)? d.pendencias : [];
-      // calcPctGeral — idêntico ao cockpit v48 (média ponderada por valor)
+      var eqs  = Array.isArray(d.equipes)   ? d.equipes   : [];
+      // calcPctGeral — idêntico ao cockpit v48
       var totalVal = srvs.reduce(function(a,s){return a+(s.valor||0);},0);
       var pctGeral = 0;
       if(srvs.length){
-        if(totalVal>0){
-          pctGeral = Math.round(srvs.reduce(function(a,s){return a+(s.pct_atual||0)*(s.valor||0);},0)/totalVal);
-        } else {
-          pctGeral = Math.round(srvs.reduce(function(a,s){return a+(s.pct_atual||0);},0)/srvs.length);
-        }
+        if(totalVal>0) pctGeral = Math.round(srvs.reduce(function(a,s){return a+(s.pct_atual||0)*(s.valor||0);},0)/totalVal);
+        else pctGeral = Math.round(srvs.reduce(function(a,s){return a+(s.pct_atual||0);},0)/srvs.length);
       }
-      // Pendências não resolvidas (mesma lógica do cockpit)
       var pendAbertas = pend.filter(function(p){return p.status!=='RESOLVIDO'&&p.status!=='CONCLUÍDO';});
       var concluidos  = srvs.filter(function(s){return (s.pct_atual||0)>=100;}).length;
+      // v11 — Análise operacional detalhada
+      var srvAtrasados=[], srvRisco=[], srvAtivos=[];
+      srvs.forEach(function(s){
+        var pct = s.pct_atual||0;
+        if(pct>=100) return;
+        var fim = s.data_fim ? new Date((s.data_fim.includes('/')?s.data_fim.split('/').reverse().join('-'):s.data_fim)+'T12:00:00') : null;
+        var diff = fim ? Math.ceil((fim-hoje)/(86400000)) : 999;
+        var item = {cod:s.cod,desc:s.descricao||'',pct:pct,equipe:s.equipe||'',dataFim:s.data_fim||'',diff:diff,valor:s.valor||0};
+        if(diff<0) srvAtrasados.push(item);
+        else if(diff<=7 && pct<80) srvRisco.push(item);
+        if(pct>0 && pct<100) srvAtivos.push(item);
+      });
       CTXS[key] = {
-        obra_key:    row.obra_key,
-        nome:        cfg.obra || row.obra_key || 'Obra',
-        cliente:     cfg.razao_cliente || cfg.cliente || '—',
-        pct:         pctGeral,
-        sem:         cfg.semana || 1,
-        totalSrv:    srvs.length,
-        concluidos:  concluidos,
-        pendencias:  pendAbertas.length,
-        alertas:     pendAbertas.map(function(p){return p.titulo||p.descricao||'';}),
-        status:      pctGeral >= 100 ? 'concluida' : 'ativo',
-        cor:         obrasColor(key),
-        updated:     row.updated_at
+        obra_key:key, nome:cfg.obra||key||'Obra', cliente:cfg.razao_cliente||cfg.cliente||'—',
+        pct:pctGeral, sem:cfg.semana||1, totalSrv:srvs.length, concluidos:concluidos,
+        pendencias:pendAbertas.length, alertas:pendAbertas.map(function(p){return p.titulo||p.descricao||'';}),
+        pendenciasDetail:pendAbertas, srvAtrasados:srvAtrasados, srvRisco:srvRisco, srvAtivos:srvAtivos,
+        equipes:eqs.map(function(e){return{cod:e.cod,nome:e.responsavel||e.nome||e.cod};}),
+        valorContrato:cfg.valor_contrato||0, periodoFim:cfg.periodo_fim||'',
+        status:pctGeral>=100?'concluida':'ativo', cor:obrasColor(key), updated:row.updated_at
       };
     });
-    // Cache
     localStorage.setItem('brain_ctxs_cache', JSON.stringify({ts: Date.now(), data: CTXS}));
     return CTXS;
   }catch(e){
     console.warn('Supabase offline — usando cache');
     var cache = localStorage.getItem('brain_ctxs_cache');
-    if(cache){
-      try{ CTXS = JSON.parse(cache).data || {}; }catch(ex){}
-    }
+    if(cache){ try{ CTXS = JSON.parse(cache).data || {}; }catch(ex){} }
     return CTXS;
   }
+}
+
+// ════════════════════════════════════════════════
+// v11 — MOTOR DE SINCRONIZAÇÃO OPERACIONAL
+// O Brain lê todas as obras e gera tarefas automaticamente
+// ════════════════════════════════════════════════
+function sincronizarOperacao(){
+  var hoje = HOJE;
+  var amanha = AMANHA;
+  // Limpar itens auto antigos que não são mais relevantes
+  S.items = S.items.filter(function(it){
+    if(it.origem!=='auto_obra') return true; // manter manuais e IA
+    if(it.done) return true; // manter concluídos (histórico)
+    // Remover auto-items com mais de 2 dias que não foram concluídos (dados mudaram)
+    if(it.data < hoje && it._autoTs){
+      var age = (Date.now() - new Date(it._autoTs).getTime())/86400000;
+      if(age > 2) return false;
+    }
+    return true;
+  });
+  // Set de auto_keys existentes para evitar duplicatas
+  var existingKeys = {};
+  S.items.forEach(function(it){ if(it.auto_key) existingKeys[it.auto_key]=true; });
+  var novos = 0;
+  function addAuto(autoKey, cat, agt, texto, ctx, prio, tempo){
+    if(existingKeys[autoKey]) return;
+    existingKeys[autoKey] = true;
+    S.items.push({
+      id:'auto-'+Date.now()+'-'+Math.random().toString(36).slice(2,5),
+      cat:cat, agt:agt, texto:texto, ctx:ctx, prio:prio, tempo:tempo||15,
+      data:hoje, hora:null, done:false, origem:'auto_obra', auto_key:autoKey,
+      _autoTs:new Date().toISOString()
+    });
+    novos++;
+  }
+
+  Object.keys(CTXS).forEach(function(key){
+    var obra = CTXS[key];
+    if(obra.status==='concluida') return;
+    var nomeCtx = obra.nome.split(' ').slice(0,2).join(' '); // nome curto para ctx
+
+    // ── SERVIÇOS ATRASADOS → tarefa urgente ──
+    obra.srvAtrasados.forEach(function(srv){
+      var ak = 'atraso-'+key+'-'+srv.cod;
+      var dias = Math.abs(srv.diff);
+      addAuto(ak, 'operacional', 'EVANDRO',
+        srv.desc+' — '+srv.pct+'% ('+dias+'d vencido). Cobrar equipe '+srv.equipe,
+        nomeCtx, 'alta', 15);
+    });
+
+    // ── SERVIÇOS EM RISCO → tarefa preventiva ──
+    obra.srvRisco.forEach(function(srv){
+      var ak = 'risco-'+key+'-'+srv.cod;
+      addAuto(ak, 'operacional', 'EVANDRO',
+        srv.desc+' — '+srv.pct+'% vence em '+srv.diff+'d. Verificar avanço',
+        nomeCtx, srv.diff<=3?'alta':'media', 10);
+    });
+
+    // ── PENDÊNCIAS ABERTAS → tarefa por tipo ──
+    (obra.pendenciasDetail||[]).forEach(function(p,i){
+      var ak = 'pend-'+key+'-'+i+'-'+(p.titulo||'').slice(0,20);
+      var tipo = (p.tipo||'').toLowerCase();
+      var cat = tipo==='material'?'operacional':tipo==='decisao'?'cliente':tipo==='financeiro'?'administrativo':'comunicacao';
+      var agt = tipo==='material'?'DELEGAVEL':tipo==='decisao'?'EVANDRO':tipo==='financeiro'?'EVANDRO':'AGT_WHATSAPP';
+      addAuto(ak, cat, agt,
+        (p.titulo||p.descricao||'Pendência aberta'),
+        nomeCtx, (p.prioridade||'')===('urgente')?'alta':'media', 15);
+    });
+
+    // ── RELATÓRIO SEMANAL → se semana > 1, lembrar ──
+    if(obra.sem > 1){
+      var ak = 'rel-'+key+'-S'+obra.sem;
+      addAuto(ak, 'comunicacao', 'AGT_RELATORIO',
+        'Relatório semanal S'+obra.sem+' — '+obra.pct+'% concluído',
+        nomeCtx, 'media', 25);
+    }
+
+    // ── OBRA COM MUITOS ATRASADOS → alerta gerencial ──
+    if(obra.srvAtrasados.length >= 3){
+      var ak = 'alerta-'+key+'-multiAtraso';
+      addAuto(ak, 'operacional', 'EVANDRO',
+        obra.srvAtrasados.length+' serviços atrasados — reunião de alinhamento urgente',
+        nomeCtx, 'alta', 30);
+    }
+
+    // ── MEDIÇÃO / COBRANÇA → se tem valor e pct avançou ──
+    if(obra.valorContrato > 0 && obra.pct > 0 && obra.pct < 100){
+      var ak = 'medicao-'+key+'-S'+obra.sem;
+      addAuto(ak, 'cliente', 'AGT_WHATSAPP',
+        'Acompanhar medição S'+obra.sem+' ('+obra.pct+'%). Follow-up '+obra.cliente,
+        nomeCtx, 'media', 15);
+    }
+  });
+
+  if(novos > 0){
+    save();
+    renderItems&&renderItems();
+    renderMatrix&&renderMatrix();
+    updateKPIs&&updateKPIs();
+  }
+  return novos;
 }
 
 function obrasColor(key){
@@ -1095,26 +1196,33 @@ async function gerarBriefing(){
   var pend=S.items.filter(function(i){return!i.done;});
   var crit=pend.filter(function(i){return i.prio==='alta';});
   var atras=pend.filter(function(i){return i.data<HOJE;});
+  var autoItems=pend.filter(function(i){return i.origem==='auto_obra';});
   var totalMin=pend.filter(function(i){return i.data===HOJE||i.data<HOJE;}).reduce(function(a,i){return a+(i.tempo||0);},0);
   var livreH=Math.max(0,8-totalMin/60).toFixed(1);
-  var resumo=pend.slice(0,10).map(function(i){return'['+i.cat+'/'+i.agt+'/'+i.prio+'] '+i.texto+'('+i.ctx+','+( i.tempo||30)+'min)';}).join('\n');
-  var prompt='Você é o JARVIS — assistente operacional de Evandro Duarte, gestor Berti Construtora.\n'+
-    'CONTEXTO: sistema tem categorias (lead,prospecção,proposta,cliente,comunicação,operacional,administrativo) e agentes (EVANDRO,AGT_EMAIL,AGT_WHATSAPP,AGT_LIGAÇÃO,AGT_RELATÓRIO,DELEGÁVEL).\n\n'+
-    'Gere briefing executivo: 2-4 frases DIRETAS. Destaque o mais crítico primeiro. Mencione qual agente deve agir. Sem saudação. Sem markdown.\n\n'+
-    'DADOS:\n- Críticos: '+crit.length+'\n- Atrasados: '+atras.length+'\n- Livre hoje: '+livreH+'h\n\n'+
-    'ITENS:\n'+resumo+'\n\nResposta: texto corrido, 2-4 frases.';
+  // v11 — Contexto das obras para o JARVIS
+  var obrasCtx = Object.keys(CTXS).map(function(k){
+    var o=CTXS[k]; if(o.status==='concluida') return '';
+    return o.nome+' ('+o.pct+'% S'+o.sem+'): '+o.srvAtrasados.length+' atrasados, '+o.srvRisco.length+' em risco, '+o.pendencias+' pendências';
+  }).filter(Boolean).join('\n');
+  var resumo=pend.slice(0,15).map(function(i){return'['+i.cat+'/'+i.agt+'/'+i.prio+'] '+i.texto+' ('+i.ctx+')'}).join('\n');
+  var prompt='Você é o JARVIS — centro de comando operacional de Evandro Duarte, gestor da Berti Construtora.\n'+
+    'Você coordena TODAS as obras simultaneamente. Categorias: lead,prospecção,proposta,cliente,comunicação,operacional,administrativo. Agentes: EVANDRO,AGT_COMERCIAL,AGT_EMAIL,AGT_WHATSAPP,AGT_LIGACAO,AGT_RELATORIO,AGT_FINANCEIRO,AGT_COCKPIT,DELEGAVEL.\n\n'+
+    'OBRAS ATIVAS:\n'+obrasCtx+'\n\n'+
+    'DADOS OPERACIONAIS:\n- Críticos: '+crit.length+'\n- Atrasados: '+atras.length+'\n- Auto-gerados das obras: '+autoItems.length+'\n- Livre hoje: '+livreH+'h\n\n'+
+    'ITENS PENDENTES:\n'+resumo+'\n\n'+
+    'Gere briefing executivo: 3-5 frases DIRETAS. Priorize por IMPACTO na operação. Diga qual agente deve agir em cada ponto. Cruze dados entre obras quando relevante. Sem saudação. Sem markdown.\nResposta: texto corrido.';
   try{
-    var r=await fetch(CF,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:280,messages:[{role:'user',content:prompt}]})});
+    var r=await fetch(CF,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:prompt}]})});
     var data=await r.json();var txt=(data.content&&data.content[0]&&data.content[0].text)||'';
     if(!txt)throw new Error('empty');
-    S.briefing={texto:txt,ts:new Date().toISOString(),criticos:crit.length,livre:livreH};save();
+    S.briefing={texto:txt,ts:new Date().toISOString(),criticos:crit.length,livre:livreH,obras:Object.keys(CTXS).length};save();
     mostrarBriefing(S.briefing);
   }catch(e){
     var fb=crit.length+' item(s) crítico(s) exigem ação imediata. '+
-      (atras.length?atras.length+' tarefa(s) atrasada(s) — decidir agora. ':'')+
-      'Isadora: proposta não enviada, prazo sexta — ação EVANDRO. '+
-      'Badida/Joel: medição S3 sem resposta — AGT_WHATSAPP. Livre hoje: '+livreH+'h.';
-    S.briefing={texto:fb,ts:new Date().toISOString(),criticos:crit.length,livre:livreH};save();
+      (atras.length?atras.length+' tarefa(s) atrasada(s). ':'')+
+      Object.keys(CTXS).length+' obras ativas monitoradas. '+
+      'Livre hoje: '+livreH+'h. Priorizar itens de maior impacto operacional.';
+    S.briefing={texto:fb,ts:new Date().toISOString(),criticos:crit.length,livre:livreH,obras:Object.keys(CTXS).length};save();
     mostrarBriefing(S.briefing);
   }
 }
@@ -1122,11 +1230,25 @@ async function gerarBriefing(){
 function mostrarBriefing(b){
   var ji=document.getElementById('j-ind');if(ji)ji.classList.remove('thinking');
   var txt=b.texto||'';
-  txt=txt.replace(/(\d+)\s*(crítico|item|tarefa|risco)/gi,'<span class="j-hot">$&</span>');
-  txt=txt.replace(/(Isadora|Joel|Badida|Pedro|Evandro)/g,'<span class="j-bold">$1</span>');
-  txt=txt.replace(/(prazo|urgente|bloqueia|sexta|atrasad)/gi,'<span class="j-warn">$&</span>');
-  txt=txt.replace(/(AGT_\w+)/g,'<span class="j-acc">$1</span>');
+  txt=txt.replace(/(\d+)\s*(crítico|item|tarefa|risco|atrasad)/gi,'<span class="j-hot">$&</span>');
+  // v11 — Destacar nomes de obras e clientes dinamicamente
+  Object.keys(CTXS).forEach(function(k){
+    var o=CTXS[k];
+    var nomes = [o.nome, o.cliente].filter(Boolean);
+    nomes.forEach(function(n){
+      if(n && n.length > 2 && n !== '—'){
+        var words = n.split(/\s+/).filter(function(w){return w.length>2;});
+        words.forEach(function(w){
+          var safe = w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+          txt = txt.replace(new RegExp('\\b'+safe+'\\b','gi'),'<span class="j-bold">$&</span>');
+        });
+      }
+    });
+  });
+  txt=txt.replace(/(prazo|urgente|bloqueia|vencid|atrasad)/gi,'<span class="j-warn">$&</span>');
+  txt=txt.replace(/(AGT_\w+|EVANDRO|DELEGAVEL)/g,'<span class="j-acc">$1</span>');
   txt=txt.replace(/(\d+[.,]?\d*h\s+livres?)/gi,'<span class="j-ok">$&</span>');
+  txt=txt.replace(/(\d+\s*obras?\s*ativas?)/gi,'<span class="j-gold">$&</span>');
   var jb=document.getElementById('j-body');if(jb)jb.innerHTML=txt;
   var d=new Date(b.ts||new Date());var jts=document.getElementById('j-ts');
   if(jts)jts.textContent='· atualizado '+pad(d.getHours())+':'+pad(d.getMinutes());
@@ -1920,11 +2042,14 @@ function updateKPIs(){
 function simSync(){
   toast('SINCRONIZANDO SUPABASE...','');
   carregarObras().then(function(){
+    var novos = sincronizarOperacao();
+    importarComercial().catch(function(){});
     var obrasCount = Object.keys(CTXS).length;
     setEl('kp-obras', obrasCount);
+    renderMatrix&&renderMatrix();
     renderSideCharts();
     updateKPIs();
-    toast('OBRAS ATUALIZADAS ✓ ('+obrasCount+')','ok');
+    toast('SYNC OK · '+obrasCount+' obras'+(novos?' · '+novos+' novas tarefas':''),'ok');
   }).catch(function(){
     toast('FALHA NA CONEXÃO','err');
   });
@@ -1985,11 +2110,17 @@ if(_ctxsCache){
 }
 // Always refresh in background
 carregarObras().then(function(){
-  // v10 — Atualizar KPI de obras no topbar
+  // v11 — Sincronizar operação: gerar tarefas automáticas de TODAS as obras
+  var novos = sincronizarOperacao();
+  // v11 — Importar leads do comercial automaticamente
+  importarComercial().catch(function(){});
+  // Atualizar UI
   var obrasCount = Object.keys(CTXS).length;
   setEl('kp-obras', obrasCount);
+  renderMatrix&&renderMatrix();
   renderSideCharts&&renderSideCharts();
   updateKPIs();
+  if(novos>0) toast(novos+' TAREFAS AUTO-GERADAS DAS OBRAS','ai');
 }).catch(function(){});
 
 renderScript();
