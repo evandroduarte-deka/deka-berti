@@ -2031,19 +2031,19 @@ body.tabs-active #tab-cronograma.active{max-width:100%!important;margin:0!import
 <div id="obra-selector">
   <div class="os-header">
     <div class="os-logo" id="os-logo-text">Mestre<span>.</span></div>
-    <div class="os-sub">Cockpit &mdash; Gest&atilde;o de Obras <span style="font-size:9px;opacity:.5;font-family:var(--font-mono)">v45b</span></div>
+    <div class="os-sub">DEKA Cockpit &mdash; Gest&atilde;o de Obras <span style="font-size:9px;opacity:.5;font-family:var(--font-mono)">v48c</span></div>
   </div>
   <div class="os-body">
     <div class="os-title">Selecione a obra</div>
     <div id="os-lista"></div>
     <button class="os-new" onclick="criarNovaObra()">&plus; Nova Obra</button>
     <div class="os-backup">
-      <button onclick="backupTudo()">&#128190; Backup</button>
-      <button onclick="document.getElementById('os-restore-input').click()">&#128193; Restaurar</button>
+      <button onclick="backupTudo()">&#128190; Backup Semanal</button>
+      <button onclick="document.getElementById('os-restore-input').click()">&#128193; Restaurar Backup</button>
     </div>
     <input type="file" id="os-restore-input" accept=".json" onchange="restaurarBackup(this)">
     <div class="os-backup-info" id="os-backup-info"></div>
-    <div class="os-hint">As chaves de API s&atilde;o compartilhadas entre todas as obras.</div>
+    <div class="os-hint">Fonte: Supabase ☁ &middot; Dados sempre atualizados da nuvem</div>
     <button class="os-help-btn" onclick="abrirOnboarding()">&#9432; Guia de configura&ccedil;&atilde;o</button>
   </div>
 </div>
@@ -13617,8 +13617,10 @@ function extractDriveFolderId(url) {
 function esc2(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmtDateNum(s){ if(!s) return '—'; if(s.includes('-')){ const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`; } return s; }
 
-// ── Índice de obras no localStorage ────────────────────────────────────
+// ── v48-cloud: Índice de obras — SUPABASE como fonte única ────────────
+// localStorage é apenas cache offline. Nuvem é a verdade.
 function getObrasIndex(){
+  // Fallback offline: ler do cache local
   var keys = Object.keys(localStorage).filter(function(k){ return k.startsWith('cockpit_'); });
   var obras = [];
   keys.forEach(function(k){
@@ -13631,82 +13633,121 @@ function getObrasIndex(){
         var pct = 0;
         if(totalVal > 0) pct = srvs.reduce(function(a,s){ return a+(s.pct_atual||0)*(s.valor||0); }, 0) / totalVal;
         else if(srvs.length > 0) pct = srvs.reduce(function(a,s){ return a+(s.pct_atual||0); }, 0) / srvs.length;
-        obras.push({ key:k, nome:c2.obra||'Sem nome', cliente:c2.cliente||'', semana:c2.semana||1, servicos:srvs.length, pct:Math.round(pct) });
+        obras.push({ key:k, nome:c2.obra||'Sem nome', cliente:c2.razao_cliente||c2.cliente||'', semana:c2.semana||1, servicos:srvs.length, pct:Math.round(pct), local:true });
       }
     } catch(e){}
   });
   return obras;
 }
 
-
-// Restaurar obras da nuvem para localStorage
-async function sbRestaurarDaNuvem(){
-  toast('☁ Buscando obras na nuvem…','info');
-  const remotas = await sbListarObras();
-  if(!remotas || !remotas.length){ toast('Nenhuma obra na nuvem','warning'); return; }
-  let restauradas = 0;
-  for(const r of remotas){
-    const key = 'cockpit_' + r.obra_key;
-    const local = localStorage.getItem(key);
-    if(!local){
-      // Baixar dados completos
-      const full = await sbLoad(r.obra_key);
-      if(full && full.data){
-        localStorage.setItem(key, JSON.stringify(full.data));
-        restauradas++;
+// v48-cloud: Carrega índice direto do Supabase
+async function getObrasCloud(){
+  try{
+    var rows = await sbListarObrasCompletas();
+    return rows.map(function(row){
+      var d = {};
+      try{ d = typeof row.data==='string'?JSON.parse(row.data):(row.data||{}); }catch(e){}
+      var cfg = d.config||{};
+      var srvs = Array.isArray(d.servicos)?d.servicos:[];
+      var totalVal = srvs.reduce(function(a,s){return a+(s.valor||0);},0);
+      var pct = 0;
+      if(srvs.length){
+        if(totalVal>0) pct = Math.round(srvs.reduce(function(a,s){return a+(s.pct_atual||0)*(s.valor||0);},0)/totalVal);
+        else pct = Math.round(srvs.reduce(function(a,s){return a+(s.pct_atual||0);},0)/srvs.length);
       }
-    }
-  }
-  if(restauradas > 0){
-    toast('✓ '+restauradas+' obra(s) restaurada(s) da nuvem!','success');
-    renderObraSelector();
-  } else {
-    toast('Todas as obras já estão atualizadas','success');
+      return {
+        key:'cockpit_'+row.obra_key, obra_key:row.obra_key,
+        nome:cfg.obra||row.obra_key||'Sem nome', cliente:cfg.razao_cliente||cfg.cliente||'',
+        semana:cfg.semana||1, servicos:srvs.length, pct:pct,
+        updated:row.updated_at, cloud:true
+      };
+    });
+  }catch(e){
+    console.warn('Cloud offline, usando cache local');
+    return null; // null = offline
   }
 }
 
-function renderObraSelector(){
-  var obras = getObrasIndex();
+// v48-cloud: Lista obras com dados resumidos do Supabase
+async function sbListarObrasCompletas(){
+  var r = await fetch(
+    SB_URL+'/rest/v1/'+SB_TABLE+'?select=obra_key,data,updated_at&order=updated_at.desc',
+    {headers:sbHeaders(), signal:AbortSignal.timeout(12000)}
+  );
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+
+
+// Restaurar obras da nuvem para localStorage — MANTIDO para compatibilidade
+async function sbRestaurarDaNuvem(){
+  toast('Sincronizando...','info');
+  renderObraSelector();
+}
+
+async function renderObraSelector(){
   var el = document.getElementById('os-lista');
   if(!el) return;
-  // Buscar obras da nuvem em background e adicionar as que não existem localmente
-  sbListarObras().then(function(remotas){
-    if(!remotas || !remotas.length) return;
-    var keysLocais = obras.map(function(o){ return o.key; });
-    var novas = remotas.filter(function(r){
-      return !keysLocais.includes('cockpit_'+r.obra_key) && !keysLocais.includes(r.obra_key);
-    });
-    if(novas.length){
-      // Adicionar badge no topo
-      var aviso = document.getElementById('os-cloud-aviso');
-      if(!aviso){
-        aviso = document.createElement('div');
-        aviso.id = 'os-cloud-aviso';
-        aviso.style.cssText = 'background:#D1FAE5;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#065F46;display:flex;align-items:center;gap:8px';
-        aviso.innerHTML = '☁ <b>'+novas.length+' obra(s) encontrada(s) na nuvem.</b> <button onclick="sbRestaurarDaNuvem()" style="margin-left:auto;background:#065F46;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer">Restaurar</button>';
-        el.parentNode.insertBefore(aviso, el);
+  // Mostrar loading
+  el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)"><div style="font-size:20px;margin-bottom:8px">☁</div>Carregando obras da nuvem...</div>';
+  // Remover aviso antigo de nuvem
+  var avisoOld = document.getElementById('os-cloud-aviso');
+  if(avisoOld) avisoOld.remove();
+
+  // CLOUD FIRST
+  var obras = await getObrasCloud();
+  var isOnline = obras !== null;
+
+  if(!isOnline){
+    // Offline: fallback localStorage
+    obras = getObrasIndex();
+    var offBanner = document.createElement('div');
+    offBanner.style.cssText = 'background:#FEF3C7;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#92400E;display:flex;align-items:center;gap:8px';
+    offBanner.innerHTML = '⚠ <b>Offline</b> — mostrando última versão salva. Conecte-se para ver dados atualizados.';
+    el.parentNode.insertBefore(offBanner, el);
+  } else {
+    // Online: sincronizar cache local com nuvem (manter apenas as que existem na nuvem)
+    var cloudKeys = obras.map(function(o){return o.key;});
+    Object.keys(localStorage).filter(function(k){return k.startsWith('cockpit_');}).forEach(function(k){
+      if(!cloudKeys.includes(k)){
+        // Obra local que NÃO existe na nuvem → remover cache velho
+        // (preservar se foi criada recentemente e ainda não sincronizou)
+        try{
+          var d=JSON.parse(localStorage.getItem(k));
+          if(d && d._savedAt){
+            var age=(Date.now()-new Date(d._savedAt).getTime())/86400000;
+            if(age>1) localStorage.removeItem(k); // mais de 1 dia → lixo
+          } else { localStorage.removeItem(k); }
+        }catch(e){ localStorage.removeItem(k); }
       }
-    }
-  }).catch(function(){});
+    });
+  }
+
+  // Empresa/logo
   var empresaName = localStorage.getItem('mdo_empresa_name');
   var logoEl = document.getElementById('os-logo-text');
   if(logoEl && empresaName) logoEl.innerHTML = esc(empresaName) + '<span>.</span>';
+
+  // Info
   var infoEl = document.getElementById('os-backup-info');
-  if(infoEl) infoEl.textContent = obras.length + ' obra' + (obras.length!==1?'s':'') + ' salvas';
+  if(infoEl) infoEl.textContent = obras.length + ' obra'+(obras.length!==1?'s':'')+' na nuvem'+(isOnline?' ✓':' (offline)');
+
   if(!obras.length){
-    el.innerHTML = '<div style="background:linear-gradient(135deg,var(--primary) 0%,#1a3d28 100%);border-radius:12px;padding:24px 20px 20px;margin-bottom:14px;text-align:center"><div style="font-family:var(--font-display);font-size:20px;font-weight:800;color:#fff;margin-bottom:12px">Bem-vindo ao Mestre de Obra</div><div style="display:flex;flex-direction:column;gap:10px;margin-top:12px"><button onclick="criarNovaObra()" style="background:var(--gold);color:var(--primary);border:none;border-radius:8px;padding:13px 20px;font-family:var(--font-display);font-size:14px;font-weight:800;cursor:pointer">+ Criar primeira obra</button><button onclick="carregarDemo()" style="background:transparent;color:rgba(255,255,255,.7);border:1.5px solid rgba(255,255,255,.2);border-radius:8px;padding:10px 20px;font-size:13px;cursor:pointer">&#9654; Explorar demo</button></div></div>';
+    el.innerHTML = '<div style="background:linear-gradient(135deg,var(--primary) 0%,#1a3d28 100%);border-radius:12px;padding:24px 20px 20px;margin-bottom:14px;text-align:center"><div style="font-family:var(--font-display);font-size:20px;font-weight:800;color:#fff;margin-bottom:12px">Bem-vindo ao Mestre de Obra</div><div style="display:flex;flex-direction:column;gap:10px;margin-top:12px"><button onclick="criarNovaObra()" style="background:var(--gold);color:var(--primary);border:none;border-radius:8px;padding:13px 20px;font-family:var(--font-display);font-size:14px;font-weight:800;cursor:pointer">+ Criar primeira obra</button></div></div>';
     return;
   }
+
+  // Renderizar cards — cada card vem da nuvem
   el.innerHTML = obras.map(function(o){
     var k = esc(o.key), n = esc(o.nome), cl = esc(o.cliente);
+    var ts = o.updated ? new Date(o.updated).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
     return '<div class="os-card" onclick="selecionarObra(&quot;'+k+'&quot;)">'
       + '<div class="os-card-icon">&#127959;</div>'
       + '<div class="os-card-info">'
       + '<div class="os-card-nome">'+n+'</div>'
-      + '<div class="os-card-meta">'+cl+' &middot; Sem '+o.semana+' &middot; '+o.servicos+' srv</div>'
+      + '<div class="os-card-meta">'+cl+' &middot; Sem '+o.semana+' &middot; '+o.servicos+' srv'+(ts?' &middot; <span style="color:var(--accent);font-size:9px">☁ '+ts+'</span>':'')+'</div>'
       + '</div>'
       + '<div class="os-card-pct">'+o.pct+'%</div>'
-      + '<button class="os-card-del" onclick="event.stopPropagation();excluirObra(&quot;'+k+'&quot;,&quot;'+n+'&quot;)" title="Excluir">&#x2715;</button>'
       + '</div>';
   }).join('');
 }
@@ -13735,53 +13776,48 @@ function activateApp(){
 }
 
 function selecionarObra(key){
-  if(loadState(key)){
-    hideObraSelector();
-    if(typeof renderCronograma==='function')    try{renderCronograma();}catch(e){}
-    if(typeof renderDrawer==='function')        try{renderDrawer();}catch(e){}
-    if(typeof renderRoteiro==='function')       try{renderRoteiro();}catch(e){}
-    // Verificar conexão Supabase e atualizar pill
-    setTimeout(function(){
-      sbLoad('__ping__').then(function(){
-        sbAtualizarIndicador('ok');
-      }).catch(function(){});
-    }, 1500);
-    if(typeof guiaAbrir === 'function'){
-      setTimeout(function(){
-        if((state.config&&state.config.obra||'').trim()){
-          if(typeof guiaRestaurarEstado === 'function' && guiaRestaurarEstado()){
-          } else {
-            guiaAbrir();
-          }
-        }
-      }, 900);
-    }
-    if(typeof atualizarBadgesAbas==='function') setTimeout(function(){ try{atualizarBadgesAbas();}catch(e){}},100);
-    toast('Obra "'+state.config.obra+'" carregada','success');
-  } else {
-    // Local vazio — tentar carregar da nuvem direto
-    var obraKey = key.replace('cockpit_','');
-    toast('☁ Buscando dados na nuvem...','info');
-    sbLoad(obraKey).then(function(remoto){
-      if(remoto && remoto.data){
-        state = migrateState(remoto.data);
-        sanitizeState(state);
-        currentObraKey = key.startsWith('cockpit_') ? key : 'cockpit_'+obraKey;
-        localStorage.setItem(currentObraKey, JSON.stringify(state));
-        restoreUI();
-        renderAll();
+  var obraKey = key.replace('cockpit_','');
+  // v48-cloud: SEMPRE carregar da nuvem primeiro
+  toast('☁ Carregando obra...','info');
+  sbLoad(obraKey).then(function(remoto){
+    if(remoto && remoto.data){
+      state = migrateState(remoto.data);
+      sanitizeState(state);
+      currentObraKey = key.startsWith('cockpit_') ? key : 'cockpit_'+obraKey;
+      // Atualizar cache local
+      localStorage.setItem(currentObraKey, JSON.stringify(state));
+      restoreUI();
+      renderAll();
+      hideObraSelector();
+      if(typeof renderCronograma==='function') try{renderCronograma();}catch(e){}
+      if(typeof renderDrawer==='function') try{renderDrawer();}catch(e){}
+      if(typeof atualizarBadgesAbas==='function') setTimeout(function(){ try{atualizarBadgesAbas();}catch(e){}},100);
+      sbAtualizarIndicador('ok');
+      toast('☁ '+state.config.obra+' — dados atualizados','success');
+    } else {
+      // Nuvem vazia ou offline → fallback localStorage
+      if(loadState(key)){
         hideObraSelector();
         if(typeof renderCronograma==='function') try{renderCronograma();}catch(e){}
         if(typeof renderDrawer==='function') try{renderDrawer();}catch(e){}
         if(typeof atualizarBadgesAbas==='function') setTimeout(function(){ try{atualizarBadgesAbas();}catch(e){}},100);
-        toast('☁ Obra "'+state.config.obra+'" carregada da nuvem!','success');
+        toast('⚠ Offline — usando versão local de '+state.config.obra,'warning');
       } else {
-        toast('Obra não encontrada no dispositivo nem na nuvem','error');
+        toast('Obra não encontrada','error');
       }
-    }).catch(function(){
-      toast('Erro ao carregar obra','error');
-    });
-  }
+    }
+  }).catch(function(){
+    // Sem conexão → fallback localStorage
+    if(loadState(key)){
+      hideObraSelector();
+      if(typeof renderCronograma==='function') try{renderCronograma();}catch(e){}
+      if(typeof renderDrawer==='function') try{renderDrawer();}catch(e){}
+      if(typeof atualizarBadgesAbas==='function') setTimeout(function(){ try{atualizarBadgesAbas();}catch(e){}},100);
+      toast('⚠ Offline — usando cache local','warning');
+    } else {
+      toast('Sem conexão e sem dados locais','error');
+    }
+  });
 }
 
 function criarNovaObra(){
