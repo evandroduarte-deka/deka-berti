@@ -230,12 +230,12 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .gt-filter-btn{padding:6px 12px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:11px;font-weight:700;background:var(--surface);color:var(--muted);cursor:pointer;transition:all .12s}
 .gt-filter-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 .gt-filters select,.gt-filters input{padding:6px 8px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:11px;background:var(--surface);color:var(--ink,#111)}
-.gt-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-top:1.5px solid var(--border);border-bottom:1.5px solid var(--border)}
+.gt-scroll{overflow:auto;-webkit-overflow-scrolling:touch;border-top:1.5px solid var(--border);border-bottom:1.5px solid var(--border);max-height:calc(100vh - 260px)}
 .gt-table{border-collapse:collapse;width:max-content;min-width:100%}
-.gt-table th{padding:3px 2px;font-size:8px;font-weight:700;text-align:center;color:var(--muted);border-bottom:1.5px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:2}
+.gt-table th{padding:3px 2px;font-size:8px;font-weight:700;text-align:center;color:var(--muted);border-bottom:1.5px solid var(--border);position:sticky;top:22px;background:var(--surface);z-index:2}
 .gt-table th.gt-today{color:#1D4ED8;background:rgba(59,130,246,.1);font-weight:900}
 .gt-table th.gt-we{color:#ccc;background:#fafafa}
-.gt-table th.gt-month{background:var(--primary);color:#fff;font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:4px;text-align:center}
+.gt-table th.gt-month{background:var(--primary);color:#fff;font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:4px;text-align:center;top:0;z-index:3}
 .gt-srv-cell{font-size:10px;font-weight:600;color:var(--ink,#111);padding:4px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px;min-width:280px;border-right:2px solid var(--border);border-bottom:1px solid var(--border);position:sticky;left:0;background:var(--surface);z-index:3;cursor:default}
 .gt-srv-cell .gt-sc{font-size:8px;color:var(--muted);font-family:var(--font-mono)}
 .gt-cat-cell{font-size:8px;font-weight:800;color:#fff;background:var(--primary);padding:4px 6px;text-transform:uppercase;letter-spacing:.5px;position:sticky;left:0;z-index:3;border-bottom:1px solid rgba(255,255,255,.1)}
@@ -2772,6 +2772,7 @@ body.tabs-active #tab-cronograma.active{max-width:100%!important;margin:0!import
   <div class="gt-filters" style="padding:0 12px 8px">
     <button class="gt-filter-btn active" id="gtf-semana" onclick="gtSetFiltroSemana(this)">Esta semana</button>
     <button class="gt-filter-btn" id="gtf-todos" onclick="gtSetFiltroTodos(this)">Todos</button>
+    <label style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted);cursor:pointer;white-space:nowrap;padding:4px 8px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--surface)"><input type="checkbox" id="gt-hide-done" onchange="renderGT()" style="accent-color:var(--accent)"> Ocultar 100%</label>
     <select id="gt-equipe" onchange="renderGT()"><option value="">Todas equipes</option></select>
     <input type="text" id="gt-busca" placeholder="Buscar..." oninput="renderGT()" style="flex:1;min-width:100px">
     <button onclick="gtToggleAll()" id="gt-toggle-all-btn" style="font-size:10px;padding:4px 10px;border:1.5px solid var(--border);border-radius:4px;background:var(--surface);color:var(--muted);cursor:pointer;white-space:nowrap">Recolher</button>
@@ -3603,7 +3604,7 @@ TEMPLATES:
 
 REGRAS: direto sem enrolação. Não inventar módulo desnecessário. Menos cliques em campo, mais qualidade na entrega. Entregar arquivo pronto, não trechos. Nunca sobrescrever fórmulas da planilha.
 
-EMPRESA: Berti Construtora LTDA · CNPJ 59.622.624/0001-93 · Jéssica Berti Martins CAU A129520-9 · (41) 9183-6651 · berti@curitibaconstrutora.com.br · PIX 59.622.624/0001-93</pre>
+EMPRESA: Berti Construtora LTDA · CNPJ 59.622.624/0001-93 · Jéssica Berti Martins CAU A129520-9 · (41) 9183-6651 · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="e08285929489a08395928994898281838f8e93949295948f9281ce838f8dce8292">[email&#160;protected]</a> · PIX 59.622.624/0001-93</pre>
       </div>
     </div>
 
@@ -3845,7 +3846,7 @@ EMPRESA: Berti Construtora LTDA · CNPJ 59.622.624/0001-93 · Jéssica Berti Mar
 <!-- TOAST -->
 <div id="toast-container"></div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ───────────────────────────────────────────────
 // STATE
 // ───────────────────────────────────────────────
@@ -6044,6 +6045,7 @@ function renderGT(){
 
   var filtEq = (document.getElementById('gt-equipe')||{value:''}).value;
   var filtBusca = ((document.getElementById('gt-busca')||{value:''}).value||'').toLowerCase();
+  var hideDone = document.getElementById('gt-hide-done') && document.getElementById('gt-hide-done').checked;
 
   _gtDays = _gtRange();
   if(!_gtDays.length) return;
@@ -6054,6 +6056,7 @@ function renderGT(){
   var semFim = new Date(semIni); semFim.setDate(semFim.getDate()+6); semFim.setHours(23,59,59);
 
   var lista = srvs.filter(function(s){
+    if(hideDone && (s.pct_atual||0) >= 100) return false;
     if(filtEq && s.equipe!==filtEq) return false;
     if(filtBusca && s.descricao.toLowerCase().indexOf(filtBusca)===-1 && s.cod.toLowerCase().indexOf(filtBusca)===-1) return false;
     if(_gtFiltro==='semana'){
@@ -6084,7 +6087,7 @@ function renderGT(){
   var h = '<table class="gt-table"><thead>';
 
   // Month row
-  h += '<tr><th class="gt-srv-cell" style="border-bottom:0;min-width:'+_gtSrvW+'px;max-width:'+_gtSrvW+'px;width:'+_gtSrvW+'px"></th>';
+  h += '<tr><th class="gt-srv-cell gt-month" style="border-bottom:0;min-width:'+_gtSrvW+'px;max-width:'+_gtSrvW+'px;width:'+_gtSrvW+'px;z-index:4"></th>';
   days.forEach(function(d,i){
     var isFirst = i===0||days[i-1].getMonth()!==d.getMonth();
     if(isFirst){
@@ -6095,7 +6098,7 @@ function renderGT(){
   h += '</tr>';
 
   // Day row
-  h += '<tr><th class="gt-srv-cell" style="font-size:9px;color:var(--muted);min-width:'+_gtSrvW+'px;max-width:'+_gtSrvW+'px;width:'+_gtSrvW+'px">Serviço</th>';
+  h += '<tr><th class="gt-srv-cell" style="font-size:9px;color:var(--muted);min-width:'+_gtSrvW+'px;max-width:'+_gtSrvW+'px;width:'+_gtSrvW+'px;z-index:4">Serviço</th>';
   days.forEach(function(d){
     var isT = d.getTime()===today.getTime();
     var isW = d.getDay()===0||d.getDay()===6;
@@ -16283,9 +16286,11 @@ function detectarAtrasosObra(){
   const hoje = new Date();
   const atrasados = [];
   state.servicos.forEach(s => {
-    if(s.status_atual === 'concluido' || s.status_atual === 'cancelado') return;
+    // v48-fix: verificar pct_atual >= 100 E status correto (CONCLUÍDO com acento maiúsculo)
+    if((s.pct_atual || 0) >= 100) return;
+    if(s.status_atual === 'CONCLUÍDO' || s.status_atual === 'cancelado') return;
     if(!s.data_fim) return;
-    const fim = new Date(s.data_fim+'T12:00:00');
+    const fim = new Date((s.data_fim.includes('/') ? s.data_fim.split('/').reverse().join('-') : s.data_fim)+'T12:00:00');
     const diffDias = Math.ceil((fim - hoje)/(1000*60*60*24));
     const pct = s.pct_atual || 0;
     // Em risco: vence em ≤7 dias e menos de 80% concluído, ou já vencido
@@ -20053,14 +20058,4 @@ if(document.readyState === "loading"){
       </div>
     </div>
     <div class="guia-progress-bar">
-      <div class="guia-progress-fill" id="guia-progress-fill" style="width:0%"></div>
-    </div>
-  </div>
-</div>
-<button id="guia-reabrir" onclick="guiaAbrir()" style="display:none">
-  🗺 Guia de Visita
-  <span class="gr-badge" id="guia-reabrir-badge">0/13</span>
-</button>
-
-</body>
-</html>
+      <div class="guia-progress-fill" id="guia-pro
