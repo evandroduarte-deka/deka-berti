@@ -1650,9 +1650,10 @@ async function _gerarRelClienteSemana(semNumSel){
   // v49 — Serviços executados NA SEMANA — delta real via snapshot
   // Para semana atual: compara com snapshot S(n-1)
   // Para semana passada: usa delta calculado por _getRelDelta
-  const srvsem = isAtual
-    ? srvsDelta.filter(s => s.delta > 0 || s.pct > 0)
-    : srvsDelta.filter(s => s.delta > 0);
+  // v49 — Serviços da semana: filtrados por cronograma ou por delta
+  // Se tem snapshot: mostra serviços com delta > 0
+  // Se sem snapshot: _getRelDelta já filtrou pelo cronograma, mostra todos com atividade
+  const srvsem = srvsDelta.filter(s => s.delta > 0 || s.pct > 0);
 
   // v48 — Detectar se coluna Local tem algum valor preenchido
   const temLocal = srvsem.some(s=>(s.local||s.ambiente||'').trim() && (s.local||s.ambiente||'').trim()!=='—');
@@ -4317,44 +4318,81 @@ function _getRelDelta(semNum){
   var semAtual = _calcSemanaReal();
   var isAtual = (semNum === semAtual);
   var snapAnterior = semNum > 1 ? snaps['S'+(semNum-1)] : null;
-  var mapAnterior = {};
+
+  // Range de datas desta semana (para filtrar pelo cronograma)
+  var _range = _calcSemanaRange(semNum);
+  var rangeIni = _range.iniISO;
+  var rangeFim = _range.fimISO;
+
+  // === MODO 1: Com snapshot anterior → delta real ===
   if(snapAnterior && Array.isArray(snapAnterior.servicos)){
+    var mapAnterior = {};
     snapAnterior.servicos.forEach(function(s){ mapAnterior[s.cod] = s; });
-  }
-  var srvsAlvo, pctGeralAlvo;
-  if(isAtual){
-    srvsAlvo = (state.servicos||[]).map(function(s){
-      return { cod:s.cod, descricao:s.descricao, pct:s.pct_atual||0, status:s.status_atual||'', valor:s.valor||0,
-               categoria:s.categoria, equipe:s.equipe, equipe_nome:s.equipe_nome, local:s.local, ambiente:s.ambiente,
-               data_inicio:s.data_inicio, data_fim:s.data_fim, dias_marcados:s.dias_marcados, _original:s };
-    });
-    pctGeralAlvo = calcPctGeral();
-  } else {
-    var snapAlvo = snaps['S'+semNum];
-    if(!snapAlvo || !Array.isArray(snapAlvo.servicos)){
-      return { servicos:[], pctGeral:0, pctAnterior:0, periodo:'', isAtual:false, noSnapshot:true };
+    var srvsAlvo;
+    if(isAtual){
+      srvsAlvo = (state.servicos||[]).map(function(s){
+        return { cod:s.cod, descricao:s.descricao, pct:s.pct_atual||0, status:s.status_atual||'', valor:s.valor||0,
+                 categoria:s.categoria, equipe:s.equipe, equipe_nome:s.equipe_nome, local:s.local, ambiente:s.ambiente,
+                 data_inicio:s.data_inicio, data_fim:s.data_fim, dias_marcados:s.dias_marcados, _original:s };
+      });
+    } else {
+      var snapAlvo = snaps['S'+semNum];
+      if(!snapAlvo || !Array.isArray(snapAlvo.servicos)){
+        return { servicos:[], pctGeral:0, pctAnterior:0, isAtual:false, noSnapshot:true };
+      }
+      srvsAlvo = snapAlvo.servicos.map(function(s){
+        var atual = (state.servicos||[]).find(function(x){ return x.cod === s.cod; });
+        return { cod:s.cod, descricao:s.descricao||(atual?atual.descricao:''), pct:s.pct||0, status:s.status||'', valor:s.valor||0,
+                 categoria:atual?atual.categoria:'', equipe:atual?atual.equipe:'', equipe_nome:atual?atual.equipe_nome:'',
+                 local:atual?atual.local:'', ambiente:atual?atual.ambiente:'',
+                 data_inicio:atual?atual.data_inicio:'', data_fim:atual?atual.data_fim:'', dias_marcados:atual?atual.dias_marcados:[],
+                 _original:atual||null };
+      });
     }
-    srvsAlvo = snapAlvo.servicos.map(function(s){
-      var atual = (state.servicos||[]).find(function(x){ return x.cod === s.cod; });
-      return { cod:s.cod, descricao:s.descricao||(atual?atual.descricao:''), pct:s.pct||0, status:s.status||'', valor:s.valor||0,
-               categoria:atual?atual.categoria:'', equipe:atual?atual.equipe:'', equipe_nome:atual?atual.equipe_nome:'',
-               local:atual?atual.local:'', ambiente:atual?atual.ambiente:'',
-               data_inicio:atual?atual.data_inicio:'', data_fim:atual?atual.data_fim:'', dias_marcados:atual?atual.dias_marcados:[],
-               _original:atual||null };
+    var pctGeralAlvo = isAtual ? calcPctGeral() : (snaps['S'+semNum]?snaps['S'+semNum].pctGeral:0)||0;
+    var pctAnterior = snapAnterior.pctGeral||0;
+    var servicos = srvsAlvo.map(function(s){
+      var ant = mapAnterior[s.cod];
+      var pctAnt = ant ? (ant.pct||0) : 0;
+      return Object.assign({}, s, { pct_anterior_snap:pctAnt, delta:s.pct-pctAnt });
     });
-    pctGeralAlvo = snapAlvo.pctGeral || 0;
+    return { servicos:servicos, pctGeral:pctGeralAlvo, pctAnterior:pctAnterior,
+             deltaGeral:pctGeralAlvo-pctAnterior, periodoIni:rangeIni, periodoFim:rangeFim,
+             isAtual:isAtual, noSnapshot:false };
   }
-  var pctAnterior = snapAnterior ? (snapAnterior.pctGeral||0) : 0;
-  var servicos = srvsAlvo.map(function(s){
-    var ant = mapAnterior[s.cod];
-    var pctAnt = ant ? (ant.pct||0) : 0;
-    var delta = s.pct - pctAnt;
-    return Object.assign({}, s, { pct_anterior_snap: pctAnt, delta: delta });
+
+  // === MODO 2: Sem snapshot → filtrar pelo CRONOGRAMA (dias_marcados / datas) ===
+  // Um serviço pertence à semana se seus dias_marcados ou data_inicio/data_fim
+  // se sobrepõem ao range da semana
+  var allSrvs = (state.servicos||[]).map(function(s){
+    return { cod:s.cod, descricao:s.descricao, pct:s.pct_atual||0, status:s.status_atual||'', valor:s.valor||0,
+             categoria:s.categoria, equipe:s.equipe, equipe_nome:s.equipe_nome, local:s.local, ambiente:s.ambiente,
+             data_inicio:s.data_inicio, data_fim:s.data_fim, dias_marcados:s.dias_marcados, _original:s };
   });
-  // Período da semana via _calcSemanaRange
-  var _r = _calcSemanaRange(semNum);
-  return { servicos:servicos, pctGeral:pctGeralAlvo, pctAnterior:pctAnterior,
-           deltaGeral:pctGeralAlvo-pctAnterior, periodoIni:_r.iniISO, periodoFim:_r.fimISO,
+
+  function _srvNaSemana(s){
+    if(!rangeIni || !rangeFim) return s.pct > 0; // sem datas, mostra tudo com progresso
+    // 1. dias_marcados (mais preciso)
+    if(s.dias_marcados && s.dias_marcados.length){
+      return s.dias_marcados.some(function(d){ return d >= rangeIni && d <= rangeFim; });
+    }
+    // 2. data_inicio/data_fim overlap
+    var ini = s.data_inicio||'';
+    var fim = s.data_fim||ini;
+    if(!ini) return false;
+    var iniISO = ini.includes('/') ? ini.split('/').reverse().join('-') : ini;
+    var fimISO = fim.includes('/') ? fim.split('/').reverse().join('-') : fim;
+    return iniISO <= rangeFim && fimISO >= rangeIni;
+  }
+
+  var servicos = allSrvs.filter(_srvNaSemana).map(function(s){
+    // Sem snapshot, delta = pct_atual - pct_anterior (do cockpit)
+    var pctAnt = s._original ? (s._original.pct_anterior||0) : 0;
+    return Object.assign({}, s, { pct_anterior_snap:pctAnt, delta:s.pct-pctAnt });
+  });
+
+  return { servicos:servicos, pctGeral:calcPctGeral(), pctAnterior:0,
+           deltaGeral:calcPctGeral(), periodoIni:rangeIni, periodoFim:rangeFim,
            isAtual:isAtual, noSnapshot:false };
 }
 

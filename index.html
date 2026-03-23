@@ -2177,7 +2177,7 @@ body.tabs-active #tab-cronograma.active{max-width:100%!important;margin:0!import
       <div class="field"><label>Apelido do Cliente</label><input type="text" id="cfg-cliente" placeholder="Ex: Badida" oninput="saveConfig()"></div>
     </div>
     <div class="field-row three">
-      <div class="field"><label>Semana Nº</label><input type="number" id="cfg-semana" min="1" value="1" oninput="saveConfig()"></div>
+      <div class="field"><label>Semana Nº <span style="font-weight:400;color:var(--muted);font-size:10px">(auto — calculado pela data de início)</span></label><input type="number" id="cfg-semana" min="1" value="1" readonly style="background:var(--gray-soft);cursor:not-allowed;font-weight:800"></div>
       <div class="field"><label>Início do Período</label><input type="date" id="cfg-periodo-ini" oninput="saveConfig()"></div>
       <div class="field"><label>Fim do Período</label><input type="date" id="cfg-periodo-fim" oninput="saveConfig()"></div>
     </div>
@@ -3230,6 +3230,19 @@ body.tabs-active #tab-cronograma.active{max-width:100%!important;margin:0!import
     </div>
 
     <hr class="divider">
+
+    <!-- AVANÇAR SEMANA — botão principal de fechamento -->
+    <div style="padding:16px;background:linear-gradient(135deg,#0D2016 0%,#1a3d28 100%);border-radius:var(--radius-lg);border:1.5px solid rgba(46,102,69,.3);margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        <div>
+          <div style="font-family:var(--font-display);font-size:14px;font-weight:800;color:#fff">Avançar Semana</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:1px">Grava snapshot da semana atual, arquiva diário e inicia nova semana</div>
+        </div>
+      </div>
+      <button onclick="avancarSemana()" style="width:100%;padding:12px;background:#2E9650;color:#fff;border:none;border-radius:8px;font-family:var(--font-display);font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.3px">▶ FECHAR SEMANA E AVANÇAR</button>
+    </div>
+
     <div class="warn-box">"Limpar Dados da Semana" mantém config e serviços, mas apaga avanços, presença, pagamentos, fotos, pendências, materiais e notas desta semana.</div>
     <div class="btn-row">
       <button class="btn btn-danger" onclick="showConfirm()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Limpar Dados da Semana</button>
@@ -4455,6 +4468,8 @@ function restoreUI(){
   const c = state.config;
   setVal('cfg-obra', c.obra);
   setVal('cfg-cliente', c.cliente);
+  // v49 — Semana auto-calculada pela data de início
+  c.semana = calcSemanaAtual(c.periodo_ini);
   setVal('cfg-semana', c.semana);
   setVal('cfg-periodo-ini', c.periodo_ini||'');
   setVal('cfg-periodo-fim', c.periodo_fim||'');
@@ -4537,12 +4552,29 @@ function restoreUI(){
 // ───────────────────────────────────────────────
 // CONFIG
 // ───────────────────────────────────────────────
+// ═══ v49 — SEMANA AUTOMÁTICA: calculada pela data de início ═══
+function calcSemanaAtual(periodoIni){
+  var ini = periodoIni || (state.config && state.config.periodo_ini) || '';
+  if(!ini) return state.config ? (state.config.semana||1) : 1;
+  var iniDate = new Date((ini.includes('/') ? ini.split('/').reverse().join('-') : ini) + 'T00:00:00');
+  if(isNaN(iniDate)) return state.config ? (state.config.semana||1) : 1;
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+  var diff = Math.floor((hoje - iniDate) / (7 * 86400000));
+  return Math.max(1, diff + 1);
+}
+
+function atualizarSemanaUI(){
+  var sem = calcSemanaAtual();
+  if(state.config) state.config.semana = sem;
+  setVal('cfg-semana', sem);
+}
+
 function saveConfig(){
   const prev = state.config || {};
   state.config = {
     obra: getVal('cfg-obra'),
     cliente: getVal('cfg-cliente'),
-    semana: parseInt(getVal('cfg-semana'))||1,
+    semana: calcSemanaAtual(getVal('cfg-periodo-ini')),
     periodo_ini: getVal('cfg-periodo-ini'),
     periodo_fim: getVal('cfg-periodo-fim'),
     empresa: getVal('cfg-empresa'),
@@ -8246,7 +8278,8 @@ function limparSemana(){
   // Reset semanal: manter config e serviços (com status/pct como anterior), limpar resto
   state.servicos = state.servicos.map(s=>({...s, status_anterior: s.status_atual, pct_anterior: s.pct_atual, observacao:''}));
   state.equipes = state.equipes.map(e=>({...e, presenca:{seg:'nd',ter:'nd',qua:'nd',qui:'nd',sex:'nd'}, nota:''}));
-  state.config.semana = (state.config.semana||1) + 1;
+  // v49 — Semana auto-calculada (não incrementar)
+  state.config.semana = calcSemanaAtual();
   // v48 — Pagamentos são da OBRA: preservar. Pendências não resolvidas persistem.
   state.pendencias = (state.pendencias||[]).filter(p => p.status !== 'RESOLVIDO' && p.status !== 'CONCLUÍDO');
   state.fotos = [];
@@ -8371,9 +8404,10 @@ function confirmarAvancarSemana(){
   // Arquivar semana atual nos serviços (status_anterior = status_atual)
   state.servicos = state.servicos.map(s=>({...s, status_anterior: s.status_atual, pct_anterior: s.pct_atual, observacao:''}));
   state.equipes  = state.equipes.map(e=>({...e, presenca:{seg:'nd',ter:'nd',qua:'nd',qui:'nd',sex:'nd'}, nota:''}));
-  state.config.semana = (state.config.semana||1) + 1;
+  // v49 — Semana auto-calculada pela data de início (não incrementar manualmente)
   if(novaIni) state.config.periodo_ini = novaIni;
   if(novaFim) state.config.periodo_fim = novaFim;
+  state.config.semana = calcSemanaAtual(state.config.periodo_ini);
 
   // v49 — Arquivar diário da semana no histórico permanente (nunca apagar)
   if(!state.diario_historico) state.diario_historico = {};
@@ -8420,14 +8454,14 @@ function confirmarAvancarSemana(){
   const ba = document.getElementById('bloco-atualizacao-area'); if(ba) ba.style.display = 'none';
 
   setVal('cfg-semana', state.config.semana);
-  setVal('cfg-periodo-ini', novaIni);
-  setVal('cfg-periodo-fim', novaFim);
+  setVal('cfg-periodo-ini', state.config.periodo_ini);
+  setVal('cfg-periodo-fim', state.config.periodo_fim);
 
   renderServicos(); renderEquipes(); renderPagamentos();
   renderFotos(); renderPendencias(); renderMateriais();
   renderNotas(); renderCronograma(); renderDrawer(); updateTopbar();
   saveState();
-  toast(`✅ Semana ${state.config.semana} iniciada! ${novaIni ? '· Período atualizado.' : ''}`, 'success');
+  toast(`✅ Snapshot S${semAtual} gravado! Semana ${state.config.semana} ativa.`, 'success');
   scrollToSec('sec-config');
   // Sync automático com a planilha após avançar semana
   if(getGscriptUrl()){
