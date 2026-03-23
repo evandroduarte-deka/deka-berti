@@ -248,15 +248,78 @@ function _carregarObraKey(key){
 
 function _popularSemanas(){
   var sel = document.getElementById('sel-semana');
-  var sem = state.config.semana||1;
+  var semReal = _calcSemanaReal();
   var snaps = state.snapshots||{};
-  var h = '<option value="'+sem+'">Semana '+sem+' (atual)</option>';
-  for(var i=sem-1;i>=1;i--){
+  var h = '';
+  // Semana atual primeiro
+  var rangeAtual = _calcSemanaRange(semReal);
+  h += '<option value="'+semReal+'">Semana '+semReal+' (atual · '+rangeAtual.iniLabel+' a '+rangeAtual.fimLabel+')</option>';
+  // Semanas anteriores
+  for(var i=semReal-1;i>=1;i--){
     var s=snaps['S'+i];
-    var extra=s?' · '+fmtDate(s.data||'')+' · '+(s.pctGeral||0)+'%':' (sem snapshot)';
-    h+='<option value="'+i+'">Semana '+i+extra+'</option>';
+    var range = _calcSemanaRange(i);
+    var extra = range.iniLabel+' a '+range.fimLabel;
+    if(s) extra += ' · '+(s.pctGeral||0)+'%';
+    h+='<option value="'+i+'">Semana '+i+' · '+extra+'</option>';
   }
   sel.innerHTML = h;
+}
+
+// Calcula semana real pela data de início da obra
+function _calcSemanaReal(){
+  var c = state.config||{};
+  var ini = c.periodo_ini||'';
+  if(!ini) return c.semana||1;
+  var iniDate = new Date((ini.includes('/')?ini.split('/').reverse().join('-'):ini)+'T00:00:00');
+  if(isNaN(iniDate)) return c.semana||1;
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+  var diff = Math.floor((hoje - iniDate) / (7*86400000));
+  return Math.max(1, diff + 1); // semana 1 = primeira semana
+}
+
+// Busca narrativa/diário de uma semana arquivada
+function _getNarrativaSemana(semNum){
+  // 1. Tentar diario_historico (arquivado ao avançar semana)
+  var hist = (state.diario_historico||{})['S'+semNum];
+  if(hist && hist.dias){
+    var DIAS = ['seg','ter','qua','qui','sex','sab','dom'];
+    var DLBL = {seg:'SEG',ter:'TER',qua:'QUA',qui:'QUI',sex:'SEX',sab:'SÁB',dom:'DOM'};
+    var textos = DIAS.map(function(d){
+      var entry = hist.dias[d];
+      if(!entry || !entry.texto || !entry.texto.trim()) return null;
+      return (DLBL[d]||d.toUpperCase()) + ': ' + entry.texto.trim();
+    }).filter(Boolean);
+    if(textos.length) return textos.join('\n');
+  }
+  // 2. Tentar snapshot
+  var snap = (state.snapshots||{})['S'+semNum];
+  if(snap && snap.narrativa) return snap.narrativa;
+  // 3. Tentar visitas
+  var visitas = (state.visitas||[]).filter(function(v){ return v.semana === semNum; });
+  if(visitas.length){
+    var ultima = visitas[visitas.length-1];
+    if(ultima.narrativa_revisada) return ultima.narrativa_revisada;
+  }
+  return '';
+}
+
+// Calcula range de datas de uma semana específica
+function _calcSemanaRange(semNum){
+  var c = state.config||{};
+  var ini = c.periodo_ini||'';
+  if(!ini) return {ini:null,fim:null,iniLabel:'—',fimLabel:'—',iniISO:'',fimISO:''};
+  var iniDate = new Date((ini.includes('/')?ini.split('/').reverse().join('-'):ini)+'T00:00:00');
+  if(isNaN(iniDate)) return {ini:null,fim:null,iniLabel:'—',fimLabel:'—',iniISO:'',fimISO:''};
+  var semIni = new Date(iniDate); semIni.setDate(semIni.getDate() + (semNum-1)*7);
+  var semFim = new Date(semIni);   semFim.setDate(semFim.getDate() + 6);
+  return {
+    ini: semIni,
+    fim: semFim,
+    iniISO: semIni.toISOString().slice(0,10),
+    fimISO: semFim.toISOString().slice(0,10),
+    iniLabel: String(semIni.getDate()).padStart(2,'0')+'/'+String(semIni.getMonth()+1).padStart(2,'0'),
+    fimLabel: String(semFim.getDate()).padStart(2,'0')+'/'+String(semFim.getMonth()+1).padStart(2,'0')
+  };
 }
 
 // ═══ PREVIEW ═══
@@ -1456,7 +1519,7 @@ function _getRelDelta(semNum){
  * @returns {Array} fotos filtradas
  */
 function _filtrarFotosSemana(semNum){
-  var semAtual = state.config.semana || 1;
+  var semAtual = _calcSemanaReal();
   var fotos = state.fotos || [];
   if(semNum === semAtual) return fotos; // semana atual: todas as fotos correntes
 
@@ -1478,8 +1541,8 @@ async function gerarRelatorioSemanalCliente(){
 
 async function _gerarRelClienteSemana(semNumSel){
   const c = state.config;
-  const semNum = semNumSel || c.semana || 1;
-  const semAtual = c.semana || 1;
+  const semAtual = _calcSemanaReal();
+  const semNum = semNumSel || semAtual;
   const isAtual = (semNum === semAtual);
 
   // v49 — Delta por snapshot
@@ -1492,12 +1555,11 @@ async function _gerarRelClienteSemana(semNumSel){
   const t = getRelTema();
   const p1 = t.p1, p2 = t.p2;
 
-  // v49 — Período: usar datas do snapshot quando disponível
-  const piRaw = relDelta.periodoIni || c.periodo_ini || '';
-  const pfRaw = relDelta.periodoFim || c.periodo_fim || '';
-  const pi = piRaw ? fmtDate(piRaw) : '';
-  const pf = pfRaw ? fmtDate(pfRaw) : '';
-  const periodo = pi && pf ? `${pi} a ${pf}` : (pi||'—');
+  // v49 — Período da SEMANA selecionada (não da obra inteira)
+  const _semRange = _calcSemanaRange(semNum);
+  const periodo = _semRange.iniLabel && _semRange.fimLabel
+    ? fmtDate(_semRange.iniISO) + ' a ' + fmtDate(_semRange.fimISO)
+    : (c.periodo_ini ? fmtDate(c.periodo_ini) + ' a ' + fmtDate(c.periodo_fim||'') : '—');
 
   // v49 — Serviços: usar delta real da semana (snapshot-based)
   const srvsDelta = relDelta.servicos;
@@ -1506,7 +1568,9 @@ async function _gerarRelClienteSemana(semNumSel){
 
   // v49 — Fotos filtradas por semana
   const fotos = _filtrarFotosSemana(semNum);
-  const narrativaOriginal = isAtual ? ((document.getElementById('narrativa-visita')||{}).value || state.narrativa || '') : '';
+  const narrativaOriginal = isAtual
+    ? ((document.getElementById('narrativa-visita')||{}).value || state.narrativa || '')
+    : _getNarrativaSemana(semNum);
 
   // v49 — pctGeral: tempo real ou do snapshot
   const pctGeral = isAtual ? calcPctGeral() : relDelta.pctGeral;
@@ -1777,20 +1841,19 @@ async function _gerarRelClienteSemana(semNumSel){
     <tbody>${pontosAtencaoRows}</tbody>
   </table>` : '';
 
-  // ── Próxima Semana: serviços com data_inicio na semana seguinte ──
-  const dow = hoje.getDay();
-  const diffSeg = dow === 0 ? 1 : 8 - dow; // dias até próxima segunda
-  const proxSeg = new Date(hoje); proxSeg.setDate(hoje.getDate() + diffSeg);
-  const proxDom = new Date(proxSeg); proxDom.setDate(proxSeg.getDate() + 6);
-  const proxSegISO = proxSeg.toISOString().slice(0,10);
-  const proxDomISO = proxDom.toISOString().slice(0,10);
+  // ── Próxima Semana: baseado no ciclo real da obra (periodo_ini + semana) ──
+  const _proxRange = _calcSemanaRange(semana + 1);
+  const proxSegISO = _proxRange.iniISO;
+  const proxDomISO = _proxRange.fimISO;
 
   const srvProxSemana = srvs.filter(s => {
     if(_pctS(s) >= 100) return false;
-    // Serviço com atividade na próxima semana
+    if(!proxSegISO || !proxDomISO) return false;
+    // Serviço com dias_marcados no cronograma que caem na próxima semana
     if(s.dias_marcados && s.dias_marcados.length){
       return s.dias_marcados.some(d => d >= proxSegISO && d <= proxDomISO);
     }
+    // Fallback: data_inicio/data_fim intersecta a próxima semana
     const ini = s.data_inicio || '';
     const fim = s.data_fim || ini;
     if(!ini) return false;
@@ -1804,7 +1867,7 @@ async function _gerarRelClienteSemana(semNumSel){
     return eq ? esc2(eq.responsavel||eq.nome||eq.especialidade||'') : '—';
   }
 
-  const proxSemLabel = `S${semana+1} · ${proxSeg.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})} a ${proxDom.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}`;
+  const proxSemLabel = `S${semana+1} · ${_proxRange.iniLabel} a ${_proxRange.fimLabel}`;
 
   const proxSemRows = srvProxSemana.length ? srvProxSemana.map(s => {
     const _pIni = s.data_inicio ? fmtDate(s.data_inicio) : '';
@@ -1973,8 +2036,6 @@ ${finBandHtml}
     <thead><tr><th>Serviço</th><th>${temLocal ? 'Local' : 'Equipe'}</th><th>Período</th><th>Status</th><th>Progresso</th></tr></thead>
     <tbody>${srvRows}</tbody>
   </table>
-
-  ${pontosHtml ? pontosHtml.replace(/sec-n">0\d/,'sec-n">0'+(++secNum)) : ''}
 
   ${proxSemHtml.replace(/sec-n">\d+/,'sec-n">0'+(++secNum))}
 
@@ -4253,7 +4314,7 @@ function _selecionarSemanaRel(titulo, callback){
 
 function _getRelDelta(semNum){
   var snaps = state.snapshots || {};
-  var semAtual = state.config.semana || 1;
+  var semAtual = _calcSemanaReal();
   var isAtual = (semNum === semAtual);
   var snapAnterior = semNum > 1 ? snaps['S'+(semNum-1)] : null;
   var mapAnterior = {};
@@ -4290,17 +4351,17 @@ function _getRelDelta(semNum){
     var delta = s.pct - pctAnt;
     return Object.assign({}, s, { pct_anterior_snap: pctAnt, delta: delta });
   });
-  var dataFim = isAtual ? (state.config.periodo_fim||'') : (snaps['S'+semNum]?snaps['S'+semNum].data||'':'');
-  var dataIni = snapAnterior ? (snapAnterior.data||'') : (state.config.periodo_ini||'');
+  // Período da semana via _calcSemanaRange
+  var _r = _calcSemanaRange(semNum);
   return { servicos:servicos, pctGeral:pctGeralAlvo, pctAnterior:pctAnterior,
-           deltaGeral:pctGeralAlvo-pctAnterior, periodoIni:dataIni, periodoFim:dataFim,
+           deltaGeral:pctGeralAlvo-pctAnterior, periodoIni:_r.iniISO, periodoFim:_r.fimISO,
            isAtual:isAtual, noSnapshot:false };
 }
 
 function _filtrarFotosSemana(semNum){
-  var semAtual = state.config.semana || 1;
+  var semAtual = _calcSemanaReal();
   if(semNum === semAtual) return state.fotos || [];
-  return []; // fotos limpas ao avançar semana
+  return [];
 }
 
 function _pctS(s){ return s.pct_atual !== undefined ? (s.pct_atual||0) : (s.pct||0); }
