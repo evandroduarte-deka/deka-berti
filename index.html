@@ -57,6 +57,8 @@ input,select,textarea{font-family:var(--font-body);font-size:14px}
   padding:0 16px;gap:12px;
   box-shadow:0 2px 8px rgba(0,0,0,.25);
 }
+.tb-btn{font-family:var(--font-display);font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-decoration:none;letter-spacing:.3px;padding:6px 10px;border:1px solid rgba(255,255,255,.15);transition:all .15s;white-space:nowrap;flex-shrink:0}
+.tb-btn:hover{border-color:var(--gold);color:var(--gold)}
 #topbar-logo{font-family:var(--font-display);font-size:18px;font-weight:800;color:#fff;white-space:nowrap;letter-spacing:-.5px}
 #topbar-logo span{color:var(--gold)}
 #topbar-center{flex:1;min-width:0;text-align:center}
@@ -2049,6 +2051,7 @@ body.tabs-active #tab-cronograma.active{max-width:100%!important;margin:0!import
 </div>
 
 <div id="topbar" style="display:none">
+  <a href="hub.html" class="tb-btn">← HUB</a>
   <button id="topbar-back" onclick="voltarParaSeletor()">◀ Obras</button>
   <div id="topbar-logo">
     <span id="topbar-logo-img" style="display:none"><img id="topbar-img" style="height:28px;object-fit:contain" alt="logo"></span>

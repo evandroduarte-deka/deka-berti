@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Jost:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════════════════
-   BRAIN v11 — COMMAND CENTER (ORGANISMO)
+   BRAIN v12 — COMMAND CENTER (ORGANISMO)
    Visual: Angular · Dense · Monochromatic · One Accent
    Referência: Bloomberg · Palantir · War Room
 ═══════════════════════════════════════════════════════ */
@@ -100,7 +100,7 @@ html,body{height:100%;background:var(--void);color:var(--t1);font-family:var(--m
 .tb-live{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--ok);letter-spacing:.1em;text-transform:uppercase}
 .live-dot{width:5px;height:5px;background:var(--acc);animation:ld 2s ease-in-out infinite}
 @keyframes ld{0%,100%{opacity:1}50%{opacity:.2}}
-.tb-btn{background:none;border:1px solid var(--g1);color:var(--t2);font-family:var(--mono);font-size:9px;font-weight:600;padding:4px 10px;cursor:pointer;transition:all .15s;letter-spacing:.08em;text-transform:uppercase}
+.tb-btn{background:none;border:1px solid var(--g1);color:var(--t2);font-family:var(--mono);font-size:9px;font-weight:600;padding:4px 10px;cursor:pointer;transition:all .15s;letter-spacing:.08em;text-transform:uppercase;text-decoration:none}
 .tb-btn:hover{border-color:var(--acc);color:var(--acc)}
 .tb-btn:active{background:var(--acc3)}
 .tb-ham{background:none;border:none;color:var(--t2);font-size:16px;cursor:pointer;padding:4px 8px;display:none}
@@ -531,7 +531,7 @@ canvas{display:block}
 <div class="topbar">
   <div class="tb-brand">
     <div class="tb-logo">BRAIN<span style="color:var(--gold)">.</span></div>
-    <div class="tb-version" style="color:var(--gold);border:1px solid var(--gold2)">v11</div>
+    <div class="tb-version" style="color:var(--gold);border:1px solid var(--gold2)">v12</div>
   </div>
   <div class="tb-status-strip">
     <div class="tb-stat"><div class="tb-stat-val hot" id="kp-crit">0</div><div class="tb-stat-lbl">Críticos</div></div>
@@ -547,6 +547,7 @@ canvas{display:block}
   <div class="tb-right">
     <div class="tb-clock" id="clock"></div>
     <div class="tb-live"><div class="live-dot"></div>LIVE</div>
+    <a href="hub.html" class="tb-btn">← HUB</a>
     <button class="tb-btn" onclick="importarComercial()" style="border-color:var(--gold);color:var(--gold)" title="Importar leads do Comercial">↓ COMERCIAL</button>
         <button class="tb-btn" onclick="simSync()">↻ SYNC</button>
     <button class="tb-ham" id="tb-ham" onclick="goPage('dump')">⬡</button>
@@ -911,7 +912,7 @@ function syncPipelineFromObras(){
     }
   });
 }
-var _prio = 'media', _ctx = 'todos', _jOpen = true;
+var _prio = 'media', _ctx = 'todos';
 
 
 // ════════════════════════════════════════════════
@@ -1105,10 +1106,10 @@ async function salvarObsInterna(obra_key, obs){
 }
 
 // ── Importa do brain_comercial (leads do dia anterior) ──
-async function importarComercial(){
+async function importarComercial(silent){
   try{
     var rows = await supaFetch('brain_comercial?importado=eq.false&order=created_at.desc&limit=50');
-    if(!rows||!rows.length){ toast('NADA NOVO DO COMERCIAL',''); return; }
+    if(!rows||!rows.length){ if(!silent) toast('NADA NOVO DO COMERCIAL',''); return; }
     var novos = 0;
     rows.forEach(function(row){
       // Só importa se tem ação necessária
@@ -1189,6 +1190,11 @@ function toggleJ(){
 }
 
 async function gerarBriefing(){
+  // Guarda: sem itens e sem obras → não chamar CF Worker
+  if(!S.items.length && !Object.keys(CTXS).length){
+    S.briefing={texto:'Nenhuma obra ou tarefa cadastrada. Adicione itens ou sincronize o Supabase.',ts:new Date().toISOString(),criticos:0,livre:8,obras:0};
+    save();mostrarBriefing(S.briefing);return;
+  }
   var ji=document.getElementById('j-ind');if(ji)ji.classList.add('thinking');
   var jb=document.getElementById('j-body');
   if(jb)jb.innerHTML='<div class="ai-spin show"><div class="sp"></div><div class="sp"></div><div class="sp"></div><span>ANALISANDO OPERAÇÃO...</span></div>';
@@ -2095,39 +2101,46 @@ document.addEventListener('click', function(e){
 // ════════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════════
+// 1. Render inicial com cache (instantâneo)
 renderMatrix();
 renderSideCharts();
 updateKPIs();
-// Load obras from Supabase on init
+
+// 2. Cache de obras (5min TTL)
 var _ctxsCache = localStorage.getItem('brain_ctxs_cache');
 if(_ctxsCache){
   try{
     var _cc = JSON.parse(_ctxsCache);
-    if(_cc && _cc.data && (Date.now()-_cc.ts)<300000){ // 5min cache
+    if(_cc && _cc.data && (Date.now()-_cc.ts)<300000){
       CTXS = _cc.data;
     }
   }catch(e){}
 }
-// Always refresh in background
+
+// 3. Briefing do cache (UX imediata, sem esperar async)
+if(S.briefing && S.briefing.ts){
+  var _bAge = (Date.now()-new Date(S.briefing.ts).getTime())/60000;
+  if(_bAge < 30) mostrarBriefing(S.briefing);
+}
+
+// 4. Render script com dados do cache
+renderScript();
+
+// 5. Refresh async em background
 carregarObras().then(function(){
-  // v11 — Sincronizar operação: gerar tarefas automáticas de TODAS as obras
   var novos = sincronizarOperacao();
-  // v11 — Importar leads do comercial automaticamente
-  importarComercial().catch(function(){});
-  // Atualizar UI
+  importarComercial(true).catch(function(){});
   var obrasCount = Object.keys(CTXS).length;
   setEl('kp-obras', obrasCount);
   renderMatrix&&renderMatrix();
   renderSideCharts&&renderSideCharts();
   updateKPIs();
   if(novos>0) toast(novos+' TAREFAS AUTO-GERADAS DAS OBRAS','ai');
+  // Briefing: regenerar se velho ou inexistente, senão mostrar cache
+  var _bAge2 = S.briefing&&S.briefing.ts ? (Date.now()-new Date(S.briefing.ts).getTime())/60000 : 999;
+  if(_bAge2 > 30) gerarBriefing();
+  else mostrarBriefing(S.briefing);
 }).catch(function(){});
-
-renderScript();
-if(S.briefing&&S.briefing.ts){
-  var age=(Date.now()-new Date(S.briefing.ts).getTime())/1000/60;
-  if(age<30){mostrarBriefing(S.briefing);}else{gerarBriefing();}
-}else{gerarBriefing();}
 // Redraw charts on resize
 window.addEventListener('resize',function(){
   if(document.getElementById('page-matrix').classList.contains('active'))renderSideCharts();

@@ -29,6 +29,8 @@ html,body{height:100%;background:var(--void);color:var(--t1);font-family:var(--b
 .topbar-right{margin-left:auto;display:flex;gap:8px;align-items:center}
 .topbar-link{font-family:var(--mono);font-size:10px;color:var(--t3);text-decoration:none;padding:5px 10px;border:1px solid var(--g1);border-radius:4px}
 .topbar-link:hover{color:var(--acc);border-color:var(--acc)}
+.tb-btn{font-family:var(--mono);font-size:10px;color:var(--t2);text-decoration:none;padding:5px 10px;border:1px solid var(--g1);border-radius:4px;white-space:nowrap}
+.tb-btn:hover{color:var(--acc);border-color:var(--acc)}
 
 /* CONTROLS */
 .controls{padding:12px 16px;background:var(--layer);border-bottom:1px solid var(--g1);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -75,6 +77,7 @@ html,body{height:100%;background:var(--void);color:var(--t1);font-family:var(--b
 <div class="topbar">
   <div class="topbar-brand">DEKA<span>.</span> Relatórios</div>
   <div class="topbar-right">
+    <a href="hub.html" class="tb-btn">← HUB</a>
     <a href="index.html" class="topbar-link">← Cockpit</a>
   </div>
 </div>
@@ -2544,7 +2547,7 @@ async function publicarPortalViaScript(btnEl) {
       toast('✅ Portal publicado! Link permanente salvo.', 'success');
       if (statusEl) {
         statusEl.dataset.state='ok';
-        statusEl.innerHTML=`<span style="font-size:16px">✅</span><div><div style="font-weight:700;color:#065F46">Portal publicado com sucesso!</div><div style="font-size:10px;color:#047857;margin-top:2px;word-break:break-all">${data.url}</div><div style="font-size:10px;color:#6B7280;margin-top:1px">${data.ts||''} — qualquer nova publicação substituirá este arquivo mantendo o mesmo link</div></div>`;
+        statusEl.innerHTML=`<span style="font-size:16px">✅</span><div><div style="font-weight:700;color:#065F46">Portal publicado com sucesso!</div><div style="font-size:10px;color:#047857;margin-top:2px;word-break:break-all">${esc(data.url)}</div><div style="font-size:10px;color:#6B7280;margin-top:1px">${esc(data.ts||'')} — qualquer nova publicação substituirá este arquivo mantendo o mesmo link</div></div>`;
       }
       if (btnEl) { btnEl.disabled=false; btnEl.textContent='☁️ Publicar no Drive via Script'; }
       // Refresh modal buttons
@@ -2556,7 +2559,7 @@ async function publicarPortalViaScript(btnEl) {
   } catch(e) {
     if (statusEl) {
       statusEl.dataset.state='err';
-      statusEl.innerHTML=`<span style="font-size:16px">❌</span><div><div style="font-weight:700;color:#991B1B">Falha ao publicar</div><div style="font-size:10px;color:#DC2626;margin-top:2px">${e.message}</div><div style="font-size:10px;color:#6B7280;margin-top:3px">Verifique se o Apps Script está implantado como App da Web com acesso "Qualquer pessoa"</div></div>`;
+      statusEl.innerHTML=`<span style="font-size:16px">❌</span><div><div style="font-weight:700;color:#991B1B">Falha ao publicar</div><div style="font-size:10px;color:#DC2626;margin-top:2px">${esc(e.message)}</div><div style="font-size:10px;color:#6B7280;margin-top:3px">Verifique se o Apps Script está implantado como App da Web com acesso "Qualquer pessoa"</div></div>`;
     }
     if (btnEl) { btnEl.disabled=false; btnEl.textContent='☁️ Tentar novamente'; }
     toast('Erro ao publicar: ' + e.message, 'error');
@@ -2569,8 +2572,7 @@ function extractDriveFolderId(url) {
   return m ? m[1] : '';
 }
 
-// ── Helpers de escape e formatação ─────────────────────────────────────
-function esc2(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// ── Helpers de formatação (fmtDateNum — duplicata residual documentada, manter) ──
 function fmtDateNum(s){ if(!s) return '—'; if(s.includes('-')){ const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`; } return s; }
 
 // ── v48-cloud: Índice de obras — SUPABASE como fonte única ────────────
@@ -3444,6 +3446,7 @@ var SRVS=${srvJSON};
 var EQS=${eqJSON};
 var PROX=${proxJSON};
 var P1='${p1}';
+function _e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 function T(n){document.querySelectorAll('.pnl').forEach(function(p){p.classList.remove('on')});document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on')});var p=document.getElementById('P'+n);if(p)p.classList.add('on');document.querySelectorAll('.tab')[n].classList.add('on');window.scrollTo(0,0);}
 
@@ -3502,7 +3505,7 @@ function renderProx(){
       if(s.dm&&s.dm.length) diasIn=s.dm.filter(function(d){return d>=iniISO&&d<=fimISO;}).sort();
       var dtTxt='';
       if(diasIn.length){var d1=diasIn[0].split('-'),d2=diasIn[diasIn.length-1].split('-');dtTxt=d1[2]+'/'+d1[1]+(diasIn.length>1?' a '+d2[2]+'/'+d2[1]:'');}
-      html+='<div class="sl-r"><div class="sl-nm">'+s.d+'</div><div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--sub)">'+dtTxt+'</div><div class="sl-st st-ex">A executar</div></div>';
+      html+='<div class="sl-r"><div class="sl-nm">'+_e(s.d)+'</div><div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--sub)">'+dtTxt+'</div><div class="sl-st st-ex">A executar</div></div>';
       count++;
     }
   });
@@ -3552,11 +3555,11 @@ function renderGantt(){
     var bc=at?'#EF9A9A':eqC;var rb=ri%2===0?'#fff':'#fafbfc';
     var cells=dias.map(function(d){var dI=d.toISOString().slice(0,10);var inR=false;if(s.dm&&s.dm.length){inR=s.dm.indexOf(dI)>=0;}else{var ini=s.di?new Date(s.di):null;var fim=s.df?new Date(s.df):ini;if(ini){ini.setHours(0,0,0,0);if(fim)fim.setHours(0,0,0,0);inR=d>=ini&&d<=(fim||ini);}}var bg=inR?bc:(d.getDay()===0||d.getDay()===6?'#f7f6f3':rb);var bL=d.getTime()===hoje.getTime()?'border-left:2px solid '+P1:'border-left:1px solid #e8e8e8';return '<td style="padding:0;height:'+Math.max(18,colW-4)+'px;'+bL+';background:'+bg+'"></td>';}).join('');
     var stC=pct>=100?'#2E7D32':pct>0?'#1565C0':'#999';
-    return '<tr style="border-bottom:1px solid #eee;background:'+rb+'"><td style="padding:4px 8px;min-width:180px;max-width:260px;white-space:normal;font-size:10px;font-weight:600;color:#333;border-right:1px solid #e0e0e0;background:'+rb+'">'+s.d+'</td><td style="padding:4px;text-align:center;font-size:9px;font-weight:700;color:'+stC+';border-right:1px solid #ccc;background:'+rb+'">'+pct+'%</td>'+cells+'</tr>';
+    return '<tr style="border-bottom:1px solid #eee;background:'+rb+'"><td style="padding:4px 8px;min-width:180px;max-width:260px;white-space:normal;font-size:10px;font-weight:600;color:#333;border-right:1px solid #e0e0e0;background:'+rb+'">'+_e(s.d)+'</td><td style="padding:4px;text-align:center;font-size:9px;font-weight:700;color:'+stC+';border-right:1px solid #ccc;background:'+rb+'">'+pct+'%</td>'+cells+'</tr>';
   }).join('');
 
   document.getElementById('gantt-container').innerHTML='<table style="border-collapse:collapse;font-size:9px;width:max-content;border:1px solid #ccc"><thead><tr><th style="min-width:180px;background:#f5f5f5"></th><th style="min-width:36px;background:#f5f5f5"></th>'+monH+'</tr><tr><th style="padding:5px 8px;text-align:left;background:'+P1+';color:#fff;font-size:9px;font-weight:700">Serviço</th><th style="padding:5px;text-align:center;background:'+P1+';color:#fff;font-size:9px">%</th>'+dayH+'</tr></thead><tbody>'+rows+'</tbody></table>';
-  document.getElementById('gantt-legend').innerHTML=EQS.map(function(e){return '<span style="display:inline-flex;align-items:center;gap:3px"><span style="display:inline-block;width:8px;height:8px;background:'+e.cor+';border-radius:2px"></span>'+e.cod+'</span>';}).join('')+'<span style="display:inline-flex;align-items:center;gap:3px;margin-left:8px"><span style="display:inline-block;width:8px;height:8px;background:#EF9A9A;border-radius:2px"></span>Atrasado</span><span style="display:inline-flex;align-items:center;gap:3px"><span style="display:inline-block;width:8px;height:8px;background:'+P1+';border-radius:2px"></span>Hoje</span>';
+  document.getElementById('gantt-legend').innerHTML=EQS.map(function(e){return '<span style="display:inline-flex;align-items:center;gap:3px"><span style="display:inline-block;width:8px;height:8px;background:'+e.cor+';border-radius:2px"></span>'+_e(e.cod)+'</span>';}).join('')+'<span style="display:inline-flex;align-items:center;gap:3px;margin-left:8px"><span style="display:inline-block;width:8px;height:8px;background:#EF9A9A;border-radius:2px"></span>Atrasado</span><span style="display:inline-flex;align-items:center;gap:3px"><span style="display:inline-block;width:8px;height:8px;background:'+P1+';border-radius:2px"></span>Hoje</span>';
 }
 
 // Init
