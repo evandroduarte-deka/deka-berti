@@ -86,6 +86,8 @@ html,body{height:100%;background:var(--void);color:var(--t1);font-family:var(--b
   <select class="ctrl-select" id="sel-semana" style="max-width:200px">
     <option value="1">Semana 1</option>
   </select>
+  <button onclick="_reloadState();toast('Dados atualizados do cockpit','')" style="background:var(--acc3);border:1px solid var(--acc2);color:var(--acc);border-radius:4px;padding:6px 10px;font-family:var(--mono);font-size:10px;cursor:pointer;white-space:nowrap" title="Re-ler dados do cockpit">↻ Sync</button>
+  <span id="sync-status" style="font-family:var(--mono);font-size:9px;color:var(--t3);white-space:nowrap"></span>
 </div>
 
 <div class="content" id="content">
@@ -137,6 +139,8 @@ html,body{height:100%;background:var(--void);color:var(--t1);font-family:var(--b
 // ═══════════════════════════════════════════════════════
 
 var CF_WORKER = 'https://anthropic-proxy.berti-b52.workers.dev';
+var SUPA_URL = 'https://tdylutdfzgtcfyhynenk.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkeWx1dGRmemd0Y2Z5aHluZW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyODQxMjcsImV4cCI6MjA4ODg2MDEyN30.k44CAV8O8AGhq4lzy-Ms5CF6JsW2fgMqLEegKb4K-pg';
 var state = {};
 var currentObraKey = '';
 var _relCurrentHtml = '';
@@ -202,11 +206,19 @@ function getDiasData(offset){
 function carregarObras(){
   var sel = document.getElementById('sel-obra');
   var keys = Object.keys(localStorage).filter(function(k){ return k.startsWith('cockpit_') && !k.startsWith('cockpit_sync_'); });
-  if(!keys.length){
-    sel.innerHTML = '<option value="">Nenhuma obra encontrada</option>';
-    document.getElementById('content').innerHTML = '<div class="no-obra"><h2>Nenhuma obra</h2><p>Abra o Cockpit primeiro e configure uma obra.<br>Os dados são lidos do localStorage compartilhado.</p></div>';
+
+  if(keys.length){
+    _popularObrasSelect(keys);
     return;
   }
+
+  // Sem dados locais — tentar Supabase como fallback
+  sel.innerHTML = '<option value="">Buscando na nuvem...</option>';
+  _carregarObrasSupabase();
+}
+
+function _popularObrasSelect(keys){
+  var sel = document.getElementById('sel-obra');
   var opts = '';
   keys.forEach(function(k){
     try{
@@ -218,8 +230,37 @@ function carregarObras(){
     }
   });
   sel.innerHTML = opts;
-  // Carregar a primeira
   _carregarObraKey(keys[0]);
+}
+
+// v49 — Fallback: lê do Supabase quando localStorage está vazio (outro dispositivo)
+async function _carregarObrasSupabase(){
+  try{
+    var resp = await fetch(SUPA_URL+'/rest/v1/cockpit_obras?select=obra_key,data,updated_at&order=updated_at.desc&limit=20', {
+      headers: { 'apikey':SUPA_KEY, 'Authorization':'Bearer '+SUPA_KEY }
+    });
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    var rows = await resp.json();
+    if(!rows || !rows.length){
+      document.getElementById('sel-obra').innerHTML = '<option value="">Nenhuma obra na nuvem</option>';
+      document.getElementById('content').innerHTML = '<div class="no-obra"><h2>Nenhuma obra</h2><p>Abra o Cockpit e configure uma obra primeiro.</p></div>';
+      return;
+    }
+    // Salvar no localStorage para usar localmente
+    var keys = [];
+    rows.forEach(function(row){
+      var key = 'cockpit_'+row.obra_key;
+      var data = typeof row.data === 'string' ? JSON.parse(row.data) : (row.data||{});
+      data._savedAt = row.updated_at;
+      localStorage.setItem(key, JSON.stringify(data));
+      keys.push(key);
+    });
+    _popularObrasSelect(keys);
+    toast('✓ '+rows.length+' obra(s) carregada(s) do Supabase','');
+  }catch(e){
+    document.getElementById('sel-obra').innerHTML = '<option value="">Erro: '+esc(e.message)+'</option>';
+    document.getElementById('content').innerHTML = '<div class="no-obra"><h2>Sem conexão</h2><p>Não foi possível ler do Supabase.<br>Abra o Cockpit neste dispositivo primeiro.</p></div>';
+  }
 }
 
 function trocarObra(){
@@ -241,9 +282,24 @@ function _carregarObraKey(key){
     if(!state.equipes) state.equipes = [];
     if(!state.snapshots) state.snapshots = {};
     if(!state.diario) state.diario = {};
+    // v49 — Semana auto-calculada
+    state.config.semana = _calcSemanaReal();
     _popularSemanas();
-    toast('✓ '+(state.config.obra||key),'');
+    _updateSyncStatus();
+    toast('✓ '+(state.config.obra||key)+' · Sem '+state.config.semana+' · '+state.servicos.length+' serviços','');
   }catch(e){ toast('Erro: '+e.message,'err'); }
+}
+
+function _updateSyncStatus(){
+  var el = document.getElementById('sync-status');
+  if(!el) return;
+  if(!state._savedAt){ el.textContent = '⚠ sem timestamp'; return; }
+  var d = new Date(state._savedAt);
+  var agora = new Date();
+  var diffMin = Math.round((agora - d) / 60000);
+  var label = diffMin < 1 ? 'agora' : diffMin < 60 ? diffMin+'min atrás' : Math.round(diffMin/60)+'h atrás';
+  el.textContent = '● sync '+label;
+  el.style.color = diffMin < 5 ? 'var(--acc)' : diffMin < 30 ? 'var(--warn)' : 'var(--hot)';
 }
 
 function _popularSemanas(){
@@ -355,9 +411,11 @@ function imprimirPDF(){
 
 // ═══ GERAR RELATÓRIO ═══
 function gerar(tipo){
+  // v49 — SEMPRE re-ler do localStorage antes de gerar (dados podem ter mudado no cockpit)
+  _reloadState();
   if(!state.config||!state.config.obra){ toast('Selecione uma obra','err'); return; }
   var semSel = parseInt(document.getElementById('sel-semana').value)||(state.config.semana||1);
-  toast('Gerando...','info');
+  toast('Gerando com dados de '+_lastSyncLabel()+'...','info');
   setTimeout(function(){
     try{
       switch(tipo){
@@ -377,6 +435,40 @@ function gerar(tipo){
       console.error('Relatório '+tipo+':', e);
     }
   }, 80);
+}
+
+// v49 — Re-lê state FRESCO do localStorage (flush do cockpit)
+function _reloadState(){
+  if(!currentObraKey) return;
+  try{
+    var raw = localStorage.getItem(currentObraKey);
+    if(!raw) return;
+    var fresh = JSON.parse(raw);
+    // Verificar se é mais novo que o state em memória
+    var tsMemoria = state._savedAt ? new Date(state._savedAt).getTime() : 0;
+    var tsFresh = fresh._savedAt ? new Date(fresh._savedAt).getTime() : 0;
+    if(tsFresh > tsMemoria || tsFresh === 0){
+      state = fresh;
+      if(!state.config) state.config = {};
+      if(!state.servicos) state.servicos = [];
+      if(!state.pagamentos) state.pagamentos = [];
+      if(!state.fotos) state.fotos = [];
+      if(!state.pendencias) state.pendencias = [];
+      if(!state.equipes) state.equipes = [];
+      if(!state.snapshots) state.snapshots = {};
+      if(!state.diario) state.diario = {};
+      // Recalcular semana
+      state.config.semana = _calcSemanaReal();
+      _popularSemanas();
+      _updateSyncStatus();
+    }
+  }catch(e){ console.warn('_reloadState error:', e); }
+}
+
+function _lastSyncLabel(){
+  if(!state._savedAt) return 'dados locais';
+  var d = new Date(state._savedAt);
+  return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
 }
 
 // Wrapper: semanal interno sem modal
@@ -764,24 +856,6 @@ function buildBertiHeader(opts) {
     <div class="cab-dir">${campoDivs}</div>
   </div>`;
 }
-
-// ─── UTILITÁRIO MODAL ──────────────────────────────
-function abrirModalRel(titulo, htmlContent) {
-  _relCurrentHtml = htmlContent;
-  _relCurrentTitle = titulo;
-  const fullDoc = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>${titulo}</title>
-    ${htmlContent}
-  </head></html>`;
-  // Usa srcdoc no iframe para garantir fontes
-  const preview = document.getElementById('rel-preview-content');
-  preview.innerHTML = `<iframe srcdoc="${fullDoc.replace(/"/g,'&quot;')}" style="width:100%;min-height:90vh;border:none"></iframe>`;
-  document.getElementById('rel-modal-title').textContent = titulo;
-  document.getElementById('rel-modal').classList.add('show');
-  document.getElementById('rel-modal').scrollTop = 0;
-}
-
 
 // ═══════════════════════════════════════════════════════════════
 // RELATÓRIO FOTOGRÁFICO — padrão BERTI
@@ -1384,160 +1458,6 @@ ${cabHeader}
   abrirModalRel(`Relatório Interno — Semana ${semNum}`, body);
 }
 
-// ═══════════════════════════════════════════════════════════════
-// HELPERS DE RELATÓRIO — Seletor de semana + Delta por snapshot
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Modal para selecionar semana ANTES de gerar qualquer relatório.
- * Usa state.snapshots para listar semanas disponíveis.
- * @param {string} titulo - Título do modal
- * @param {function} callback - Recebe o número da semana selecionada
- */
-function _selecionarSemanaRel(titulo, callback){
-  var snaps = state.snapshots || {};
-  var semAtual = state.config.semana || 1;
-  var opcoes = '';
-
-  // Semana atual (dados em tempo real)
-  opcoes += '<option value="'+semAtual+'" selected>Semana '+semAtual+' (atual — em andamento)</option>';
-
-  // Semanas passadas com snapshot
-  for(var i = semAtual - 1; i >= 1; i--){
-    var sk = 'S'+i;
-    var snap = snaps[sk];
-    if(snap){
-      var dataSnap = snap.data ? ' · '+fmtDate(snap.data) : '';
-      var pctSnap = typeof snap.pctGeral === 'number' ? ' · '+snap.pctGeral+'%' : '';
-      opcoes += '<option value="'+i+'">Semana '+i+dataSnap+pctSnap+'</option>';
-    } else {
-      opcoes += '<option value="'+i+'">Semana '+i+' (sem snapshot)</option>';
-    }
-  }
-
-  var modal = document.createElement('div');
-  modal.id = 'modal-sel-semana-rel';
-  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px';
-  modal.innerHTML = '<div style="background:var(--surface,#fff);border-radius:12px;padding:24px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.4)">'
-    +'<div style="font-size:15px;font-weight:700;margin-bottom:6px;color:var(--ink,#111)">📊 '+titulo+'</div>'
-    +'<div style="font-size:12px;color:var(--muted,#666);margin-bottom:16px">Selecione a semana para o relatório. Semanas com snapshot usam dados reais daquele período.</div>'
-    +'<select id="sel-sem-rel" style="width:100%;padding:12px;border:1.5px solid var(--border,#ccc);border-radius:8px;font-size:14px;margin-bottom:16px;background:#fff">'+opcoes+'</select>'
-    +'<div style="display:flex;gap:10px">'
-    +'<button id="btn-sel-sem-ok" style="flex:1;background:var(--primary,#0D2016);color:#fff;border:none;border-radius:8px;padding:12px;font-family:var(--font-display,inherit);font-size:14px;font-weight:800;cursor:pointer">Gerar Relatório →</button>'
-    +'<button onclick="document.getElementById(\'modal-sel-semana-rel\').remove()" style="background:transparent;color:var(--muted,#666);border:1.5px solid var(--border,#ccc);border-radius:8px;padding:12px 16px;font-size:14px;cursor:pointer">Cancelar</button>'
-    +'</div></div>';
-  document.body.appendChild(modal);
-
-  document.getElementById('btn-sel-sem-ok').onclick = function(){
-    var semSel = parseInt(document.getElementById('sel-sem-rel').value) || semAtual;
-    document.getElementById('modal-sel-semana-rel').remove();
-    callback(semSel);
-  };
-}
-
-/**
- * Calcula o delta de cada serviço entre snapshot S(n) e S(n-1).
- * Para a semana atual: compara state.servicos com snapshot S(n-1).
- * Para semanas passadas: compara snapshot S(n) com snapshot S(n-1).
- * @param {number} semNum
- * @returns {Object} { servicos, pctGeral, pctAnterior, periodo, isAtual }
- */
-function _getRelDelta(semNum){
-  var snaps = state.snapshots || {};
-  var semAtual = state.config.semana || 1;
-  var isAtual = (semNum === semAtual);
-
-  // Snapshot anterior (base de comparação)
-  var snapAnterior = semNum > 1 ? snaps['S'+(semNum-1)] : null;
-  var mapAnterior = {};
-  if(snapAnterior && Array.isArray(snapAnterior.servicos)){
-    snapAnterior.servicos.forEach(function(s){ mapAnterior[s.cod] = s; });
-  }
-
-  // Serviços da semana alvo
-  var srvsAlvo, pctGeralAlvo;
-  if(isAtual){
-    // Semana corrente: usar state.servicos em tempo real
-    srvsAlvo = (state.servicos||[]).map(function(s){
-      return { cod:s.cod, descricao:s.descricao, pct:s.pct_atual||0, status:s.status_atual||'', valor:s.valor||0,
-               categoria:s.categoria, equipe:s.equipe, equipe_nome:s.equipe_nome, local:s.local, ambiente:s.ambiente,
-               data_inicio:s.data_inicio, data_fim:s.data_fim, dias_marcados:s.dias_marcados,
-               _original: s };
-    });
-    pctGeralAlvo = calcPctGeral();
-  } else {
-    // Semana passada: usar snapshot
-    var snapAlvo = snaps['S'+semNum];
-    if(!snapAlvo || !Array.isArray(snapAlvo.servicos)){
-      return { servicos:[], pctGeral:0, pctAnterior:0, periodo:'', isAtual:false, noSnapshot:true };
-    }
-    srvsAlvo = snapAlvo.servicos.map(function(s){
-      // Enriquecer com dados atuais (descricao, categoria, equipe — que não mudam)
-      var atual = (state.servicos||[]).find(function(x){ return x.cod === s.cod; });
-      return { cod:s.cod, descricao:s.descricao||(atual?atual.descricao:''), pct:s.pct||0, status:s.status||'', valor:s.valor||0,
-               categoria:atual?atual.categoria:'', equipe:atual?atual.equipe:'', equipe_nome:atual?atual.equipe_nome:'',
-               local:atual?atual.local:'', ambiente:atual?atual.ambiente:'',
-               data_inicio:atual?atual.data_inicio:'', data_fim:atual?atual.data_fim:'', dias_marcados:atual?atual.dias_marcados:[],
-               _original: atual || null };
-    });
-    pctGeralAlvo = snapAlvo.pctGeral || 0;
-  }
-
-  var pctAnterior = snapAnterior ? (snapAnterior.pctGeral||0) : 0;
-
-  // Calcular delta por serviço
-  var servicos = srvsAlvo.map(function(s){
-    var ant = mapAnterior[s.cod];
-    var pctAnt = ant ? (ant.pct||0) : 0;
-    var delta = s.pct - pctAnt;
-    return Object.assign({}, s, { pct_anterior_snap: pctAnt, delta: delta });
-  });
-
-  // Período da semana
-  var dataFim = isAtual ? (state.config.periodo_fim||'') : (snaps['S'+semNum]?snaps['S'+semNum].data||'':'');
-  var dataIni = snapAnterior ? (snapAnterior.data||'') : (state.config.periodo_ini||'');
-
-  return {
-    servicos: servicos,
-    pctGeral: pctGeralAlvo,
-    pctAnterior: pctAnterior,
-    deltaGeral: pctGeralAlvo - pctAnterior,
-    periodoIni: dataIni,
-    periodoFim: dataFim,
-    isAtual: isAtual,
-    noSnapshot: false
-  };
-}
-
-/**
- * Filtra fotos por semana baseado em datas dos snapshots.
- * Para semana atual: todas as fotos em state.fotos
- * Para semanas passadas: fotos cujo campo data está no período
- * NOTA: após avançar semana, fotos são limpas, então só funciona para semana atual
- * ou se houver fotos com cloud URLs em state.fotos_historico (futuro).
- * @param {number} semNum
- * @returns {Array} fotos filtradas
- */
-function _filtrarFotosSemana(semNum){
-  var semAtual = _calcSemanaReal();
-  var fotos = state.fotos || [];
-  if(semNum === semAtual) return fotos; // semana atual: todas as fotos correntes
-
-  // Semana passada: fotos foram limpas ao avançar — retornar array vazio
-  // (no futuro, buscar de fotos_historico ou cloud)
-  return [];
-}
-
-
-// ═══════════════════════════════════════════════════════════════
-// RELATÓRIO SEMANAL CLIENTE — padrão BERTI
-// ═══════════════════════════════════════════════════════════════
-async function gerarRelatorioSemanalCliente(){
-  // v49 — Seletor de semana antes de gerar
-  _selecionarSemanaRel('Relatório Semanal — Cliente', function(semSel){
-    _gerarRelClienteSemana(semSel);
-  });
-}
 
 async function _gerarRelClienteSemana(semNumSel){
   const c = state.config;
@@ -4287,20 +4207,6 @@ function gerarDashboardInterativo() {
   </body></html>`;
 
   mostrarPreview(html, `Dashboard — Semana ${c.semana || 1}`);
-}
-
-// ═══════════════════════════════════════════════════════
-// HELPER: mostrarPreview (abre modal com HTML)
-// ═══════════════════════════════════════════════════════
-function mostrarPreview(html, titulo) {
-  _relCurrentHtml = html;
-  _relCurrentTitle = titulo;
-  const safe = html.replace(/"/g, '&quot;');
-  document.getElementById('rel-preview-content').innerHTML =
-    `<div style="padding:0"><iframe srcdoc="${safe}" style="width:100%;min-height:88vh;border:none"></iframe></div>`;
-  document.getElementById('rel-modal-title').textContent = titulo;
-  document.getElementById('rel-modal').classList.add('show');
-  document.getElementById('rel-modal').scrollTop = 0;
 }
 
 // ═══════════════════════════════════════════════════════

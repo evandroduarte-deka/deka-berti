@@ -120,6 +120,9 @@ body{font-family:var(--f);background:var(--bg);color:var(--ink);min-height:100vh
       <a class="lnk" href="https://berti-design.github.io/mestre-obra-berti/comercial.html" target="_blank">
         <div class="lnk-dot on"></div><div class="lnk-name">Comercial v3 — Agente Sócio</div><div class="lnk-arrow">↗</div>
       </a>
+      <a class="lnk" href="https://berti-design.github.io/mestre-obra-berti/relatorios.html" target="_blank">
+        <div class="lnk-dot on"></div><div class="lnk-name">Relatórios v49 — Central de Relatórios</div><div class="lnk-arrow">↗</div>
+      </a>
       <a class="lnk" href="https://claude.ai" target="_blank">
         <div class="lnk-dot on"></div><div class="lnk-name">Claude.ai — Projetos</div><div class="lnk-arrow">↗</div>
       </a>
@@ -381,4 +384,11 @@ carregarNotas();
 // Keyboard shortcut: / to focus search
 document.addEventListener('keydown', function(e){
   if(e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA'){
-    e
+    e.preventDefault();
+    document.getElementById('search').focus();
+  }
+});
+
+</script>
+</body>
+</html>

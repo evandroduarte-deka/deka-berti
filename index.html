@@ -233,7 +233,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .gt-scroll{overflow:auto;-webkit-overflow-scrolling:touch;border-top:1.5px solid var(--border);border-bottom:1.5px solid var(--border);max-height:calc(100vh - 260px)}
 .gt-table{border-collapse:collapse;width:max-content;min-width:100%}
 .gt-table th{padding:3px 2px;font-size:8px;font-weight:700;text-align:center;color:var(--muted);border-bottom:1.5px solid var(--border);position:sticky;top:22px;background:var(--surface);z-index:2}
-.gt-table th.gt-today{color:#1D4ED8;background:rgba(59,130,246,.1);font-weight:900}
+.gt-table th.gt-today{color:#fff;background:#1D4ED8;font-weight:900;border-radius:4px}
 .gt-table th.gt-we{color:#ccc;background:#fafafa}
 .gt-table th.gt-month{background:var(--primary);color:#fff;font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:4px;text-align:center;top:0;z-index:3}
 .gt-srv-cell{font-size:10px;font-weight:600;color:var(--ink,#111);padding:4px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px;min-width:280px;border-right:2px solid var(--border);border-bottom:1px solid var(--border);position:sticky;left:0;background:var(--surface);z-index:3;cursor:default}
@@ -244,7 +244,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .gt-table th.gt-week-start{border-left:2.5px solid var(--accent)}
 .gt-day:active{opacity:.6}
 .gt-day.gt-we{background:#fafafa}
-.gt-day.gt-today-col{background:rgba(59,130,246,.05)}
+.gt-day.gt-today-col{background:rgba(59,130,246,.12);border-left:2px solid #3B82F6;border-right:2px solid #3B82F6}
 .gt-day.gt-on{opacity:.85}
 .gt-sel-start{background:rgba(201,168,76,.5)!important;outline:2px solid #C9A84C;outline-offset:-2px;z-index:3;position:relative}
 .gt-legenda{display:flex;gap:10px;margin-top:8px;font-size:10px;color:var(--muted);flex-wrap:wrap;padding:6px 0}
@@ -2604,6 +2604,20 @@ body.tabs-active #tab-cronograma.active{max-width:100%!important;margin:0!import
       <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
         <button class="cronometro-btn" id="cronometro-btn" onclick="toggleCronometro()">▶ Iniciar</button>
         <div id="cronometro-historico" style="font-size:10px;color:rgba(255,255,255,.35);font-family:var(--font-mono)"></div>
+      </div>
+    </div>
+
+    <!-- v49 — EQUIPES DO DIA: quem deveria estar na obra hoje -->
+    <div id="equipes-do-dia" style="margin-bottom:10px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
+      <div style="padding:10px 14px;background:var(--gray-soft);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:8px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span style="font-family:var(--font-display);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--primary)">Programação do dia</span>
+        </div>
+        <span id="equipes-dia-data" style="font-family:var(--font-mono);font-size:10px;color:var(--muted)"></span>
+      </div>
+      <div id="equipes-dia-lista" style="padding:8px 12px">
+        <div style="padding:12px;text-align:center;color:var(--muted);font-size:11px">Carregando...</div>
       </div>
     </div>
 
@@ -10373,11 +10387,81 @@ function atualizarBadgeSalvo(d){
   }
 }
 
+// v49 — EQUIPES DO DIA: serviços programados para hoje no cronograma
+function renderEquipesDoDia(dataISO){
+  var el = document.getElementById('equipes-dia-lista');
+  var dtEl = document.getElementById('equipes-dia-data');
+  if(!el) return;
+  var hoje = dataISO || new Date().toISOString().slice(0,10);
+  var hojeDate = new Date(hoje+'T12:00:00');
+  var dowNames = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  if(dtEl) dtEl.textContent = dowNames[hojeDate.getDay()]+' '+hoje.split('-').reverse().join('/');
+
+  var srvs = state.servicos || [];
+  var eqs = state.equipes || [];
+
+  // Filtrar serviços programados para hoje
+  var srvHoje = srvs.filter(function(s){
+    if((s.pct_atual||0)>=100) return false;
+    // 1. dias_marcados (mais preciso)
+    if(s.dias_marcados && s.dias_marcados.length){
+      return s.dias_marcados.indexOf(hoje) >= 0;
+    }
+    // 2. data_inicio/data_fim range
+    var ini = s.data_inicio||'';
+    var fim = s.data_fim||ini;
+    if(!ini) return false;
+    var iniISO = ini.includes('/') ? ini.split('/').reverse().join('-') : ini;
+    var fimISO = fim.includes('/') ? fim.split('/').reverse().join('-') : fim;
+    return iniISO <= hoje && fimISO >= hoje;
+  });
+
+  if(!srvHoje.length){
+    el.innerHTML = '<div style="padding:12px;text-align:center;color:var(--muted);font-size:11px">Nenhum serviço programado para hoje no cronograma</div>';
+    return;
+  }
+
+  // Agrupar por equipe
+  var porEquipe = {};
+  srvHoje.forEach(function(s){
+    var eqCod = s.equipe || 'sem-equipe';
+    if(!porEquipe[eqCod]) porEquipe[eqCod] = {equipe:null, servicos:[]};
+    var eq = eqs.find(function(e){ return e.cod === eqCod; });
+    porEquipe[eqCod].equipe = eq;
+    porEquipe[eqCod].servicos.push(s);
+  });
+
+  var html = '';
+  Object.keys(porEquipe).forEach(function(eqCod){
+    var g = porEquipe[eqCod];
+    var nomeEq = g.equipe ? (g.equipe.responsavel||g.equipe.nome||eqCod) : eqCod;
+    html += '<div style="margin-bottom:8px;padding:8px 10px;background:var(--gray-soft);border-radius:8px;border-left:3px solid var(--accent,#2E6645)">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">';
+    html += '<span style="font-family:var(--font-display);font-size:11px;font-weight:800;color:var(--primary)">'+esc(nomeEq)+'</span>';
+    html += '<span style="font-family:var(--font-mono);font-size:9px;color:var(--muted)">'+g.servicos.length+' serviço'+(g.servicos.length>1?'s':'')+'</span>';
+    html += '</div>';
+    g.servicos.forEach(function(s){
+      var desc = (s.descricao||'').replace(/^SRV-\d+\s*[-—]?\s*/i,'');
+      var pct = s.pct_atual||0;
+      var barColor = pct > 0 ? 'var(--accent,#2E6645)' : 'var(--border)';
+      html += '<div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:11px">';
+      html += '<div style="flex:1;color:var(--ink)">'+esc(desc)+'</div>';
+      html += '<div style="width:50px;height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+barColor+';border-radius:2px"></div></div>';
+      html += '<span style="font-family:var(--font-mono);font-size:9px;color:var(--muted);min-width:28px;text-align:right">'+pct+'%</span>';
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+
+  el.innerHTML = html;
+}
+
 function initDiario(){
   if(!state.diario) state.diario = { seg:null, ter:null, qua:null, qui:null, sex:null, sab:null, dom:null };
   diarioDiaSelecionado = getDiaAtualSigla();
   renderDiarioBar();
   carregarDia(diarioDiaSelecionado);
+  renderEquipesDoDia(); // v49
 }
 
 function getDiarioContexto(){
@@ -11519,7 +11603,21 @@ function aplicarExtracoes(){
 // Stubs abaixo redirecionam para a Central de Relatórios
 // ═══════════════════════════════════════════════════════════════
 
-function _abrirRelatorios(){ window.open('relatorios.html','_blank'); }
+function _abrirRelatorios(){
+  // v49 — Forçar save imediato (flush debounce) antes de abrir relatórios
+  clearTimeout(saveTimer);
+  try{
+    sanitizeState(state);
+    state._version = STATE_VERSION;
+    state._savedAt = new Date().toISOString();
+    var toSave = JSON.parse(JSON.stringify(state));
+    toSave.fotos = toSave.fotos.map(function(f){ return f.cloud&&f.url ? Object.assign({},f,{src:f.url,b64:undefined}) : Object.assign({},f,{b64:undefined}); });
+    var key = 'cockpit_' + slugify(toSave.config.obra||'default');
+    currentObraKey = key;
+    localStorage.setItem(key, JSON.stringify(toSave));
+  }catch(e){ console.warn('Flush save error:', e); }
+  window.open('relatorios.html','_blank');
+}
 
 function buildDocHeader(){ return ''; }
 function getDocCSS(){ return ''; }
@@ -15889,4 +15987,14 @@ if(document.readyState === "loading"){
       </div>
     </div>
     <div class="guia-progress-bar">
-      <div class="guia-progress-fill" id="guia-pro
+      <div class="guia-progress-fill" id="guia-progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+</div>
+<button id="guia-reabrir" onclick="guiaAbrir()" style="display:none">
+  🗺 Guia de Visita
+  <span class="gr-badge" id="guia-reabrir-badge">0/13</span>
+</button>
+
+</body>
+</html>
