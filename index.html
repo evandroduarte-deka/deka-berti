@@ -11577,6 +11577,364 @@ function gerarMsgLinkWA(){}
 function esc2(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmtDateNum(s){ return fmtDate(s)||'—'; }
 
+// ═══ INIT — restaurado do bloco original ═══
+function init(){
+  var _la=localStorage.getItem('apiKey');
+  if(_la&&!localStorage.getItem('mdo_api_key')) localStorage.setItem('mdo_api_key',_la);
+  var _li=localStorage.getItem('imgbbKey');
+  if(_li&&!localStorage.getItem('mdo_imgbb_key')) localStorage.setItem('mdo_imgbb_key',_li);
+  var _li2=localStorage.getItem('imgbb_api_key');
+  if(_li2&&!localStorage.getItem('mdo_imgbb_key')) localStorage.setItem('mdo_imgbb_key',_li2);
+  var _ak=localStorage.getItem('mdo_api_key')||'';
+  var _ik=localStorage.getItem('mdo_imgbb_key')||'';
+  if(!_ik){ localStorage.setItem('mdo_imgbb_key','588ec0d66fb7cefc2ee8aea196125c53'); _ik='588ec0d66fb7cefc2ee8aea196125c53'; }
+  if(_ak) mostrarApiConfigurada();
+  if(_ik) mostrarImgbbConfigurada();
+  showObraSelector();
+  setTimeout(function(){ try{ migrarPlanilhasLegacy(); carregarPlanilhas(); }catch(e){} },300);
+  setTimeout(function(){ try{ initSync(); }catch(e){} },600);
+  setTimeout(function(){ try{ if(typeof piaInicializar==='function') piaInicializar(); }catch(e){} },800);
+}
+
+// ═══ OBRA SELECTOR — restaurado do bloco original ═══
+function extractDriveFolderId(url) {
+  if (!url) return '';
+  const m = url.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+  return m ? m[1] : '';
+}
+
+// ── Helpers de escape e formatação ─────────────────────────────────────
+function esc2(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtDateNum(s){ if(!s) return '—'; if(s.includes('-')){ const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`; } return s; }
+
+// ── v48-cloud: Índice de obras — SUPABASE como fonte única ────────────
+// localStorage é apenas cache offline. Nuvem é a verdade.
+function getObrasIndex(){
+  // Fallback offline: ler do cache local
+  var keys = Object.keys(localStorage).filter(function(k){ return k.startsWith('cockpit_'); });
+  var obras = [];
+  keys.forEach(function(k){
+    try {
+      var d = JSON.parse(localStorage.getItem(k));
+      if(d && d.config){
+        var c2 = d.config;
+        var srvs = d.servicos || [];
+        var totalVal = srvs.reduce(function(a,s){ return a+(s.valor||0); }, 0);
+        var pct = 0;
+        if(totalVal > 0) pct = srvs.reduce(function(a,s){ return a+(s.pct_atual||0)*(s.valor||0); }, 0) / totalVal;
+        else if(srvs.length > 0) pct = srvs.reduce(function(a,s){ return a+(s.pct_atual||0); }, 0) / srvs.length;
+        obras.push({ key:k, nome:c2.obra||'Sem nome', cliente:c2.razao_cliente||c2.cliente||'', semana:c2.semana||1, servicos:srvs.length, pct:Math.round(pct), local:true });
+      }
+    } catch(e){}
+  });
+  return obras;
+}
+
+// v48-cloud: Carrega índice direto do Supabase
+async function getObrasCloud(){
+  try{
+    var rows = await sbListarObrasCompletas();
+    return rows.map(function(row){
+      var d = {};
+      try{ d = typeof row.data==='string'?JSON.parse(row.data):(row.data||{}); }catch(e){}
+      var cfg = d.config||{};
+      var srvs = Array.isArray(d.servicos)?d.servicos:[];
+      var totalVal = srvs.reduce(function(a,s){return a+(s.valor||0);},0);
+      var pct = 0;
+      if(srvs.length){
+        if(totalVal>0) pct = Math.round(srvs.reduce(function(a,s){return a+(s.pct_atual||0)*(s.valor||0);},0)/totalVal);
+        else pct = Math.round(srvs.reduce(function(a,s){return a+(s.pct_atual||0);},0)/srvs.length);
+      }
+      return {
+        key:'cockpit_'+row.obra_key, obra_key:row.obra_key,
+        nome:cfg.obra||row.obra_key||'Sem nome', cliente:cfg.razao_cliente||cfg.cliente||'',
+        semana:cfg.semana||1, servicos:srvs.length, pct:pct,
+        updated:row.updated_at, cloud:true
+      };
+    });
+  }catch(e){
+    console.warn('Cloud offline, usando cache local');
+    return null; // null = offline
+  }
+}
+
+// v48-cloud: Lista obras com dados resumidos do Supabase
+async function sbListarObrasCompletas(){
+  var r = await fetch(
+    SB_URL+'/rest/v1/'+SB_TABLE+'?select=obra_key,data,updated_at&order=updated_at.desc',
+    {headers:sbHeaders(), signal:AbortSignal.timeout(12000)}
+  );
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+
+
+// Restaurar obras da nuvem para localStorage — MANTIDO para compatibilidade
+async function sbRestaurarDaNuvem(){
+  toast('Sincronizando...','info');
+  renderObraSelector();
+}
+
+async function renderObraSelector(){
+  var el = document.getElementById('os-lista');
+  if(!el) return;
+  // Mostrar loading
+  el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)"><div style="font-size:20px;margin-bottom:8px">☁</div>Carregando obras da nuvem...</div>';
+  // Remover aviso antigo de nuvem
+  var avisoOld = document.getElementById('os-cloud-aviso');
+  if(avisoOld) avisoOld.remove();
+
+  // CLOUD FIRST
+  var obras = await getObrasCloud();
+  var isOnline = obras !== null;
+
+  if(!isOnline){
+    // Offline: fallback localStorage
+    obras = getObrasIndex();
+    var offBanner = document.createElement('div');
+    offBanner.style.cssText = 'background:#FEF3C7;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#92400E;display:flex;align-items:center;gap:8px';
+    offBanner.innerHTML = '⚠ <b>Offline</b> — mostrando última versão salva. Conecte-se para ver dados atualizados.';
+    el.parentNode.insertBefore(offBanner, el);
+  } else {
+    // Online: sincronizar cache local com nuvem (manter apenas as que existem na nuvem)
+    var cloudKeys = obras.map(function(o){return o.key;});
+    Object.keys(localStorage).filter(function(k){return k.startsWith('cockpit_');}).forEach(function(k){
+      if(!cloudKeys.includes(k)){
+        // Obra local que NÃO existe na nuvem → remover cache velho
+        // (preservar se foi criada recentemente e ainda não sincronizou)
+        try{
+          var d=JSON.parse(localStorage.getItem(k));
+          if(d && d._savedAt){
+            var age=(Date.now()-new Date(d._savedAt).getTime())/86400000;
+            if(age>1) localStorage.removeItem(k); // mais de 1 dia → lixo
+          } else { localStorage.removeItem(k); }
+        }catch(e){ localStorage.removeItem(k); }
+      }
+    });
+  }
+
+  // Empresa/logo
+  var empresaName = localStorage.getItem('mdo_empresa_name');
+  var logoEl = document.getElementById('os-logo-text');
+  if(logoEl && empresaName) logoEl.innerHTML = esc(empresaName) + '<span>.</span>';
+
+  // Info
+  var infoEl = document.getElementById('os-backup-info');
+  if(infoEl) infoEl.textContent = obras.length + ' obra'+(obras.length!==1?'s':'')+' na nuvem'+(isOnline?' ✓':' (offline)');
+
+  if(!obras.length){
+    el.innerHTML = '<div style="background:linear-gradient(135deg,var(--primary) 0%,#1a3d28 100%);border-radius:12px;padding:24px 20px 20px;margin-bottom:14px;text-align:center"><div style="font-family:var(--font-display);font-size:20px;font-weight:800;color:#fff;margin-bottom:12px">Bem-vindo ao Mestre de Obra</div><div style="display:flex;flex-direction:column;gap:10px;margin-top:12px"><button onclick="criarNovaObra()" style="background:var(--gold);color:var(--primary);border:none;border-radius:8px;padding:13px 20px;font-family:var(--font-display);font-size:14px;font-weight:800;cursor:pointer">+ Criar primeira obra</button></div></div>';
+    return;
+  }
+
+  // Renderizar cards — cada card vem da nuvem
+  el.innerHTML = obras.map(function(o){
+    var k = esc(o.key), n = esc(o.nome), cl = esc(o.cliente);
+    var ts = o.updated ? new Date(o.updated).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+    return '<div class="os-card" onclick="selecionarObra(&quot;'+k+'&quot;)">'
+      + '<div class="os-card-icon">&#127959;</div>'
+      + '<div class="os-card-info">'
+      + '<div class="os-card-nome">'+n+'</div>'
+      + '<div class="os-card-meta">'+cl+' &middot; Sem '+o.semana+' &middot; '+o.servicos+' srv'+(ts?' &middot; <span style="color:var(--accent);font-size:9px">☁ '+ts+'</span>':'')+'</div>'
+      + '</div>'
+      + '<div class="os-card-pct">'+o.pct+'%</div>'
+      + '</div>';
+  }).join('');
+}
+
+function showObraSelector(){
+  renderObraSelector();
+  var sel = document.getElementById('obra-selector'); if(sel) sel.classList.remove('hidden');
+  var tb  = document.getElementById('topbar');        if(tb)  tb.style.display  = 'none';
+  var tbr = document.getElementById('tabbar');        if(tbr) tbr.style.display = 'none';
+  var mn  = document.querySelector('main');           if(mn)  mn.style.display  = 'none';
+  var bk  = document.getElementById('topbar-back');  if(bk)  bk.style.display  = 'none';
+  document.body.classList.remove('tabs-active');
+}
+
+function hideObraSelector(){
+  var sel = document.getElementById('obra-selector'); if(sel) sel.classList.add('hidden');
+  var tb  = document.getElementById('topbar');        if(tb)  tb.style.display  = 'flex';
+  var tbr = document.getElementById('tabbar');        if(tbr) tbr.style.display = 'block';
+  var mn  = document.querySelector('main');           if(mn)  mn.style.display  = 'block';
+  var bk  = document.getElementById('topbar-back');  if(bk)  bk.style.display  = 'flex';
+  document.body.classList.add('tabs-active');
+}
+
+function activateApp(){
+  hideObraSelector();
+}
+
+function selecionarObra(key){
+  var obraKey = key.replace('cockpit_','');
+  // v48-cloud: SEMPRE carregar da nuvem primeiro
+  toast('☁ Carregando obra...','info');
+  sbLoad(obraKey).then(function(remoto){
+    if(remoto && remoto.data){
+      state = migrateState(remoto.data);
+      sanitizeState(state);
+      currentObraKey = key.startsWith('cockpit_') ? key : 'cockpit_'+obraKey;
+      // Atualizar cache local
+      localStorage.setItem(currentObraKey, JSON.stringify(state));
+      restoreUI();
+      renderAll();
+      hideObraSelector();
+      if(typeof renderCronograma==='function') try{renderCronograma();}catch(e){}
+      if(typeof renderDrawer==='function') try{renderDrawer();}catch(e){}
+      if(typeof atualizarBadgesAbas==='function') setTimeout(function(){ try{atualizarBadgesAbas();}catch(e){}},100);
+      sbAtualizarIndicador('ok');
+      toast('☁ '+state.config.obra+' — dados atualizados','success');
+    } else {
+      // Nuvem vazia ou offline → fallback localStorage
+      if(loadState(key)){
+        hideObraSelector();
+        if(typeof renderCronograma==='function') try{renderCronograma();}catch(e){}
+        if(typeof renderDrawer==='function') try{renderDrawer();}catch(e){}
+        if(typeof atualizarBadgesAbas==='function') setTimeout(function(){ try{atualizarBadgesAbas();}catch(e){}},100);
+        toast('⚠ Offline — usando versão local de '+state.config.obra,'warning');
+      } else {
+        toast('Obra não encontrada','error');
+      }
+    }
+  }).catch(function(){
+    // Sem conexão → fallback localStorage
+    if(loadState(key)){
+      hideObraSelector();
+      if(typeof renderCronograma==='function') try{renderCronograma();}catch(e){}
+      if(typeof renderDrawer==='function') try{renderDrawer();}catch(e){}
+      if(typeof atualizarBadgesAbas==='function') setTimeout(function(){ try{atualizarBadgesAbas();}catch(e){}},100);
+      toast('⚠ Offline — usando cache local','warning');
+    } else {
+      toast('Sem conexão e sem dados locais','error');
+    }
+  });
+}
+
+function criarNovaObra(){
+  state = migrateState({});
+  currentObraKey = null;
+  hideObraSelector();
+  if(typeof restoreUI==='function') restoreUI();
+  switchTab('tab-config');
+  setTimeout(function(){ var el=document.getElementById('cfg-obra'); if(el) el.focus(); },300);
+  toast('Nova obra — preencha as configurações','info');
+}
+
+function excluirObra(key, nome){
+  var id = 'modal-excluir-obra';
+  if(document.getElementById(id)) return;
+  var m = document.createElement('div');
+  m.id = id;
+  m.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px';
+  m.innerHTML = [
+    '<div style="background:#fff;border-radius:var(--radius);padding:24px;max-width:340px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.25)">',
+    '<div style="font-family:var(--font-display);font-size:15px;font-weight:800;color:#7F1D1D;margin-bottom:8px">Excluir obra?</div>',
+    '<div style="font-size:13px;color:#374151;margin-bottom:20px"><strong>'+esc(nome)+'</strong> será removida. Esta ação não pode ser desfeita.</div>',
+    '<div style="display:flex;gap:10px">',
+    '<button onclick="document.getElementById(this.dataset.mid).remove()" data-mid="'+id+'" style="flex:1;padding:10px;background:none;border:1.5px solid #D1D5DB;color:#6B7280;font-size:13px;cursor:pointer;border-radius:var(--radius);font-family:var(--font-body)">Cancelar</button>',
+    '<button id="btn-del-ok" style="flex:1;padding:10px;background:#991B1B;border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;border-radius:var(--radius);font-family:var(--font-body)">Excluir</button>',
+    '</div></div>'
+  ].join('');
+  document.body.appendChild(m);
+  document.getElementById('btn-del-ok').onclick = function(){
+    localStorage.removeItem(key);
+    if(currentObraKey===key){ currentObraKey=null; state=migrateState({}); }
+    document.getElementById(id).remove();
+    renderObraSelector();
+    toast('Obra excluída','success');
+  };
+}
+
+function voltarParaSeletor(){
+  if(typeof drawerOpen!=='undefined' && drawerOpen && typeof toggleDrawer==='function') toggleDrawer();
+  showObraSelector();
+}
+
+
+// ── Carregar demo ───────────────────────────────────────────────────────
+function carregarDemo(){
+  const demo = {
+    config:{
+      obra:'Churrascaria Demo',cliente:'Cliente Demo',semana:3,
+      empresa:'Berti Construtora',cor1:'#0D2016',cor2:'#2E6645',
+      valor_contrato:180000,taxa_admin:12,medicoes:8,
+      periodo_ini:'2026-03-01',periodo_fim:'2026-05-01',
+    },
+    servicos:[
+      {cod:'SRV-001',descricao:'Demolições e Retiradas',categoria:'Demolições',unidade:'vb',valor:8000,pct_anterior:0,pct_atual:100,status_anterior:'A EXECUTAR',status_atual:'CONCLUÍDO'},
+      {cod:'SRV-002',descricao:'Infraestrutura Elétrica',categoria:'Elétrica',unidade:'vb',valor:22000,pct_anterior:40,pct_atual:60,status_anterior:'EM ANDAMENTO',status_atual:'EM ANDAMENTO'},
+      {cod:'SRV-003',descricao:'Estrutura Metálica do Forro',categoria:'Drywall / Forro',unidade:'vb',valor:15000,pct_anterior:0,pct_atual:0,status_anterior:'A EXECUTAR',status_atual:'A EXECUTAR'},
+    ],
+    pagamentos:[
+      {tipo:'ENTRADA',descricao:'1ª Parcela',valor:54000,data:'2026-03-08',pago:true},
+    ],
+    pendencias:[],fotos:[],equipes:[],notas:'',visitas:[]
+  };
+  const key = 'cockpit_demo';
+  localStorage.setItem(key, JSON.stringify(migrateState(demo)));
+  selecionarObra(key);
+  toast('Demo carregado!','success');
+}
+
+// ── Backup completo ─────────────────────────────────────────────────────
+function backupTudo(){
+  const obras = getObrasIndex();
+  const backup = { version:1, data:{}, ts:new Date().toISOString() };
+  obras.forEach(o=>{
+    try{ backup.data[o.key] = JSON.parse(localStorage.getItem(o.key)||'{}'); }catch(e){}
+  });
+  // Incluir configurações globais (API keys)
+  ['apiKey','imgbbKey','gscriptUrl','masterUrl','baseDadosId','bdScriptUrl'].forEach(k=>{
+    const v = localStorage.getItem(k);
+    if(v) backup.data['__global_'+k] = v;
+  });
+  const blob = new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const dt   = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  a.href = url; a.download = `MestreObra_Backup_${dt}.json`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  const info = document.getElementById('os-backup-info');
+  if(info) info.textContent = `Backup de ${obras.length} obra(s) baixado — ${dt}`;
+  toast(`Backup de ${obras.length} obra(s) gerado`,'success');
+}
+
+// ── Restaurar backup ────────────────────────────────────────────────────
+function restaurarBackup(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const backup = JSON.parse(e.target.result);
+      if(!backup.data){ toast('Arquivo inválido','error'); return; }
+      let count = 0;
+      Object.entries(backup.data).forEach(([key,val])=>{
+        if(key.startsWith('__global_')){
+          const k = key.replace('__global_','');
+          if(typeof val === 'string') localStorage.setItem(k, val);
+        } else {
+          localStorage.setItem(key, typeof val==='string'?val:JSON.stringify(val));
+          count++;
+        }
+      });
+      const info = document.getElementById('os-backup-info');
+      if(info) info.textContent = `${count} obra(s) restaurada(s)`;
+      toast(`${count} obra(s) restaurada(s) com sucesso`,'success');
+    }catch(err){
+      toast('Erro ao restaurar: '+err.message,'error');
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+// ── Marcar roteiro como sujo ─────────────────────────────────────────────
+function marcarRoteiroSujo(){ roteiroSujo = true; }
+
+// ── Inicialização ────────────────────────────────────────────────────────
+
 function getGscriptUrl(){
   return localStorage.getItem('mdo_master_script') || localStorage.getItem('mdo_gscript_url') || '';
 }
