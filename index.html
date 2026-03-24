@@ -2468,40 +2468,6 @@ body.tabs-active #tab-cronograma.active{max-width:100%!important;margin:0!import
         <b>O que são esses scripts?</b> São pequenos programas que ficam dentro do Google Sheets e funcionam como uma "ponte" entre o Cockpit e a nuvem. Cada um tem uma função diferente. Você só precisa configurar uma vez.
       </div>
 
-      <!-- SCRIPT 1: SYNC -->
-      <div style="border:1.5px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden">
-        <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:#FAFAF8;border-bottom:1px solid var(--border)">
-          <div style="width:32px;height:32px;border-radius:8px;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.5"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-          </div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:800;color:var(--ink)">Script de Sync — Backup na Nuvem</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:1px">Salva automaticamente os dados da obra no Google Sheets. Acesse de qualquer lugar.</div>
-          </div>
-          <span id="sync-script-badge-2" style="font-size:9px;font-weight:700;padding:3px 9px;border-radius:10px;background:#FEE2E2;color:#991B1B;flex-shrink:0">● NÃO CONFIG.</span>
-        </div>
-        <div style="padding:12px 14px">
-          <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
-            <input type="text" id="cfg-sync-script" placeholder="Cole aqui a URL do script após implantar…"
-              style="flex:1;font-size:12px" oninput="salvarSyncScript()">
-            <button class="btn btn-primary btn-sm" onclick="testarSync()">Testar</button>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
-            <button class="btn btn-outline btn-sm" onclick="syncEnviar()" id="btn-sync-enviar" style="display:none">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/></svg> Enviar para nuvem
-            </button>
-            <button class="btn btn-outline btn-sm" onclick="syncReceber()" id="btn-sync-receber" style="display:none">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> Carregar da nuvem
-            </button>
-            <span id="sync-last-time" style="font-size:10px;color:var(--muted);align-self:center;font-family:var(--font-mono)"></span>
-          </div>
-          <button onclick="abrirGuiaScript('sync')" style="background:transparent;border:1.5px solid var(--border);border-radius:7px;padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer;color:var(--accent);display:flex;align-items:center;gap:6px;width:100%;justify-content:center">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            Ver passo a passo + copiar código
-          </button>
-        </div>
-      </div>
-
       <!-- SCRIPT 2: CAMPO -->
       <div style="border:1.5px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden">
         <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:#FAFAF8;border-bottom:1px solid var(--border)">
@@ -4032,7 +3998,7 @@ async function sbListarObras(){
     );
     if(!r.ok) return [];
     return await r.json();
-  } catch(e){ return []; }
+  } catch(e){ console.error(e); return []; }
 }
 
 // Exclui obra do Supabase
@@ -4042,7 +4008,7 @@ async function sbDeletarObra(obraKey){
       SB_URL + '/rest/v1/' + SB_TABLE + '?obra_key=eq.' + encodeURIComponent(obraKey),
       { method: 'DELETE', headers: sbHeaders() }
     );
-  } catch(e){}
+  } catch(e){console.error(e);}
 }
 
 // Indicador visual no pill
@@ -4281,7 +4247,7 @@ function calcularStorage(){
         total += (localStorage.getItem(k)||'').length * 2;
       }
     }
-  } catch(e){}
+  } catch(e){console.error(e);}
   const usadoKB = Math.round(total / 1024);
   const pct     = Math.round(usadoKB / 5120 * 100);
   return { usadoKB, pct };
@@ -4475,7 +4441,7 @@ async function sbLoadBackground(obraKey){
       console.warn('[Supabase] Conflito: nuvem mais recente mas local mais completo. local=' + localRichness + ' remoto=' + remoteRichness);
       toast('⚠️ Conflito: nuvem e local divergem. Use o pill ☁ para resolver.','warning',5000);
     }
-  } catch(e){ /* silencioso */ }
+  } catch(e){ console.error(e); }
 }
 
 // Calcula "riqueza" dos dados para comparação de completude
@@ -4672,18 +4638,18 @@ function saveConfig(){
 }
 
 function renderAll(){
-  try{ renderServicos(); }catch(e){}
-  try{ renderEquipes(); }catch(e){}
-  try{ renderPagamentos(); }catch(e){}
-  try{ renderFotos(); }catch(e){}
-  try{ renderPendencias(); }catch(e){}
-  try{ renderMateriais(); }catch(e){}
-  try{ renderNotas(); }catch(e){}
-  try{ renderCronograma(); }catch(e){}
-  try{ updateTopbar(); }catch(e){}
-  try{ initDiario(); }catch(e){}
-  try{ renderDrawer(); }catch(e){}
-  try{ if(typeof atualizarBadgesAbas==='function') atualizarBadgesAbas(); }catch(e){}
+  try{ renderServicos(); }catch(e){console.error(e);}
+  try{ renderEquipes(); }catch(e){console.error(e);}
+  try{ renderPagamentos(); }catch(e){console.error(e);}
+  try{ renderFotos(); }catch(e){console.error(e);}
+  try{ renderPendencias(); }catch(e){console.error(e);}
+  try{ renderMateriais(); }catch(e){console.error(e);}
+  try{ renderNotas(); }catch(e){console.error(e);}
+  try{ renderCronograma(); }catch(e){console.error(e);}
+  try{ updateTopbar(); }catch(e){console.error(e);}
+  try{ initDiario(); }catch(e){console.error(e);}
+  try{ renderDrawer(); }catch(e){console.error(e);}
+  try{ if(typeof atualizarBadgesAbas==='function') atualizarBadgesAbas(); }catch(e){console.error(e);}
 }
 
 function updateTopbar(){
@@ -4721,7 +4687,7 @@ function fecharOnboarding(){
 
 function obGetChecks(){
   try { return JSON.parse(localStorage.getItem('mdo_ob_checks') || '{}'); }
-  catch(e){ return {}; }
+  catch(e){ console.error(e); return {}; }
 }
 function obSaveChecks(c){ localStorage.setItem('mdo_ob_checks', JSON.stringify(c)); }
 
@@ -5912,7 +5878,7 @@ function _eqColor(cod){
 }
 
 function _calcStatus(pct, dataFim){
-  if(pct >= 100) return 'CONCLUIDO';
+  if(pct >= 100) return 'CONCLUÍDO';
   if(pct > 0) return 'EM ANDAMENTO';
   if(dataFim){ var f=new Date(dataFim.includes('/')?dataFim.split('/').reverse().join('-'):dataFim); if(f<new Date()) return 'PAUSADO'; }
   return 'A EXECUTAR';
@@ -6406,7 +6372,7 @@ async function syncOrcamentoPlanilha(){
       redirect:'follow'
     });
     let result;
-    try { result = await resp.json(); } catch(e){ result={ok:true}; }
+    try { result = await resp.json(); } catch(e){ console.error(e); result={ok:true}; }
     if(result.ok){
       toast('✅ Orçamento sincronizado! '+srvs.length+' serviços enviados.','success');
     } else {
@@ -9051,7 +9017,7 @@ function guiaSetEstado(fechado){
     guiaStepAtual = 0;
     requestAnimationFrame(guiaRenderStep);
   }
-  try{ localStorage.setItem(guiaStorageKey(), fechado ? '1' : '0'); }catch(e){}
+  try{ localStorage.setItem(guiaStorageKey(), fechado ? '1' : '0'); }catch(e){console.error(e);}
 }
 
 function guiaDiaAtualIdx(){
@@ -9362,7 +9328,7 @@ function guiaIr(){
   if(guiaStepAtual >= steps.length){ guiaFechar(); return; }
   var s = steps[guiaStepAtual];
   if(s.travado){ guiaPular(); return; }
-  if(s.fn){ try{ eval(s.fn); }catch(e){} }
+  if(s.fn){ try{ eval(s.fn); }catch(e){console.error(e);} }
   else if(s.tab){
     switchTab(s.tab);
     if(s.sec) setTimeout(function(){ scrollToSec(s.sec); }, 200);
@@ -9388,7 +9354,7 @@ function guiaRestaurarEstado(){
       guiaSetEstado(true);
       return true; // estava fechado
     }
-  }catch(e){}
+  }catch(e){console.error(e);}
   return false; // não estava fechado (ou sem dados)
 }
 
@@ -11816,9 +11782,9 @@ function init(){
   if(_ak) mostrarApiConfigurada();
   if(_ik) mostrarImgbbConfigurada();
   showObraSelector();
-  setTimeout(function(){ try{ migrarPlanilhasLegacy(); carregarPlanilhas(); }catch(e){} },300);
-  setTimeout(function(){ try{ initSync(); }catch(e){} },600);
-  setTimeout(function(){ try{ if(typeof piaInicializar==='function') piaInicializar(); }catch(e){} },800);
+  setTimeout(function(){ try{ migrarPlanilhasLegacy(); carregarPlanilhas(); }catch(e){console.error(e);} },300);
+  setTimeout(function(){ try{ initSync(); }catch(e){console.error(e);} },600);
+  setTimeout(function(){ try{ if(typeof piaInicializar==='function') piaInicializar(); }catch(e){console.error(e);} },800);
 }
 
 // ═══ OBRA SELECTOR — restaurado do bloco original ═══
@@ -11850,7 +11816,7 @@ function getObrasIndex(){
         else if(srvs.length > 0) pct = srvs.reduce(function(a,s){ return a+(s.pct_atual||0); }, 0) / srvs.length;
         obras.push({ key:k, nome:c2.obra||'Sem nome', cliente:c2.razao_cliente||c2.cliente||'', semana:c2.semana||1, servicos:srvs.length, pct:Math.round(pct), local:true });
       }
-    } catch(e){}
+    } catch(e){console.error(e);}
   });
   return obras;
 }
@@ -11861,7 +11827,7 @@ async function getObrasCloud(){
     var rows = await sbListarObrasCompletas();
     return rows.map(function(row){
       var d = {};
-      try{ d = typeof row.data==='string'?JSON.parse(row.data):(row.data||{}); }catch(e){}
+      try{ d = typeof row.data==='string'?JSON.parse(row.data):(row.data||{}); }catch(e){console.error(e);}
       var cfg = d.config||{};
       var srvs = Array.isArray(d.servicos)?d.servicos:[];
       var totalVal = srvs.reduce(function(a,s){return a+(s.valor||0);},0);
@@ -12004,18 +11970,18 @@ function selecionarObra(key){
       restoreUI();
       renderAll();
       hideObraSelector();
-      if(typeof renderCronograma==='function') try{renderCronograma();}catch(e){}
-      if(typeof renderDrawer==='function') try{renderDrawer();}catch(e){}
-      if(typeof atualizarBadgesAbas==='function') setTimeout(function(){ try{atualizarBadgesAbas();}catch(e){}},100);
+      if(typeof renderCronograma==='function') try{renderCronograma();}catch(e){console.error(e);}
+      if(typeof renderDrawer==='function') try{renderDrawer();}catch(e){console.error(e);}
+      if(typeof atualizarBadgesAbas==='function') setTimeout(function(){ try{atualizarBadgesAbas();}catch(e){console.error(e);}},100);
       sbAtualizarIndicador('ok');
       toast('☁ '+state.config.obra+' — dados atualizados','success');
     } else {
       // Nuvem vazia ou offline → fallback localStorage
       if(loadState(key)){
         hideObraSelector();
-        if(typeof renderCronograma==='function') try{renderCronograma();}catch(e){}
-        if(typeof renderDrawer==='function') try{renderDrawer();}catch(e){}
-        if(typeof atualizarBadgesAbas==='function') setTimeout(function(){ try{atualizarBadgesAbas();}catch(e){}},100);
+        if(typeof renderCronograma==='function') try{renderCronograma();}catch(e){console.error(e);}
+        if(typeof renderDrawer==='function') try{renderDrawer();}catch(e){console.error(e);}
+        if(typeof atualizarBadgesAbas==='function') setTimeout(function(){ try{atualizarBadgesAbas();}catch(e){console.error(e);}},100);
         toast('⚠ Offline — usando versão local de '+state.config.obra,'warning');
       } else {
         toast('Obra não encontrada','error');
@@ -12025,9 +11991,9 @@ function selecionarObra(key){
     // Sem conexão → fallback localStorage
     if(loadState(key)){
       hideObraSelector();
-      if(typeof renderCronograma==='function') try{renderCronograma();}catch(e){}
-      if(typeof renderDrawer==='function') try{renderDrawer();}catch(e){}
-      if(typeof atualizarBadgesAbas==='function') setTimeout(function(){ try{atualizarBadgesAbas();}catch(e){}},100);
+      if(typeof renderCronograma==='function') try{renderCronograma();}catch(e){console.error(e);}
+      if(typeof renderDrawer==='function') try{renderDrawer();}catch(e){console.error(e);}
+      if(typeof atualizarBadgesAbas==='function') setTimeout(function(){ try{atualizarBadgesAbas();}catch(e){console.error(e);}},100);
       toast('⚠ Offline — usando cache local','warning');
     } else {
       toast('Sem conexão e sem dados locais','error');
@@ -12106,7 +12072,7 @@ function backupTudo(){
   const obras = getObrasIndex();
   const backup = { version:1, data:{}, ts:new Date().toISOString() };
   obras.forEach(o=>{
-    try{ backup.data[o.key] = JSON.parse(localStorage.getItem(o.key)||'{}'); }catch(e){}
+    try{ backup.data[o.key] = JSON.parse(localStorage.getItem(o.key)||'{}'); }catch(e){console.error(e);}
   });
   // Incluir configurações globais (API keys)
   ['apiKey','imgbbKey','gscriptUrl','masterUrl','baseDadosId','bdScriptUrl'].forEach(k=>{
@@ -12422,7 +12388,7 @@ function verificarFornecedorNovo(pagIdx, nome){
   if(!nome || !nome.trim()) return;
   if(!eqConhecida(nome)){
     // Toast com botão de ação
-    toast(`"${nome}" não está na obra. <button onclick="abrirModalFornecedorNovo('${nome.replace(/'/g,"\'")}',${pagIdx})" style="margin-left:8px;background:var(--accent);color:#fff;border:none;padding:3px 10px;cursor:pointer;font-size:11px;font-weight:700">+ Cadastrar</button>`, 'warning', 6000);
+    toast(`"${esc(nome)}" não está na obra. <button onclick="abrirModalFornecedorNovo('${esc(nome).replace(/'/g,"&#39;")}',${pagIdx})" style="margin-left:8px;background:var(--accent);color:#fff;border:none;padding:3px 10px;cursor:pointer;font-size:11px;font-weight:700">+ Cadastrar</button>`, 'warning', 6000);
   }
 }
 
@@ -12570,8 +12536,8 @@ async function salvarFornecedorNovo(){
         redirect: 'follow'
       });
       let result;
-      try { result = await resp.json(); } catch(e){ result = { status: 'ok' }; }
-      
+      try { result = await resp.json(); } catch(e){ console.error(e); result = { status: 'ok' }; }
+
       if(statusEl) statusEl.textContent = '';
       toast(`✅ ${nome} cadastrado na Base de Dados!`, 'success');
     } catch(e){
@@ -13836,7 +13802,7 @@ async function planGerarIA(){
     } catch(e2){
       // Fallback 1: regex para encontrar array
       var match = rawClean.match(/\[[\s\S]*\]/);
-      if(match) try { tarefasIA = JSON.parse(match[0]); } catch(e3){}
+      if(match) try { tarefasIA = JSON.parse(match[0]); } catch(e3){console.error(e3);}
       // Fallback 2: JSON truncado — corta no último objeto completo
       if(!tarefasIA){
         var arrStart = rawClean.indexOf('[');
@@ -13846,7 +13812,7 @@ async function planGerarIA(){
           var lastBrace = partial.lastIndexOf('}');
           if(lastBrace>0){
             var fixed = partial.substring(0, lastBrace+1) + ']';
-            try { tarefasIA = JSON.parse(fixed); } catch(e4){}
+            try { tarefasIA = JSON.parse(fixed); } catch(e4){console.error(e4);}
           }
         }
       }
@@ -14307,7 +14273,7 @@ function renderDashboardCarteira(obras){
       });
       if(atrasado) obrasAtrasadas++;
       pctMedio += o.pct || 0;
-    } catch(e){}
+    } catch(e){console.error(e);}
   });
 
   pctMedio = obras.length ? Math.round(pctMedio/obras.length) : 0;
@@ -15198,7 +15164,7 @@ async function descartarRelatorioCampo(idx, id){
   const url = getCampoScript();
   if(url && id){
     try { await fetch(`${url}?action=revisado&id=${encodeURIComponent(id)}`); }
-    catch(e){}
+    catch(e){console.error(e);}
   }
   const overlay = document.getElementById('modal-fila-campo');
   const fila = overlay?._fila || window._campoFila || [];
@@ -15917,7 +15883,7 @@ async function handleFotos(input){
 }
 async function uploadImgBB(file){
   var fd=new FormData(); fd.append('image',file);
-  try{ var r=await fetch('https://api.imgbb.com/1/upload?key='+IMGBB_KEY,{method:'POST',body:fd}); var d=await r.json(); if(d.success){fotosUrls.push(d.data.url);addFotoThumb(d.data.url);} }catch(e){}
+  try{ var r=await fetch('https://api.imgbb.com/1/upload?key='+IMGBB_KEY,{method:'POST',body:fd}); var d=await r.json(); if(d.success){fotosUrls.push(d.data.url);addFotoThumb(d.data.url);} }catch(e){console.error(e);}
 }
 function toBase64(f){ return new Promise(function(res){ var r=new FileReader(); r.onload=function(e){res(e.target.result);}; r.readAsDataURL(f); }); }
 function addFotoThumb(src){
@@ -16048,7 +16014,7 @@ function safeInit(){
     errDiv.textContent = '⚠️ Erro ao iniciar: ' + (e.message || e.toString());
     document.body.appendChild(errDiv);
     // Tentar mostrar o seletor de obras mesmo assim
-    try { switchTab('tab-config'); } catch(_){}
+    try { switchTab('tab-config'); } catch(_){console.error(_);}
   }
 }
 if(document.readyState === "loading"){
