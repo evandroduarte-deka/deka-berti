@@ -639,16 +639,16 @@ canvas{display:block}
           <div class="panel-title">Activity Matrix</div>
           <div style="display:flex;align-items:center;gap:8px">
             <div class="view-toggle">
-              <button class="vt-btn vt-active" id="vt-matrix" onclick="setMatrixView('matrix')">MATRIX</button>
-              <button class="vt-btn" id="vt-semana" onclick="setMatrixView('semana')">SEMANA</button>
+              <button class="vt-btn" id="vt-matrix" onclick="setMatrixView('matrix')">MATRIX</button>
+              <button class="vt-btn vt-active" id="vt-semana" onclick="setMatrixView('semana')">SEMANA</button>
             </div>
             <button class="btn-sm" onclick="abrirModal()">+ NOVO ITEM</button>
           </div>
         </div>
-        <div class="act-grid-wrap" id="act-grid-wrap">
+        <div class="act-grid-wrap" id="act-grid-wrap" style="display:none">
           <table class="act-grid" id="act-grid"><thead id="ag-thead"></thead><tbody id="ag-tbody"></tbody></table>
         </div>
-        <div class="week-view" id="week-view"></div>
+        <div class="week-view active" id="week-view"></div>
       </div>
       <div class="matrix-side" id="matrix-side">
         <!-- charts side panel -->
@@ -1154,49 +1154,52 @@ async function salvarObsInterna(obra_key, obs){
   toast('BLOQUEADO: Brain não escreve em cockpit_obras','err');
 }
 
-// ── Importa do brain_comercial (leads do dia anterior) ──
+// ── Importa do brain_comercial (leads pendentes) ──
 async function importarComercial(silent){
   try{
     var rows = await supaFetch('brain_comercial?importado=eq.false&order=created_at.desc&limit=50');
     if(!rows||!rows.length){ if(!silent) toast('NADA NOVO DO COMERCIAL',''); return; }
+    // Proteção contra duplicatas: checar IDs já importados
+    var jaImportados = {};
+    S.items.forEach(function(it){ if(it.comercial_id) jaImportados[it.comercial_id]=true; });
     var novos = 0;
     rows.forEach(function(row){
-      // Só importa se tem ação necessária
-      if(!row.acao || row.urgencia === null) return;
-      var cat = row.tipo==='lead'?'lead':row.tipo==='proposta'?'proposta':row.tipo==='cobranca'?'cliente':'comunicacao';
+      if(!row.id || !row.acao) return; // proteção null
+      if(jaImportados[row.id]) return; // já existe
+      var tipo = (row.tipo||'info').toLowerCase();
+      var cat = tipo==='lead'?'lead':tipo==='proposta'?'proposta':tipo==='cobranca'?'cliente':'comunicacao';
       var agt = row.agente||'EVANDRO';
       S.items.push({
         id: 'cml-'+row.id,
-        cat: cat,
-        agt: agt,
-        texto: '['+row.tipo.toUpperCase()+'] '+row.acao,
-        ctx: row.contato+(row.empresa?' / '+row.empresa:''),
-        prio: row.urgencia||'media',
-        tempo: 30,
-        data: row.prazo||HOJE,
-        hora: null,
-        done: false,
-        notas: row.resumo+(row.notas_socio?'\n\nSÓCIO: '+row.notas_socio:''),
-        origem: 'comercial_import',
-        comercial_id: row.id,
-        valor_est: row.valor_est
+        cat: cat, agt: agt,
+        texto: '['+tipo.toUpperCase()+'] '+row.acao,
+        ctx: (row.contato||'')+(row.empresa?' / '+row.empresa:''),
+        prio: row.urgencia||'media', tempo: 30,
+        data: row.prazo||HOJE, hora: null, done: false,
+        notas: (row.resumo||'')+(row.notas_socio?'\n\nSÓCIO: '+row.notas_socio:''),
+        origem: 'comercial_import', comercial_id: row.id,
+        valor_est: row.valor_est||0
       });
       novos++;
     });
-    // Marca como importado
-    var ids = rows.map(function(r){return r.id;});
-    await supaFetch('brain_comercial?id=in.('+ids.map(function(id){return '"'+id+'"';}).join(',')+')', {
-      method: 'PATCH',
-      body: JSON.stringify({ importado: true })
-    });
-    save();
-    renderItems();
-    renderMatrix&&renderMatrix();
-    renderCtxFilters();
-    toast('IMPORTADOS '+novos+' ITENS DO COMERCIAL','ai');
-    if(novos>0) setTimeout(gerarBriefing, 800);
+    // Marca como importado (falha silenciosa se não conseguir)
+    try{
+      var ids = rows.map(function(r){return r.id;});
+      await supaFetch('brain_comercial?id=in.('+ids.map(function(id){return '"'+id+'"';}).join(',')+')', {
+        method: 'PATCH',
+        body: JSON.stringify({ importado: true })
+      });
+    }catch(e2){console.warn('[importarComercial] PATCH falhou:', e2.message);}
+    if(novos>0){
+      save(); renderItems(); renderMatrix&&renderMatrix(); renderCtxFilters();
+      if(!silent) toast('IMPORTADOS '+novos+' ITENS DO COMERCIAL','ai');
+      setTimeout(gerarBriefing, 800);
+    } else {
+      if(!silent) toast('NADA NOVO DO COMERCIAL','');
+    }
   }catch(e){
-    toast('COMERCIAL OFFLINE: '+e.message,'err');
+    if(!silent) toast('COMERCIAL OFFLINE','err');
+    console.warn('[importarComercial]', e.message);
   }
 }
 
@@ -1301,29 +1304,39 @@ async function gerarBriefing(){
   var autoItems=pend.filter(function(i){return i.origem==='auto_obra';});
   var totalMin=pend.filter(function(i){return i.data===HOJE||i.data<HOJE;}).reduce(function(a,i){return a+(i.tempo||0);},0);
   var livreH=Math.max(0,8-totalMin/60).toFixed(1);
-  // v11 — Contexto das obras para o JARVIS
+  var comercialItems=pend.filter(function(i){return i.origem==='comercial_import';});
+  // Contexto das obras para o JARVIS
   var obrasCtx = Object.keys(CTXS).map(function(k){
     var o=CTXS[k]; if(o.status==='concluida') return '';
     return o.nome+' ('+o.pct+'% S'+o.sem+'): '+o.srvAtrasados.length+' atrasados, '+o.srvRisco.length+' em risco, '+o.pendencias+' pendências';
   }).filter(Boolean).join('\n');
-  var resumo=pend.slice(0,15).map(function(i){return'['+i.cat+'/'+i.agt+'/'+i.prio+'] '+i.texto+' ('+i.ctx+')'}).join('\n');
-  var prompt='Você é o JARVIS — centro de comando operacional de Evandro Duarte, gestor da Berti Construtora.\n'+
-    'Você coordena TODAS as obras simultaneamente. Categorias: lead,prospecção,proposta,cliente,comunicação,operacional,administrativo. Agentes: EVANDRO,AGT_COMERCIAL,AGT_EMAIL,AGT_WHATSAPP,AGT_LIGACAO,AGT_RELATORIO,AGT_FINANCEIRO,AGT_COCKPIT,DELEGAVEL.\n\n'+
-    'OBRAS ATIVAS:\n'+obrasCtx+'\n\n'+
-    'DADOS OPERACIONAIS:\n- Críticos: '+crit.length+'\n- Atrasados: '+atras.length+'\n- Auto-gerados das obras: '+autoItems.length+'\n- Livre hoje: '+livreH+'h\n\n'+
+  var resumo=pend.slice(0,20).map(function(i){return'['+i.prio+'/'+i.data+'] '+i.texto+' → '+i.agt+' ('+i.ctx+')'}).join('\n');
+  var diaSemana = DIAS[new Date().getDay()];
+  var prompt='Você é o JARVIS — assistente operacional de Evandro Duarte (Berti Construtora). Evandro tem TDAH e precisa de CLAREZA ABSOLUTA. Sem rodeios.\n\n'+
+    'HOJE: '+diaSemana+', '+HOJE+'\n'+
+    'OBRAS ATIVAS:\n'+(obrasCtx||'Nenhuma')+'\n\n'+
+    'SITUAÇÃO:\n- Críticos (prioridade alta): '+crit.length+'\n- Atrasados (prazo vencido): '+atras.length+'\n- Do comercial (clientes/leads): '+comercialItems.length+'\n- Das obras (auto-gerados): '+autoItems.length+'\n- Horas livres hoje: '+livreH+'h\n\n'+
     'ITENS PENDENTES:\n'+resumo+'\n\n'+
-    'Gere briefing executivo: 3-5 frases DIRETAS. Priorize por IMPACTO na operação. Diga qual agente deve agir em cada ponto. Cruze dados entre obras quando relevante. Sem saudação. Sem markdown.\nResposta: texto corrido.';
+    'INSTRUÇÕES:\n'+
+    '1. Comece com a AÇÃO MAIS URGENTE — o que Evandro precisa fazer AGORA\n'+
+    '2. Liste as 3 prioridades do dia em ordem de execução (o que fazer primeiro, segundo, terceiro)\n'+
+    '3. Se tem atrasados, diga QUAIS e o que fazer com cada um\n'+
+    '4. Se tem item do comercial (cliente esperando resposta), destaque — cliente não pode esperar\n'+
+    '5. Termine com 1 frase sobre o resto da semana\n\n'+
+    'Tom: direto, firme, como um gerente que sabe que Evandro precisa de foco. Sem saudação. Sem markdown. Texto corrido, 4-6 frases.';
   try{
-    var r=await fetch(CF,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:prompt}]})});
+    var r=await fetch(CF,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,messages:[{role:'user',content:prompt}]})});
     var data=await r.json();var txt=(data.content&&data.content[0]&&data.content[0].text)||'';
     if(!txt)throw new Error('empty');
     S.briefing={texto:txt,ts:new Date().toISOString(),criticos:crit.length,livre:livreH,obras:Object.keys(CTXS).length};save();
     mostrarBriefing(S.briefing);
   }catch(e){
-    var fb=crit.length+' item(s) crítico(s) exigem ação imediata. '+
-      (atras.length?atras.length+' tarefa(s) atrasada(s). ':'')+
-      Object.keys(CTXS).length+' obras ativas monitoradas. '+
-      'Livre hoje: '+livreH+'h. Priorizar itens de maior impacto operacional.';
+    var fb='';
+    if(crit.length) fb+=crit.length+' item(s) crítico(s) — resolver AGORA. ';
+    if(atras.length) fb+=atras.length+' tarefa(s) atrasada(s) — prazo já venceu. ';
+    if(comercialItems.length) fb+=comercialItems.length+' demanda(s) do comercial aguardando resposta. ';
+    fb+=Object.keys(CTXS).length+' obra(s) ativa(s). ';
+    fb+='Livre hoje: '+livreH+'h. Foco no que tem maior impacto.';
     S.briefing={texto:fb,ts:new Date().toISOString(),criticos:crit.length,livre:livreH,obras:Object.keys(CTXS).length};save();
     mostrarBriefing(S.briefing);
   }
@@ -1454,7 +1467,7 @@ function expandMatrixCell(el, cat, agt){
 // ════════════════════════════════════════════════
 // VISÃO SEMANAL
 // ════════════════════════════════════════════════
-var _matrixView = 'matrix';
+var _matrixView = 'semana';
 function setMatrixView(v){
   _matrixView = v;
   var gw = document.getElementById('act-grid-wrap');
@@ -1480,9 +1493,9 @@ function renderWeekView(){
   if(!el) return;
   // Calcular segunda a sexta da semana atual
   var now = new Date();
-  var dow = now.getDay(); // 0=dom,1=seg...6=sáb
+  var dow = now.getDay();
   var mon = new Date(now);
-  mon.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1)); // seg
+  mon.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
   mon.setHours(0,0,0,0);
 
   var dias = [];
@@ -1497,40 +1510,41 @@ function renderWeekView(){
       mes: MESES[d.getMonth()]
     });
   }
+  var sexISO = dias[4].iso;
 
   var pend = S.items.filter(function(it){return !it.done;});
 
-  // Itens atrasados (antes da segunda)
+  // Separar em categorias claras
   var overdue = pend.filter(function(it){return it.data < dias[0].iso;}).sort(pp);
+  var semAgenda = pend.filter(function(it){return !it.data || it.data > sexISO;}).sort(pp);
 
   // Itens por dia
   var diasItems = dias.map(function(dia){
     return pend.filter(function(it){return it.data === dia.iso;}).sort(pp);
   });
 
-  // Itens sem data definida ou depois de sexta → ignorar na visão semanal
-
-  // Calcular semana label
+  // Semana label
   var cfg = Object.keys(CTXS).length ? CTXS[Object.keys(CTXS)[0]] : null;
   var semLabel = cfg ? 'S'+(cfg.sem||'?') : '';
 
-  var html = '';
+  // Total da semana
+  var totalSemana = pend.filter(function(it){return !it.done;}).length;
+  var totalMin = pend.reduce(function(a,it){return a+(it.tempo||0);},0);
+
+  var html = '<div style="width:100%">';
 
   // Header
-  html += '<div style="width:100%">';
   html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:0 2px">';
   html += '<div style="font-family:var(--cond);font-size:10px;font-weight:700;color:var(--t2);letter-spacing:.1em;text-transform:uppercase">PLANEJAMENTO DA SEMANA'+(semLabel?' — '+semLabel:'')+'</div>';
-  html += '<div style="font-family:var(--mono);font-size:9px;color:var(--t3)">'+dias[0].num+'/'+dias[0].mes+' → '+dias[4].num+'/'+dias[4].mes+'</div>';
+  html += '<div style="font-family:var(--mono);font-size:9px;color:var(--t3)">'+totalSemana+' itens · '+Math.round(totalMin/60)+'h · '+dias[0].num+'/'+dias[0].mes+' → '+dias[4].num+'/'+dias[4].mes+'</div>';
   html += '</div>';
 
   // Overdue section
   if(overdue.length){
     html += '<div class="wk-overdue-sec">';
-    html += '<div class="wk-overdue-hd">ATRASADAS ('+overdue.length+')</div>';
+    html += '<div class="wk-overdue-hd">ATRASADAS — RESOLVER HOJE ('+overdue.length+')</div>';
     html += '<div style="display:flex;gap:3px;flex-wrap:wrap">';
-    overdue.forEach(function(it){
-      html += mkWeekCard(it, true);
-    });
+    overdue.forEach(function(it){ html += mkWeekCard(it, true); });
     html += '</div></div>';
   }
 
@@ -1540,29 +1554,42 @@ function renderWeekView(){
     var isToday = dia.iso === HOJE;
     var isPast = dia.iso < HOJE;
     var items = diasItems[idx];
-    var totalMin = items.reduce(function(a,it){return a+(it.tempo||0);},0);
+    // Se é hoje, incluir os atrasados também
+    if(isToday && overdue.length){
+      items = overdue.concat(items);
+    }
+    var dayMin = items.reduce(function(a,it){return a+(it.tempo||0);},0);
+    var dayH = (dayMin/60).toFixed(1);
 
     html += '<div class="wk-col">';
-    html += '<div class="wk-col-hd'+(isToday?' wk-today':'')+(isPast?' wk-past':'')+'">';
-    html += '<div class="wk-day-name">'+dia.nome+'</div>';
+    html += '<div class="wk-col-hd'+(isToday?' wk-today':'')+(isPast&&!isToday?' wk-past':'')+'">';
+    html += '<div class="wk-day-name">'+dia.nome+(isToday?' ●':'')+'</div>';
     html += '<div class="wk-day-date">'+dia.num+'/'+dia.mes+'</div>';
-    html += '<div class="wk-day-load">'+items.length+' item'+(items.length!==1?'s':'')+' · '+totalMin+'m</div>';
+    html += '<div class="wk-day-load" style="color:'+(dayMin>480?'var(--hot)':dayMin>360?'var(--warn)':'var(--t3)')+'">'+items.length+' · '+dayH+'h</div>';
     html += '</div>';
     html += '<div class="wk-cards">';
     if(items.length){
-      items.forEach(function(it){
-        html += mkWeekCard(it, false);
-      });
+      items.forEach(function(it){ html += mkWeekCard(it, isPast&&!isToday); });
     } else {
-      html += '<div class="wk-empty">—</div>';
+      html += '<div class="wk-empty">livre</div>';
     }
     html += '</div></div>';
   });
-  html += '</div></div>';
+  html += '</div>';
 
+  // Sem agenda (itens sem data ou fora da semana)
+  if(semAgenda.length){
+    html += '<div style="margin-top:8px">';
+    html += '<div style="font-family:var(--cond);font-size:9px;font-weight:700;color:var(--warn);letter-spacing:.1em;text-transform:uppercase;padding:4px 8px;background:var(--warn2);border:1px solid rgba(184,132,26,.25);margin-bottom:3px">SEM AGENDA — DISTRIBUIR NA SEMANA ('+semAgenda.length+')</div>';
+    html += '<div style="display:flex;gap:3px;flex-wrap:wrap">';
+    semAgenda.forEach(function(it){ html += mkWeekCard(it, false); });
+    html += '</div></div>';
+  }
+
+  html += '</div>';
   el.innerHTML = html;
 
-  // Event delegation — remover handler antigo e anexar novo
+  // Event delegation
   if(el._wkHandler) el.removeEventListener('click', el._wkHandler);
   el._wkHandler = function(e){
     var chk = e.target.closest('.wk-chk');
@@ -1574,9 +1601,7 @@ function renderWeekView(){
       if(it){it.done=!it.done;save();renderWeekView();renderMatrix();renderSideCharts();updateKPIs();if(it.done)toast('✓ '+it.texto.slice(0,28),'ok');}
       return;
     }
-    if(card){
-      abrirDetail(card.getAttribute('data-wkcard'));
-    }
+    if(card) abrirDetail(card.getAttribute('data-wkcard'));
   };
   el.addEventListener('click', el._wkHandler);
 }
@@ -2363,6 +2388,7 @@ async function simSync(){
     var obrasCount = Object.keys(CTXS).length;
     setEl('kp-obras', obrasCount);
     renderMatrix();
+    renderWeekView();
     renderSideCharts();
     updateKPIs();
     renderCtxFilters();
@@ -2415,6 +2441,7 @@ document.addEventListener('click', function(e){
 // ════════════════════════════════════════════════
 // 1. Render inicial com cache localStorage (instantâneo)
 renderMatrix();
+renderWeekView();
 renderSideCharts();
 updateKPIs();
 
@@ -2444,12 +2471,8 @@ renderScript();
   // 5a. Carregar estado do brain_data (mais recente ganha)
   var supaLoaded = await loadFromSupabase();
   if(supaLoaded){
-    // Re-render com dados frescos do Supabase
-    renderMatrix();
-    renderSideCharts();
-    updateKPIs();
-    renderCtxFilters();
-    renderScript();
+    renderMatrix(); renderWeekView(); renderSideCharts();
+    updateKPIs(); renderCtxFilters(); renderScript();
     if(S.briefing && S.briefing.ts){
       var _bAge3 = (Date.now()-new Date(S.briefing.ts).getTime())/60000;
       if(_bAge3 < 30) mostrarBriefing(S.briefing);
@@ -2462,16 +2485,14 @@ renderScript();
     importarComercial(true).catch(function(){});
     var obrasCount = Object.keys(CTXS).length;
     setEl('kp-obras', obrasCount);
-    renderMatrix();
-    renderSideCharts();
-    updateKPIs();
-    renderCtxFilters();
+    renderMatrix(); renderWeekView(); renderSideCharts();
+    updateKPIs(); renderCtxFilters();
     if(novos>0) toast(novos+' TAREFAS AUTO-GERADAS DAS OBRAS','ai');
     // Briefing: regenerar se velho ou inexistente
     var _bAge2 = S.briefing&&S.briefing.ts ? (Date.now()-new Date(S.briefing.ts).getTime())/60000 : 999;
     if(_bAge2 > 30) gerarBriefing();
     else mostrarBriefing(S.briefing);
-  }catch(e){}
+  }catch(e){ console.warn('[init]', e.message); }
 })();
 // Redraw charts on resize
 window.addEventListener('resize',function(){

@@ -89,7 +89,7 @@ html,body{height:100%;background:var(--void);color:var(--t1);font-family:var(--b
   <select class="ctrl-select" id="sel-semana" style="max-width:200px">
     <option value="1">Semana 1</option>
   </select>
-  <button onclick="_reloadState();toast('Dados atualizados do cockpit','')" style="background:var(--acc3);border:1px solid var(--acc2);color:var(--acc);border-radius:4px;padding:6px 10px;font-family:var(--mono);font-size:10px;cursor:pointer;white-space:nowrap" title="Re-ler dados do cockpit">↻ Sync</button>
+  <button onclick="_syncCompleto()" style="background:var(--acc3);border:1px solid var(--acc2);color:var(--acc);border-radius:4px;padding:6px 10px;font-family:var(--mono);font-size:10px;cursor:pointer;white-space:nowrap" title="Re-ler dados do cockpit">↻ Sync</button>
   <span id="sync-status" style="font-family:var(--mono);font-size:9px;color:var(--t3);white-space:nowrap"></span>
 </div>
 
@@ -338,7 +338,7 @@ function _calcSemanaReal(){
 
 // Busca narrativa/diário de uma semana arquivada
 function _getNarrativaSemana(semNum){
-  // 1. Tentar diario_historico (arquivado ao avançar semana)
+  // 1. Tentar diario_historico por chave 'SN' — dias concatenados
   var hist = (state.diario_historico||{})['S'+semNum];
   if(hist && hist.dias){
     var DIAS = ['seg','ter','qua','qui','sex','sab','dom'];
@@ -348,18 +348,55 @@ function _getNarrativaSemana(semNum){
       if(!entry || !entry.texto || !entry.texto.trim()) return null;
       return (DLBL[d]||d.toUpperCase()) + ': ' + entry.texto.trim();
     }).filter(Boolean);
-    if(textos.length) return textos.join('\n');
+    if(textos.length) return _fixNarrSemana(textos.join('\n'), semNum);
   }
-  // 2. Tentar snapshot
+  // 2. Tentar diario_historico['SN'].narrativa (campo direto)
+  if(hist && hist.narrativa && hist.narrativa.trim())
+    return _fixNarrSemana(hist.narrativa.trim(), semNum);
+  // 3. Tentar snapshot
   var snap = (state.snapshots||{})['S'+semNum];
-  if(snap && snap.narrativa) return snap.narrativa;
-  // 3. Tentar visitas
+  if(snap && snap.narrativa) return _fixNarrSemana(snap.narrativa, semNum);
+  // 4. Tentar snapshot.diario (dias dentro do snapshot)
+  if(snap && snap.diario){
+    var DIAS2 = ['seg','ter','qua','qui','sex','sab','dom'];
+    var DLBL2 = {seg:'SEG',ter:'TER',qua:'QUA',qui:'QUI',sex:'SEX',sab:'SÁB',dom:'DOM'};
+    var textos2 = DIAS2.map(function(d){
+      var entry = snap.diario[d];
+      if(!entry || !entry.texto || !entry.texto.trim()) return null;
+      return (DLBL2[d]||d.toUpperCase()) + ': ' + entry.texto.trim();
+    }).filter(Boolean);
+    if(textos2.length) return _fixNarrSemana(textos2.join('\n'), semNum);
+  }
+  // 5. Tentar diario_historico por datas ISO do range da semana
+  var range = _calcSemanaRange(semNum);
+  if(range.ini && range.fim){
+    var DIAS3 = ['seg','ter','qua','qui','sex','sab','dom'];
+    var DLBL3 = {seg:'SEG',ter:'TER',qua:'QUA',qui:'QUI',sex:'SEX',sab:'SÁB',dom:'DOM'};
+    var cur = new Date(range.ini);
+    var textos3 = [];
+    for(var di=0; di<7; di++){
+      var isoKey = cur.toISOString().slice(0,10);
+      var entry3 = (state.diario_historico||{})[isoKey];
+      if(entry3 && entry3.texto && entry3.texto.trim()){
+        textos3.push((DLBL3[DIAS3[di]]||'') + ' ' + String(cur.getDate()).padStart(2,'0')+'/'+String(cur.getMonth()+1).padStart(2,'0') + ': ' + entry3.texto.trim());
+      }
+      cur.setDate(cur.getDate()+1);
+    }
+    if(textos3.length) return textos3.join('\n');
+  }
+  // 6. Tentar visitas
   var visitas = (state.visitas||[]).filter(function(v){ return v.semana === semNum; });
   if(visitas.length){
     var ultima = visitas[visitas.length-1];
-    if(ultima.narrativa_revisada) return ultima.narrativa_revisada;
+    if(ultima.narrativa_revisada) return _fixNarrSemana(ultima.narrativa_revisada, semNum);
   }
   return '';
+}
+
+// Corrige narrativas que a IA gravou com "Semana 01" literal (bug corrigido no index.html)
+function _fixNarrSemana(texto, semReal){
+  if(!texto || !semReal) return texto||'';
+  return texto.replace(/Semana\s+0?1(?=\s|—|-|$)/gi, 'Semana '+String(semReal).padStart(2,'0'));
 }
 
 // Calcula range de datas de uma semana específica
@@ -424,7 +461,7 @@ function gerar(tipo){
       switch(tipo){
         case 'semanal_cliente': _gerarRelClienteSemana(semSel); break;
         case 'semanal_interno': _gerarRelInternoDirecto(semSel); break;
-        case 'fotografico': abrirRelatorioFotografico(); break;
+        case 'fotografico': abrirRelatorioFotografico(semSel); break;
         case 'orcamento': abrirRelatorioOrcamento(); break;
         case 'financeiro': abrirRelatorioFinanceiro(); break;
         case 'gantt': _gerarGanttPDF('completo'); break;
@@ -468,6 +505,45 @@ function _reloadState(){
   }catch(e){ console.warn('_reloadState error:', e); }
 }
 
+// v50 — Sync completo: tenta Supabase se cache > 5min, senão localStorage
+async function _syncCompleto(){
+  _reloadState(); // primeiro lê localStorage
+  // Verificar se cache está velho (> 5 min)
+  var tsLocal = state._savedAt ? new Date(state._savedAt).getTime() : 0;
+  var agora = Date.now();
+  var diffMin = (agora - tsLocal) / 60000;
+  if(diffMin > 5 || !tsLocal){
+    toast('Buscando dados atualizados do Supabase...','info');
+    try{
+      var obraKey = currentObraKey.replace('cockpit_','');
+      var resp = await fetch(SUPA_URL+'/rest/v1/cockpit_obras?obra_key=eq.'+encodeURIComponent(obraKey)+'&select=obra_key,data,updated_at&limit=1', {
+        headers: { 'apikey':SUPA_KEY, 'Authorization':'Bearer '+SUPA_KEY },
+        signal: AbortSignal.timeout(10000)
+      });
+      if(!resp.ok) throw new Error('HTTP '+resp.status);
+      var rows = await resp.json();
+      if(rows && rows.length){
+        var row = rows[0];
+        var data = typeof row.data === 'string' ? JSON.parse(row.data) : (row.data||{});
+        var tsSupa = row.updated_at ? new Date(row.updated_at).getTime() : 0;
+        if(tsSupa > tsLocal){
+          data._savedAt = row.updated_at;
+          localStorage.setItem(currentObraKey, JSON.stringify(data));
+          _reloadState();
+          toast('✓ Dados atualizados do Supabase','');
+          return;
+        }
+      }
+      toast('✓ Dados locais já estão atualizados','');
+    }catch(e){
+      toast('Supabase indisponível. Usando cache local.','info');
+      console.warn('_syncCompleto Supabase error:', e);
+    }
+  } else {
+    toast('✓ Dados atualizados (cache < 5min)','');
+  }
+}
+
 function _lastSyncLabel(){
   if(!state._savedAt) return 'dados locais';
   var d = new Date(state._savedAt);
@@ -488,8 +564,9 @@ function _gerarRelInternoDirecto(semNum){
 
 // Wrapper: portal sem modal
 function _abrirPortalDirecto(){
-  var html = _buildPortalCliente();
-  if(html) mostrarPreview(html, 'Portal do Cliente — Semana '+(state.config.semana||1));
+  var semSel = parseInt(document.getElementById('sel-semana').value)||(state.config.semana||1);
+  var html = _buildPortalCliente(semSel);
+  if(html) mostrarPreview(html, 'Portal do Cliente — Semana '+semSel);
   else toast('Erro ao gerar portal','err');
 }
 
@@ -863,15 +940,20 @@ function buildBertiHeader(opts) {
 // ═══════════════════════════════════════════════════════════════
 // RELATÓRIO FOTOGRÁFICO — padrão BERTI
 // ═══════════════════════════════════════════════════════════════
-function abrirRelatorioFotografico(){
+function abrirRelatorioFotografico(semNumSel){
   const c = state.config;
   const t = getRelTema();
   const p1 = t.p1, p2 = t.p2;
   const pi = c.periodo_ini ? fmtDate(c.periodo_ini) : '';
   const pf = c.periodo_fim ? fmtDate(c.periodo_fim) : '';
-  const periodo = pi && pf ? `${pi} a ${pf}` : (pi||'—');
-  const fotos = state.fotos || [];
-  const semana = c.semana || 1;
+  const semana = semNumSel || c.semana || 1;
+  // v50 — Período da semana selecionada
+  const _semRange = _calcSemanaRange(semana);
+  const periodo = _semRange.iniLabel && _semRange.fimLabel
+    ? fmtDate(_semRange.iniISO) + ' a ' + fmtDate(_semRange.fimISO)
+    : (pi && pf ? `${pi} a ${pf}` : (pi||'—'));
+  // v50 — Fotos filtradas pela semana selecionada
+  const fotos = _filtrarFotosSemana(semana);
 
   // v48 — _autoTituloFoto agora é global (definida junto com _gerarTituloPadrao)
   const srvs = state.servicos || [];
@@ -1287,12 +1369,34 @@ function _gerarRelSemanal(){
   const pi = c.periodo_ini ? fmtDate(c.periodo_ini) : '';
   const pf = c.periodo_fim ? fmtDate(c.periodo_fim) : '';
   const periodo = pi && pf ? `${pi} a ${pf}` : (pi||'—');
-  const srvs = state.servicos || [];
+
+  // v50 — Suporte a semanas passadas via snapshot
+  const semAtual = _calcSemanaReal();
+  const isAtual = (semNum === semAtual);
+  const relDelta = _getRelDelta(semNum);
+
+  // Serviços: snapshot-based para semanas passadas
+  var srvs;
+  if(!isAtual && !relDelta.noSnapshot){
+    srvs = relDelta.servicos.map(function(s){
+      return Object.assign({}, s._original||s, {
+        pct_atual: s.pct||0,
+        pct_anterior: s.pct_anterior_snap||0,
+        status_atual: (s.pct||0)>=100?'CONCLUÍDO':(s.pct||0)>0?'EM ANDAMENTO':'A EXECUTAR',
+        status_anterior: (s.pct_anterior_snap||0)>=100?'CONCLUÍDO':(s.pct_anterior_snap||0)>0?'EM ANDAMENTO':'A EXECUTAR'
+      });
+    });
+  } else {
+    srvs = state.servicos || [];
+  }
+
   const pags = state.pagamentos || [];
   const equipes = state.equipes || [];
   const pendencias = state.pendencias || [];
-  const fotos = state.fotos || [];
-  const narrativa = (function(){
+  // v50 — Fotos filtradas pela semana
+  const fotos = _filtrarFotosSemana(semNum);
+  // v50 — Narrativa: snapshot para semanas passadas
+  const narrativa = isAtual ? (function(){
     var _dk = ['seg','ter','qua','qui','sex','sab','dom'];
     var visitaSemana = (state.visitas||[]).filter(function(v){ return v.semana === semNum; });
     if(visitaSemana.length){
@@ -1307,12 +1411,12 @@ function _gerarRelSemanal(){
     }).filter(Boolean);
     if(textos.length) return textos.join('\n\n');
     return (document.getElementById('narrativa-visita')||{value:''}).value || state.narrativa || '';
-  })();
+  })() : _getNarrativaSemana(semNum);
 
   const totalSrv = srvs.length;
   const concluidos = srvs.filter(s=>s.status_atual==='CONCLUÍDO').length;  const emAnd = srvs.filter(s=>s.status_atual==='EM ANDAMENTO').length;
   const aExec = srvs.filter(s=>(s.pct_atual||0)===0).length;
-  const pctGeral = calcPctGeral();
+  const pctGeral = isAtual ? calcPctGeral() : (relDelta.pctGeral||0);
 
   const totalEnt = pags.filter(p=>p.tipo==='ENTRADA').reduce((a,p)=>a+(parseFloat(p.valor)||0),0);
   const totalSai = pags.filter(p=>p.tipo==='SAÍDA').reduce((a,p)=>a+(parseFloat(p.valor)||0),0);
@@ -1453,7 +1557,7 @@ ${cabHeader}
 </div>
 <div class="rdp">
   <div class="rdp-l">${esc2(c.empresa||'Berti Construtora')} · CONFIDENCIAL</div>
-  <div class="rdp-c">${esc2(c.obra||'')} — Semana ${c.semana||1}</div>
+  <div class="rdp-c">${esc2(c.obra||'')} — Semana ${semNum}</div>
   <div class="rdp-r">${today()} · ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
 </div>
 </div></body>`;
@@ -1545,7 +1649,7 @@ async function _gerarRelClienteSemana(semNumSel){
         +'- Linha 3: "Foco semana XX:" + lista concreta do que será executado.\n'
         +'- Linha 4 (SE houver atrasados ou pendências): "Atenção:" + pontos que requerem acompanhamento.\n'
         +'- Máximo 100 palavras TOTAL. Cada palavra precisa ter informação.\n\n'
-        +'DADOS:\nObra: '+(c.obra||'—')+'\nSemana: '+(c.semana||1)+'\nAvanço geral: '+pctGeral+'%\n'
+        +'DADOS:\nObra: '+(c.obra||'—')+'\nSemana: '+semNum+'\nAvanço geral: '+pctGeral+'%\n'
         +_narrPrazoCtx+'\n'
         +'Concluídos: '+(concluidos_lst.join(', ')||'nenhum')+'\n'
         +'Em andamento: '+(emAnd_lst.join(', ')||'nenhum')+'\n'
@@ -3044,28 +3148,60 @@ function imprimirRelatorio(){
 }
 
 function gerarDashboardCliente(){
-  const html = _buildPortalCliente();
+  var semSel = parseInt(document.getElementById('sel-semana').value)||(state.config.semana||1);
+  const html = _buildPortalCliente(semSel);
   if(!html) return;
   const c = state.config;
   const preview = document.getElementById('rel-preview-content');
   const enc = html.replace(/"/g,'&quot;');
   preview.innerHTML = `<iframe srcdoc="${enc}" style="width:100%;min-height:90vh;border:none"></iframe>`;
-  document.getElementById('rel-modal-title').textContent = 'Portal do Cliente — Semana '+(c.semana||1);
+  document.getElementById('rel-modal-title').textContent = 'Portal do Cliente — Semana '+semSel;
   document.getElementById('rel-modal').classList.add('show');
   document.getElementById('rel-modal').scrollTop = 0;
 }
 
-function _buildPortalCliente(){
+function _buildPortalCliente(semNum){
   const c = state.config;
   if(!c){ toast('Configure a obra antes','error'); return null; }
   const p1=c.cor1||'#0D2016',p2=c.cor2||'#2E6645';
-  const srvs=state.servicos||[];
-  const pags=state.pagamentos||[];
-  const fotos=state.fotos||[];
   const equipes=state.equipes||[];
-  const semana=c.semana||1;
+  const pags=state.pagamentos||[];
+
+  // v50 — Suporte a semana selecionada (snapshot-based)
+  const semAtual = _calcSemanaReal();
+  const semSel = semNum || semAtual;
+  const isAtual = (semSel === semAtual);
+  const snap = isAtual ? null : (state.snapshots||{})['S'+semSel];
+
+  // v50 — Aviso quando snapshot não existe para semana passada
+  if(!isAtual && !snap){
+    toast('Semana '+semSel+' sem snapshot. Portal gerado com dados atuais.','info');
+  }
+
+  // Serviços: snapshot com merge de metadados atuais, ou tempo real
+  var srvs;
+  if(!isAtual && snap && Array.isArray(snap.servicos)){
+    var mapSnap = {};
+    snap.servicos.forEach(function(s){ mapSnap[s.cod] = s; });
+    srvs = (state.servicos||[]).map(function(s){
+      var ss = mapSnap[s.cod];
+      if(ss) return Object.assign({}, s, { pct_atual: ss.pct||ss.pct_atual||0 });
+      return Object.assign({}, s, { pct_atual: 0 }); // não existia no snapshot
+    });
+  } else {
+    srvs = state.servicos||[];
+  }
+
+  // Fotos: filtradas por semana
+  const fotos = _filtrarFotosSemana(semSel);
+  const semana = semSel;
   const totalMed=c.medicoes_total||c.medicoes||7;
-  const narrativa=(document.getElementById('narrativa-visita')||{}).value||state.narrativa||'';
+
+  // Narrativa: snapshot ou tempo real
+  const narrativa = isAtual
+    ? ((document.getElementById('narrativa-visita')||{}).value||state.narrativa||'')
+    : _getNarrativaSemana(semSel);
+
   var waTel=(c.tel_empresa||'').replace(/\D/g,'');
   if(waTel&&!waTel.startsWith('55'))waTel='55'+waTel;
   const pi=c.periodo_ini?fmtDate(c.periodo_ini):'';
@@ -3077,7 +3213,13 @@ function _buildPortalCliente(){
   const concluidos=srvs.filter(s=>(s.pct_atual||0)>=100).length;
   const emAnd=srvs.filter(s=>(s.pct_atual||0)>0&&(s.pct_atual||0)<100).length;
   const aExec=srvs.filter(s=>(s.pct_atual||0)===0).length;
-  const pctGeral = calcPctGeral();
+  // pctGeral: snapshot ou tempo real
+  var pctGeral;
+  if(!isAtual && snap && snap.pctGeral !== undefined){
+    pctGeral = snap.pctGeral;
+  } else {
+    pctGeral = calcPctGeral();
+  }
 
   const totalVal=srvs.reduce((a,s)=>a+(s.valor||0),0);
   const valContrato=parseFloat(c.valor_contrato)||totalVal||0;
@@ -3165,10 +3307,35 @@ function _buildPortalCliente(){
     return '<tr style="border-bottom:1px solid #f0f0f0"><td style="padding:6px 10px;font-size:11px">'+esc2(p.data?p.data.includes('-')?p.data.split('-').reverse().join('/'):p.data:'—')+'</td><td style="padding:6px 10px;font-size:11px;font-weight:600">'+esc2(p.descricao||'')+'</td><td style="padding:6px 10px;text-align:right;font-family:monospace;font-size:11px;font-weight:700;color:#2E7D32">R$ '+fmtNum(parseFloat(p.valor)||0)+'</td><td style="padding:6px 10px;text-align:center;font-size:9px;color:#888;text-transform:uppercase">'+esc2(p.status||p.forma||'—')+'</td></tr>';
   }).join('');
 
-  // ── FOTOS HTML ──
-  var fotosHTML=fotosOk.length?fotosOk.map(function(f){
-    return '<div class="foto-card"><img src="'+(f.url||f.src)+'" alt="'+esc2(f.titulo_rel||f.legenda||'')+'" loading="lazy"><div class="foto-info"><div class="foto-leg">'+esc2(f.titulo_rel||f.legenda||'')+'</div>'+(f.data?'<div class="foto-dt">'+esc2(f.data)+'</div>':'')+'</div></div>';
-  }).join(''):'<div style="text-align:center;padding:40px;color:#aaa;font-size:13px">Nenhuma foto registrada nesta semana.</div>';
+  // ── FOTOS HTML — agrupadas por semana ──
+  var fotosHTML='';
+  if(fotosOk.length){
+    var _fotosPorSem={};
+    fotosOk.forEach(function(f){
+      var semFoto=0;
+      var fISO=f.data?(f.data.includes('/')?f.data.split('/').reverse().join('-'):f.data):'';
+      if(fISO&&c.periodo_ini){
+        var _iniD=new Date((c.periodo_ini.includes('/')?c.periodo_ini.split('/').reverse().join('-'):c.periodo_ini)+'T00:00:00');
+        var _fD=new Date(fISO+'T00:00:00');
+        if(!isNaN(_iniD)&&!isNaN(_fD)) semFoto=Math.max(1,Math.floor((_fD-_iniD)/(7*86400000))+1);
+      }
+      var key=semFoto?'Semana '+semFoto:'Sem data';
+      (_fotosPorSem[key]=_fotosPorSem[key]||[]).push(f);
+    });
+    fotosHTML=Object.entries(_fotosPorSem).sort(function(a,b){
+      var na=parseInt(a[0].replace(/\D/g,''))||999;
+      var nb=parseInt(b[0].replace(/\D/g,''))||999;
+      return nb-na;
+    }).map(function(entry){
+      var semLabel=entry[0],fts=entry[1];
+      return '<div class="sh">'+esc2(semLabel)+' — '+fts.length+' foto'+(fts.length!==1?'s':'')+'</div><div class="fg">'
+        +fts.map(function(f){
+          return '<div class="foto-card"><img src="'+(f.url||f.src)+'" alt="'+esc2(f.titulo_rel||f.legenda||'')+'" loading="lazy"><div class="foto-info"><div class="foto-leg">'+esc2(f.titulo_rel||f.legenda||'')+'</div>'+(f.data?'<div class="foto-dt">'+esc2(f.data)+'</div>':'')+'</div></div>';
+        }).join('')+'</div>';
+    }).join('');
+  } else {
+    fotosHTML='<div style="text-align:center;padding:40px;color:#aaa;font-size:13px">Nenhuma foto registrada.</div>';
+  }
 
   // ── PRÓXIMOS SERVIÇOS — dados para JS calcular ──
   var proxJSON=JSON.stringify(prox.map(function(s){
@@ -3428,8 +3595,7 @@ a{text-decoration:none;color:inherit}
   <!-- ═══ FOTOS ═══ -->
   <div class="pnl" id="P4">
     <div class="print-divider">Registro Fotográfico</div>
-    <div class="sh">Registro Fotográfico — ${fotos.length} fotos</div>
-    <div class="fg">${fotosHTML}</div>
+    ${fotosHTML}
   </div>
 
   <!-- ═══ DOCUMENTOS ═══ -->
@@ -3528,7 +3694,7 @@ function renderGantt(){
   var rangeIni,rangeFim;
   if(_gMode==='2sem'){rangeIni=new Date(hoje);rangeIni.setDate(hoje.getDate()+dSeg);rangeFim=new Date(rangeIni);rangeFim.setDate(rangeIni.getDate()+13);}
   else if(_gMode==='mes'){rangeIni=new Date(hoje.getFullYear(),hoje.getMonth(),1);rangeFim=new Date(hoje.getFullYear(),hoje.getMonth()+1,0);}
-  else{var aI=SRVS.map(function(s){return s.dm&&s.dm.length?s.dm[0]:s.di;}).filter(Boolean).sort();var aF=SRVS.map(function(s){return s.dm&&s.dm.length?s.dm[s.dm.length-1]:s.df;}).filter(Boolean).sort();rangeIni=aI.length?new Date(aI[0]):new Date();rangeFim=aF.length?new Date(aF[aF.length-1]):new Date();}
+  else{var _cd=SRVS.filter(function(s){return (s.dm&&s.dm.length)||s.di;});var aI=_cd.map(function(s){return s.dm&&s.dm.length?s.dm[0]:s.di;}).filter(Boolean).sort();var aF=_cd.map(function(s){return s.dm&&s.dm.length?s.dm[s.dm.length-1]:s.df;}).filter(Boolean).sort();rangeIni=aI.length?new Date(aI[0]):new Date();rangeFim=aF.length?new Date(aF[aF.length-1]):new Date();}
   rangeIni.setHours(0,0,0,0);rangeFim.setHours(0,0,0,0);
 
   var dias=[],cur=new Date(rangeIni);while(cur<=rangeFim){dias.push(new Date(cur));cur.setDate(cur.getDate()+1);}
@@ -3544,7 +3710,9 @@ function renderGantt(){
   var dayH=dias.map(function(d){var t=d.getTime()===hoje.getTime();var w=d.getDay()===0||d.getDay()===6;return '<th style="min-width:'+colW+'px;max-width:'+colW+'px;padding:2px;text-align:center;font-size:'+(colW>=24?'7':'6')+'px;font-weight:600;background:'+(t?P1:w?'#eee':'#fafafa')+';color:'+(t?'#fff':'#aaa')+';border-left:1px solid #e8e8e8;line-height:1.1">'+dowL[d.getDay()]+'<br>'+d.getDate()+'</th>';}).join('');
 
   var riISO=rangeIni.toISOString().slice(0,10),rfISO=rangeFim.toISOString().slice(0,10);
-  var filtered=(_gMode==='total')?SRVS:SRVS.filter(function(s){
+  // v50 — Em todos os modos, só mostra serviços com datas definidas
+  var _comDatas=SRVS.filter(function(s){return (s.dm&&s.dm.length)||s.di;});
+  var filtered=(_gMode==='total')?_comDatas:_comDatas.filter(function(s){
     if(s.dm&&s.dm.length)return s.dm.some(function(d){return d>=riISO&&d<=rfISO;});
     return s.di&&s.di<=rfISO&&(s.df||s.di)>=riISO;
   });
@@ -4308,6 +4476,18 @@ function _getRelDelta(semNum){
 function _filtrarFotosSemana(semNum){
   var semAtual = _calcSemanaReal();
   if(semNum === semAtual) return state.fotos || [];
+  // Semana passada: filtrar por range de datas
+  var range = _calcSemanaRange(semNum);
+  if(!range.ini || !range.fim) return [];
+  var fotosPorData = (state.fotos || []).filter(function(f){
+    if(!f.data) return false;
+    var fISO = f.data.includes('/') ? f.data.split('/').reverse().join('-') : f.data;
+    return fISO >= range.iniISO && fISO <= range.fimISO;
+  });
+  if(fotosPorData.length) return fotosPorData;
+  // Fallback: tentar fotos no snapshot
+  var snap = (state.snapshots||{})['S'+semNum];
+  if(snap && Array.isArray(snap.fotos) && snap.fotos.length) return snap.fotos;
   return [];
 }
 
@@ -4387,15 +4567,15 @@ function _gerarMedicaoSemana(semNumSel){
   .aceite-confirmado{background:#d1fae5;border:2px solid #6ee7b7;border-radius:8px;padding:20px;margin:20px 32px;text-align:center;display:none}
   @media print{body{padding:0}.page{box-shadow:none;border-radius:0}.aceite-box,.aceite-confirmado{display:none!important}}</style></head><body>
   <div class="page">
-    ${buildDocHeader(`Medição — Semana ${semNum}`, `${esc2(c.obra||'')} · ${esc2(c.razao_cliente||c.cliente||'')} · Ref: ${aceiteId}`)}
+    ${buildDocHeader({titulo:'Medição — Semana '+semNum, subtitulo:esc2(c.obra||'')+' · '+esc2(c.razao_cliente||c.cliente||'')+' · Ref: '+aceiteId})}
     <div style="padding:24px 32px">
       <table>
         <thead><tr><th>Serviço</th><th>Avanço</th><th style="text-align:right">Valor</th></tr></thead>
         <tbody>${itensHtml}</tbody>
         <tfoot>
-          <tr><td colspan="3" style="padding:12px;font-weight:700;font-size:13px;text-align:right">Total desta medição:</td>
+          <tr><td colspan="2" style="padding:12px;font-weight:700;font-size:13px;text-align:right">Total desta medição:</td>
           <td style="padding:12px;font-weight:800;font-size:15px;color:#059669;text-align:right">R$ ${fmtNum(totalMed)}</td></tr>
-          ${totalContrato>0?`<tr><td colspan="3" style="padding:4px 12px;font-size:12px;color:#6b7280;text-align:right">% do contrato total (R$ ${fmtNum(totalContrato)}):</td>
+          ${totalContrato>0?`<tr><td colspan="2" style="padding:4px 12px;font-size:12px;color:#6b7280;text-align:right">% do contrato total (R$ ${fmtNum(totalContrato)}):</td>
           <td style="padding:4px 12px;font-size:12px;color:#6b7280;text-align:right">${((totalMed/totalContrato)*100).toFixed(1)}%</td></tr>`:''}
         </tfoot>
       </table>
@@ -4433,263 +4613,6 @@ function _gerarMedicaoSemana(semNumSel){
 
 
 // ═══════════════════════════════════════════════════════════════════════
-// TAREFA 1 — EXPORTAR TUDO ZIP
-// ═══════════════════════════════════════════════════════════════════════
-function exportarTudoZip(){
-  const c = state.config;
-  if(!c.obra){ toast('Configure a obra primeiro','error'); return; }
-  const semana = c.semana || 1;
-  const prefix = (c.obra||'obra').replace(/[^a-z0-9]/gi,'_').toLowerCase() + '_sem' + String(semana).padStart(2,'0');
-
-  toast('Gerando ZIP com todos os relatórios em PDF... aguarde','info');
-
-  // Salvar estado atual do modal
-  var prevHtml = _relCurrentHtml;
-  var prevTitle = _relCurrentTitle;
-
-  // Coletar HTMLs de todos os relatórios
-  var htmls = [];
-
-  // 1. Relatório Semanal Interno
-  try {
-    _relCurrentHtml = ''; _relCurrentTitle = '';
-    // Simula geração sem modal
-    _gerarRelSemanalDireto(semana);
-    if(_relCurrentHtml) htmls.push({ name: prefix+'_relatorio_semanal', html: _relCurrentHtml });
-  } catch(e){ console.warn('ZIP: semanal falhou', e); }
-
-  // 2. Relatório Semanal Cliente (Portal)
-  try { var h = _buildPortalCliente(); if(h) htmls.push({ name: prefix+'_portal_cliente', html: h }); } catch(e){}
-
-  // 3. Orçamento
-  try {
-    _relCurrentHtml = ''; _relCurrentTitle = '';
-    abrirRelatorioOrcamento();
-    if(_relCurrentHtml) htmls.push({ name: prefix+'_orcamento', html: _relCurrentHtml });
-    fecharRelatorio();
-  } catch(e){ console.warn('ZIP: orcamento falhou', e); }
-
-  // 4. Financeiro
-  try {
-    _relCurrentHtml = ''; _relCurrentTitle = '';
-    abrirRelatorioFinanceiro();
-    if(_relCurrentHtml) htmls.push({ name: prefix+'_financeiro', html: _relCurrentHtml });
-    fecharRelatorio();
-  } catch(e){ console.warn('ZIP: financeiro falhou', e); }
-
-  // 5. Gantt (período completo)
-  try {
-    _relCurrentHtml = ''; _relCurrentTitle = '';
-    _gerarGanttPDF('completo');
-    if(_relCurrentHtml) htmls.push({ name: prefix+'_gantt', html: _relCurrentHtml });
-    fecharRelatorio();
-  } catch(e){ console.warn('ZIP: gantt falhou', e); }
-
-  // 6. Fotográfico
-  try { var h2 = _gerarRelFotograficoHTML(); if(h2) htmls.push({ name: prefix+'_fotografico', html: h2 }); } catch(e){}
-
-  // Restaurar estado do modal
-  _relCurrentHtml = prevHtml;
-  _relCurrentTitle = prevTitle;
-  fecharRelatorio();
-
-  // JSON de dados
-  var textFiles = [];
-  try {
-    var json = JSON.stringify(_buildExportJSON(), null, 2);
-    textFiles.push({ name: prefix+'_dados.json', content: json });
-  } catch(e){}
-  var blocoEl = document.getElementById('export-atualizacao');
-  if(blocoEl && blocoEl.value.trim()){
-    textFiles.push({ name: prefix+'_bloco_atualizacao.txt', content: blocoEl.value });
-  }
-
-  if(!htmls.length && !textFiles.length){ toast('Nenhum arquivo para exportar','info'); return; }
-
-  toast('Convertendo '+htmls.length+' relatórios para PDF...','info');
-
-  // Gerar PDFs sequencialmente (evita sobrecarga de memória)
-  var pdfFiles = [];
-  var chain = Promise.resolve();
-  htmls.forEach(function(item){
-    chain = chain.then(function(){
-      return gerarPDFdoHTML(item.html, item.name+'.pdf').then(function(blob){
-        return blob.arrayBuffer().then(function(buf){
-          pdfFiles.push({ name: item.name+'.pdf', data: new Uint8Array(buf) });
-        });
-      }).catch(function(e){
-        console.warn('ZIP PDF falhou para '+item.name, e);
-        pdfFiles.push({ name: item.name+'.html', data: new TextEncoder().encode(item.html) });
-      });
-    });
-  });
-
-  chain.then(function(){
-    var allFiles = pdfFiles.slice();
-    textFiles.forEach(function(f){ allFiles.push({ name: f.name, data: new TextEncoder().encode(f.content) }); });
-    if(!allFiles.length){ toast('Nenhum arquivo gerado','info'); return; }
-    _criarZipEBaixarBin(allFiles, prefix+'.zip');
-    toast('ZIP gerado com '+allFiles.length+' arquivo(s): '+allFiles.map(function(f){return f.name;}).join(', '),'success');
-  }).catch(function(e){
-    console.error('ZIP error:', e);
-    toast('Erro ao gerar ZIP','error');
-  });
-}
-
-// Gera relatório semanal interno sem modal de input
-function _gerarRelSemanalDireto(semNum){
-  var semEl = document.createElement('div');
-  semEl.innerHTML = '<input id="rel-sem-num" value="'+semNum+'"><input id="rel-sem-data" value="'+today()+'">';
-  semEl.id = 'modal-rel-semana';
-  semEl.style.cssText = 'position:fixed;left:-9999px;visibility:hidden';
-  document.body.appendChild(semEl);
-  try { _gerarRelSemanal(); } catch(e){}
-  var el = document.getElementById('modal-rel-semana');
-  if(el) el.remove();
-}
-
-// ZIP builder que aceita Uint8Array data diretamente (para PDFs binários)
-function _criarZipEBaixarBin(arquivos, nomeZip){
-  const enc = new TextEncoder();
-  const files = arquivos.map(f => ({ name: enc.encode(f.name), data: f.data instanceof Uint8Array ? f.data : enc.encode(f.data) }));
-  let offset = 0;
-  const localHeaders = [];
-  const centralEntries = [];
-
-  files.forEach(f => {
-    const localHeader = new Uint8Array(30 + f.name.length);
-    const dv = new DataView(localHeader.buffer);
-    dv.setUint32(0, 0x04034b50, true);
-    dv.setUint16(4, 20, true);
-    dv.setUint16(6, 0, true);
-    dv.setUint16(8, 0, true);
-    dv.setUint16(10, 0, true);
-    dv.setUint16(12, 0, true);
-    dv.setUint32(14, _crc32(f.data), true);
-    dv.setUint32(18, f.data.length, true);
-    dv.setUint32(22, f.data.length, true);
-    dv.setUint16(26, f.name.length, true);
-    dv.setUint16(28, 0, true);
-    localHeader.set(f.name, 30);
-    localHeaders.push(localHeader);
-
-    const central = new Uint8Array(46 + f.name.length);
-    const cv = new DataView(central.buffer);
-    cv.setUint32(0, 0x02014b50, true);
-    cv.setUint16(4, 20, true);
-    cv.setUint16(6, 20, true);
-    cv.setUint16(8, 0, true);
-    cv.setUint16(10, 0, true);
-    cv.setUint16(12, 0, true);
-    cv.setUint16(14, 0, true);
-    cv.setUint32(16, _crc32(f.data), true);
-    cv.setUint32(20, f.data.length, true);
-    cv.setUint32(24, f.data.length, true);
-    cv.setUint16(28, f.name.length, true);
-    cv.setUint16(30, 0, true);
-    cv.setUint16(32, 0, true);
-    cv.setUint16(34, 0, true);
-    cv.setUint16(36, 0, true);
-    cv.setUint32(38, 0, true);
-    cv.setUint32(42, offset, true);
-    central.set(f.name, 46);
-    centralEntries.push(central);
-    offset += localHeader.length + f.data.length;
-  });
-
-  const centralOffset = offset;
-  let centralSize = 0;
-  centralEntries.forEach(c => centralSize += c.length);
-  const eocd = new Uint8Array(22);
-  const ev = new DataView(eocd.buffer);
-  ev.setUint32(0, 0x06054b50, true);
-  ev.setUint16(4, 0, true);
-  ev.setUint16(6, 0, true);
-  ev.setUint16(8, files.length, true);
-  ev.setUint16(10, files.length, true);
-  ev.setUint32(12, centralSize, true);
-  ev.setUint32(16, centralOffset, true);
-  ev.setUint16(20, 0, true);
-
-  const parts = [];
-  files.forEach((f, i) => { parts.push(localHeaders[i]); parts.push(f.data); });
-  centralEntries.forEach(c => parts.push(c));
-  parts.push(eocd);
-
-  const blob = new Blob(parts, { type: 'application/zip' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = nomeZip;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-}
-
-function _crc32(data){
-  let crc = 0xFFFFFFFF;
-  if(!window._crc32Table){
-    window._crc32Table = new Uint32Array(256);
-    for(let n=0;n<256;n++){
-      let c=n;
-      for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1;
-      window._crc32Table[n] = c;
-    }
-  }
-  const t = window._crc32Table;
-  for(let i=0;i<data.length;i++) crc = t[(crc^data[i])&0xFF]^(crc>>>8);
-  return (crc^0xFFFFFFFF) >>> 0;
-}
-
-// Helpers de geração HTML para o ZIP (reutilizam lógica existente)
-function _gerarRelInternoHTML(){
-  try {
-    // Captura o HTML que abrirRelatorioSemanal() geraria
-    const c = state.config;
-    const srvs = state.servicos || [];
-    if(!c.obra) return null;
-    // Use a simplified version for ZIP
-    return null; // fallback — será incluído se o relatório já foi gerado
-  } catch(e){ return null; }
-}
-function _gerarRelClienteHTML(){ return null; }
-function _gerarRelFotograficoHTML(){
-  // Reutiliza a mesma lógica do abrirRelatorioFotografico, sem abrir modal
-  try {
-    const c = state.config;
-    const t = getRelTema();
-    const p1 = t.p1, p2 = t.p2;
-    const fotos = state.fotos || [];
-    const semana = c.semana || 1;
-    if(!fotos.length) return null;
-    const grupos = {};
-    fotos.forEach(f => { const k = f.ambiente || f.grupo || 'Geral'; (grupos[k] = grupos[k]||[]).push(f); });
-    const fotosHtml = Object.entries(grupos).map(([grp, fts]) => `
-      <div style="break-inside:avoid;margin-bottom:28px">
-        <div style="font-family:sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #333;padding-bottom:5px;margin-bottom:10px">${esc2(grp)}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          ${fts.map(f => `<div style="border:1px solid #ddd"><div style="width:100%;aspect-ratio:4/3;background:#eee;display:flex;align-items:center;justify-content:center;font-size:9px;color:#999">${f.url||f.src?`<img src="${f.url||f.src}" style="width:100%;height:100%;object-fit:cover">`:'FOTO'}</div>
-            <div style="padding:7px 10px;font-size:11px"><strong>${esc2(f.titulo_rel || f.legenda || grp + ' — ' + (f.data||''))}</strong><br><span style="font-size:9px;color:#888">${esc2(f.ambiente||grp)}${f.data?' · '+esc2(f.data):''}</span></div></div>`).join('')}
-        </div>
-      </div>`).join('');
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Relatório Fotográfico — Semana ${semana}</title></head><body style="font-family:sans-serif;padding:32px;max-width:800px;margin:0 auto"><h1 style="font-size:18px">${esc2(c.obra||'')} — Relatório Fotográfico Semana ${semana}</h1><p style="font-size:12px;color:#666">${esc2(c.cliente||'')} · ${today()}</p><hr>${fotosHtml}</body></html>`;
-  } catch(e){ return null; }
-}
-function _buildExportJSON(){
-  try {
-    const c = state.config;
-    return {
-      meta: { obra: c.obra, semana: c.semana, exportado: new Date().toISOString() },
-      config: c,
-      servicos: state.servicos,
-      equipes: state.equipes,
-      pagamentos: state.pagamentos,
-      fotos: (state.fotos||[]).map(f => ({ ambiente: f.ambiente, legenda: f.legenda, data: f.data, url: f.url||'', titulo_rel: f.titulo_rel||'' })),
-      pendencias: state.pendencias,
-      narrativa: state.narrativa||''
-    };
-  } catch(e){ return {}; }
-}
-
-
 // ═══════════════════════════════════════════════════════════════════════
 // TAREFA 2 — EDITOR DE TÍTULOS DO RELATÓRIO FOTOGRÁFICO
 // ═══════════════════════════════════════════════════════════════════════

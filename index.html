@@ -57,6 +57,8 @@ input,select,textarea{font-family:var(--font-body);font-size:14px}
   padding:0 16px;gap:12px;
   box-shadow:0 2px 8px rgba(0,0,0,.25);
 }
+.tb-btn{font-family:var(--font-display);font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-decoration:none;letter-spacing:.3px;padding:6px 10px;border-radius:4px;border:1px solid rgba(255,255,255,.15);transition:all .15s;white-space:nowrap;flex-shrink:0}
+.tb-btn:hover{border-color:var(--gold);color:var(--gold)}
 #topbar-logo{font-family:var(--font-display);font-size:18px;font-weight:800;color:#fff;white-space:nowrap;letter-spacing:-.5px}
 #topbar-logo span{color:var(--gold)}
 #topbar-center{flex:1;min-width:0;text-align:center}
@@ -161,6 +163,10 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .orc-progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));border-radius:3px;transition:width .6s ease}
 .orc-actions{display:flex;gap:8px;align-items:center}
 .badge-aditivo{display:inline-block;background:#7c3aed;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;letter-spacing:.5px;text-transform:uppercase;margin-left:4px}
+.orc-add-srv{background:none;border:1px dashed var(--border);color:var(--muted);font-size:11px;font-weight:600;padding:6px 12px;cursor:pointer;border-radius:var(--radius);transition:all .15s;font-family:var(--font-body)}
+.orc-add-srv:hover{border-color:var(--accent);color:var(--accent);background:rgba(46,102,69,.05)}
+.orc-del-srv{background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:2px 4px;transition:color .15s;opacity:.4}
+.orc-del-srv:hover{color:var(--danger);opacity:1}
 /* VIEW TABS */
 .srv-view-tabs{display:flex;gap:0;margin-bottom:10px;border-bottom:2px solid var(--border)}
 .srv-view-tab{flex:1;padding:8px 12px;border:none;background:transparent;font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
@@ -2049,6 +2055,7 @@ body.tabs-active #tab-cronograma.active{max-width:100%!important;margin:0!import
 </div>
 
 <div id="topbar" style="display:none">
+  <a href="hub.html" class="tb-btn">← HUB</a>
   <button id="topbar-back" onclick="voltarParaSeletor()">◀ Obras</button>
   <div id="topbar-logo">
     <span id="topbar-logo-img" style="display:none"><img id="topbar-img" style="height:28px;object-fit:contain" alt="logo"></span>
@@ -3964,6 +3971,34 @@ function sbSave(obraKey, stateObj){
   }, 3000);
 }
 
+// Sync imediato — para operações críticas (avançar semana, fechar app)
+function sbSaveImmediate(obraKey, stateObj){
+  clearTimeout(_sbSaveTimer);
+  var payload = {
+    obra_key:   obraKey,
+    data:       stateObj,
+    updated_at: stateObj._savedAt || new Date().toISOString()
+  };
+  fetch(SB_URL + '/rest/v1/' + SB_TABLE, {
+    method:  'POST',
+    headers: {
+      'Content-Type':  'application/json',
+      'apikey':        SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Prefer':        'resolution=merge-duplicates,return=minimal'
+    },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(15000)
+  }).then(function(r){
+    if(r.ok || r.status === 201 || r.status === 204){
+      _sbOnline = true; sbAtualizarIndicador('ok'); esconderBannerFalha();
+    }
+  }).catch(function(e){
+    _sbOnline = false; sbAtualizarIndicador('fail');
+    console.warn('[Supabase] immediate save falhou:', e.message);
+  });
+}
+
 // Carrega obra do Supabase — retorna objeto state ou null
 async function sbLoad(obraKey){
   try {
@@ -4203,7 +4238,7 @@ function _prepararPayloadSync(){
   var s = JSON.parse(JSON.stringify(state));
   // Remove base64 das fotos — manter URLs + metadados (v48: preservar servico_ref e titulo_rel)
   if(s.fotos && s.fotos.length){
-    s.fotos = s.fotos.map(function(f){ return {url:f.url||'',thumb:f.thumb||'',data:f.data||'',legenda:f.legenda||'',ambiente:f.ambiente||'',cloud:f.cloud||false,titulo_rel:f.titulo_rel||'',servico_ref:f.servico_ref||''}; });
+    s.fotos = s.fotos.map(function(f){ return {url:f.url||'',thumb:f.thumb||'',data:f.data||'',legenda:f.legenda||'',ambiente:f.ambiente||'',cloud:f.cloud||false,titulo_rel:f.titulo_rel||'',servico_ref:f.servico_ref||'',semana:f.semana||1}; });
   }
   // Limitar notas e visitas
   if(s.notas && s.notas.length > 20) s.notas = s.notas.slice(-20);
@@ -5730,14 +5765,20 @@ function renderOrcTabelaInline(){
 
       // Ação
       var td10 = row.insertCell(); td10.style.cssText='padding:4px 4px;text-align:center';
-      if(s.is_aditivo){
-        var btnD=document.createElement('button'); btnD.title='Remover aditivo';
-        btnD.style.cssText='background:none;border:none;cursor:pointer;color:var(--danger);font-size:14px;padding:2px 4px';
-        btnD.textContent='🗑'; btnD.dataset.idx=idx;
-        btnD.addEventListener('click',function(){ orcRemoverAditivo(+this.dataset.idx); });
-        td10.appendChild(btnD);
-      }
+      var btnD=document.createElement('button'); btnD.className='orc-del-srv'; btnD.title='Remover serviço';
+      btnD.textContent='✕'; btnD.dataset.idx=idx;
+      btnD.addEventListener('click',function(){ orcRemoverServico(+this.dataset.idx); });
+      td10.appendChild(btnD);
     });
+
+    // Botão + Serviço
+    var addRow = tbody.insertRow();
+    addRow.style.cssText='border-bottom:1px solid var(--border)';
+    var addTd = document.createElement('td'); addTd.colSpan=8; addTd.style.cssText='padding:6px 10px';
+    var addBtn = document.createElement('button'); addBtn.className='orc-add-srv'; addBtn.textContent='+ Serviço';
+    addBtn.dataset.cat=cat;
+    addBtn.addEventListener('click',function(){ orcAdicionarServico(this.dataset.cat); });
+    addTd.appendChild(addBtn); addRow.appendChild(addTd);
 
     // Subtotal
     var str = tbody.insertRow(); str.style.cssText='background:var(--border)';
@@ -6436,6 +6477,47 @@ function orcRemoverAditivo(idx){
   renderServicos();
   renderOrcPainel();
   toast('Aditivo removido','success');
+}
+
+function orcRemoverServico(idx){
+  if(!state.servicos[idx]) return;
+  var s = state.servicos[idx];
+  var label = (s.cod||'') + ' — ' + (s.descricao||'(sem descrição)');
+  if(!confirm('Remover serviço "'+label+'"?')) return;
+  state.servicos.splice(idx,1);
+  saveState();
+  renderServicos();
+  renderOrcPainel();
+  toast('Serviço removido','success');
+}
+
+function orcAdicionarServico(cat){
+  var maxCod = 0;
+  (state.servicos||[]).forEach(function(s){
+    var m = (s.cod||'').match(/SRV-(\d+)/);
+    if(m){ var n=parseInt(m[1]); if(n>maxCod) maxCod=n; }
+  });
+  var novoCod = 'SRV-' + String(maxCod+1).padStart(3,'0');
+  var novo = {
+    cod: novoCod, categoria: cat, descricao: '', unidade: 'vb',
+    quantidade: 1, valor_unitario: 0, valor: 0, setor: '', equipe: '', fornecedor: '',
+    status_anterior: 'A EXECUTAR', status_atual: 'A EXECUTAR',
+    pct_anterior: 0, pct_atual: 0, observacao: '',
+    data_inicio: '', data_fim: '', dias_marcados: [], prazo_dias: 0
+  };
+  var lastIdx = -1;
+  state.servicos.forEach(function(s,i){ if((s.categoria||'Outros')===cat) lastIdx=i; });
+  if(lastIdx >= 0) state.servicos.splice(lastIdx+1, 0, novo);
+  else state.servicos.push(novo);
+  saveState();
+  renderServicos();
+  renderOrcPainel();
+  toast('Serviço adicionado em '+cat,'success');
+  var novoIdx = state.servicos.indexOf(novo);
+  setTimeout(function(){
+    var row = document.getElementById('orcrow-'+novoIdx);
+    if(row){ var inp = row.querySelectorAll('input[type=text]')[0]; if(inp){ inp.focus(); inp.style.borderBottomColor='var(--primary)'; } }
+  }, 200);
 }
 
 
@@ -7226,6 +7308,7 @@ async function processarFotoComUpload(file, fotoIndex){
     legenda: '',
     ambiente: '',
     data: _dataFoto,
+    semana: state.config.semana || 1,
     titulo_rel: '',
     servico_ref: '',
     src: result.url,
@@ -7837,14 +7920,24 @@ function removeFoto(idx){
 
 function renderFotos(){
   const el = document.getElementById('fotos-grid');
-  if(!state.fotos.length){ el.innerHTML=''; updateSubtitle('sub-fotos','0 fotos');
+  // v50 — Migrar fotos sem semana: assumir semana 1
+  var semAtual = state.config.semana || 1;
+  (state.fotos||[]).forEach(function(f){ if(!f.semana) f.semana = 1; });
+  // Filtrar fotos da semana atual para exibição
+  var fotosSemana = state.fotos.filter(function(f){ return (f.semana||1) === semAtual; });
+  var fotosOutras = state.fotos.length - fotosSemana.length;
+  if(!fotosSemana.length){
+    el.innerHTML = fotosOutras > 0
+      ? '<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">Nenhuma foto nesta semana.<br><span style="font-size:11px">'+fotosOutras+' foto'+(fotosOutras!==1?'s':'')+' em semanas anteriores.</span></div>'
+      : '';
+    updateSubtitle('sub-fotos','0 fotos');
     const ind = document.getElementById('fotos-storage-indicator');
     if(ind) ind.style.display = 'none';
     return;
   }
   const setores = [...new Set(state.servicos.map(s=>s.setor).filter(Boolean))];
-  const cloudCount = state.fotos.filter(f=>f.cloud).length;
-  const localCount = state.fotos.length - cloudCount;
+  const cloudCount = fotosSemana.filter(f=>f.cloud).length;
+  const localCount = fotosSemana.length - cloudCount;
 
   // ── Indicador de armazenamento local ──────────────────────────────────────
   const ind = document.getElementById('fotos-storage-indicator');
@@ -7872,8 +7965,9 @@ function renderFotos(){
     ind.style.display = 'none';
   }
   // ─────────────────────────────────────────────────────────────────────────
-  // Sort fotos by date chronologically
-  var sortedFotos = state.fotos.map(function(f,i){ return {f:f,i:i}; });
+  // Sort fotos by date chronologically — v50: only current week
+  var sortedFotos = state.fotos.map(function(f,i){ return {f:f,i:i}; })
+    .filter(function(item){ return (item.f.semana||1) === semAtual; });
   sortedFotos.sort(function(a,b){
     var da = (a.f.data||'').split('/').reverse().join('-');
     var db = (b.f.data||'').split('/').reverse().join('-');
@@ -7941,9 +8035,10 @@ function renderFotos(){
     html += '</div>';
   });
   el.innerHTML = html;
-  let subtitle = `${state.fotos.length} foto${state.fotos.length!==1?'s':''}`;
+  let subtitle = `${fotosSemana.length} foto${fotosSemana.length!==1?'s':''} · S${semAtual}`;
   if(cloudCount>0) subtitle += ` · ${cloudCount} na nuvem`;
   if(localCount>0 && cloudCount>0) subtitle += ` · ${localCount} local`;
+  if(fotosOutras>0) subtitle += ` · ${fotosOutras} anterior${fotosOutras!==1?'es':''}`;
   updateSubtitle('sub-fotos', subtitle);
   // Show/hide batch upload button
   const btnRow = document.getElementById('fotos-btn-row');
@@ -8296,7 +8391,7 @@ function limparSemana(){
   state.config.semana = calcSemanaAtual();
   // v48 — Pagamentos são da OBRA: preservar. Pendências não resolvidas persistem.
   state.pendencias = (state.pendencias||[]).filter(p => p.status !== 'RESOLVIDO' && p.status !== 'CONCLUÍDO');
-  state.fotos = [];
+  // v50 — Fotos NUNCA são apagadas: ficam tagueadas por semana
   state.materiais = [];
   state.notas = [];
   state.narrativa = '';
@@ -8389,7 +8484,8 @@ function confirmarAvancarSemana(){
     })),
     concluidos: (state.servicos||[]).filter(s=>(s.pct_atual||0)>=100).length,
     totalSrv: (state.servicos||[]).length,
-    totalFotos: (state.fotos||[]).length,
+    totalFotos: (state.fotos||[]).filter(function(f){ return (f.semana||1)===semAtual; }).length,
+    fotos: (state.fotos||[]).filter(function(f){ return (f.semana||1)===semAtual; }).map(function(f){ return {url:f.url||'',thumb:f.thumb||'',data:f.data||'',legenda:f.legenda||'',ambiente:f.ambiente||'',titulo_rel:f.titulo_rel||'',servico_ref:f.servico_ref||'',semana:f.semana||semAtual}; }),
     totalPago: (state.pagamentos||[]).filter(p=>p.tipo==='ENTRADA').reduce((a,p)=>a+(parseFloat(p.valor)||0),0),
     notas: (state.notas||[]).map(n=>({tipo:n.tipo,texto:n.texto,data:n.data})),
     visitas: (state.visitas||[]).filter(v=>v.semana===semAtual).length,
@@ -8454,7 +8550,7 @@ function confirmarAvancarSemana(){
   // v49 — Visitas NUNCA são apagadas (histórico permanente em state.visitas[])
   // v49 — Diário da semana é ARQUIVADO em diario_historico, depois reseta para semana nova
   state.pendencias = (state.pendencias||[]).filter(p => p.status !== 'RESOLVIDO' && p.status !== 'CONCLUÍDO');
-  state.fotos = [];
+  // v50 — Fotos NUNCA são apagadas: ficam tagueadas por .semana, relatórios filtram
   state.materiais = [];
   // state.notas → NÃO limpar, persiste até dar baixa manualmente
   state.narrativa = '';
@@ -8475,6 +8571,11 @@ function confirmarAvancarSemana(){
   renderFotos(); renderPendencias(); renderMateriais();
   renderNotas(); renderCronograma(); renderDrawer(); updateTopbar();
   saveState();
+  // v50 — Sync IMEDIATO com Supabase (operação crítica)
+  var _obraKeySave = slugify(state.config.obra||'default');
+  var _sbDataSave = JSON.parse(JSON.stringify(state));
+  _sbDataSave.fotos = (_sbDataSave.fotos||[]).map(function(f){ return f.cloud&&f.url ? {...f,src:f.url,b64:undefined} : {...f,b64:undefined}; });
+  sbSaveImmediate(_obraKeySave, _sbDataSave);
   toast(`✅ Snapshot S${semAtual} gravado! Semana ${state.config.semana} ativa.`, 'success');
   scrollToSec('sec-config');
   // Sync automático com a planilha após avançar semana
@@ -10501,13 +10602,20 @@ function getDiarioContexto(){
 // IA — CONTEXTO BASE (compartilhado entre operações)
 // ───────────────────────────────────────────────
 function buildBaseContext(){
-  // Monta contexto completo para a IA usar como referência
   const c = state.config;
+  // Semana ajustada pelo offset do diário (se editando semana anterior)
+  var semanaCtx = Math.max(1, (c.semana||1) + (diarioSemanaOffset||0));
+  var dataCtx = today();
+  if(diarioSemanaOffset < 0){
+    var _d = getDiasData(diarioSemanaOffset);
+    var _dd = _d[diarioDiaSelecionado||'seg']||'';
+    if(_dd){ var _pp=_dd.split('/'); if(_pp.length===2) dataCtx=_pp[0]+'/'+_pp[1]+'/'+new Date().getFullYear(); }
+  }
   return {
     obra: c.obra || '',
     cliente: c.cliente || '',
-    semana: c.semana || 1,
-    data_visita: today(),
+    semana: semanaCtx,
+    data_visita: dataCtx,
     servicos: state.servicos.map(s=>({
       cod: s.cod, descricao: s.descricao, categoria: s.categoria,
       setor: s.setor, equipe: s.equipe, fornecedor: s.fornecedor||'', valor: s.valor||0,
@@ -10553,6 +10661,12 @@ function hideIaProgress(){
 async function processarComIA(){
   const texto = document.getElementById('transcricao').value.trim();
   if(!texto){ toast('Escreva ou grave uma narrativa primeiro', 'error'); return; }
+
+  // Aviso se processando semana anterior
+  if(diarioSemanaOffset < 0){
+    var semVista = Math.max(1, (state.config.semana||1) + diarioSemanaOffset);
+    if(!confirm('Você está editando a SEMANA '+semVista+' ('+_diarioSemanaLabel()+'). A IA vai processar no contexto dessa semana.\n\nContinuar?')) return;
+  }
 
   const btn = document.getElementById('btn-processar');
   const icon = document.getElementById('processar-icon');
@@ -10601,7 +10715,7 @@ Retorne APENAS um JSON válido, sem texto antes ou depois, sem markdown, sem blo
   "notas_novas": [
     {"tipo":"observacao|decisao|alerta|lembrete","texto":"..."}
   ],
-  "narrativa_revisada": "Semana 01 — Reforma Badida Barigui — Avanço 20% do cronograma executivo.\nSRV-002 Desmobilização concluído (EQ-ALV-01). SRV-003 Proteção de Piso concluído (EQ-ALV-01). SRV-005 Retirada Elementos Parede concluído (EQ-ALV-01). SRV-008 Desmontagem Duto AC em andamento 60% (EQ-ACO-01).\nFoco semana 02: SRV-012 Infraestrutura Elétrica, SRV-015 Fechamento de Forro, liberar instalação AC sexta.",
+  "narrativa_revisada": "Semana ${String(contexto.semana).padStart(2,'0')} — ${contexto.obra} — Avanço 20% do cronograma executivo.\nSRV-002 Desmobilização concluído (EQ-ALV-01). SRV-003 Proteção de Piso concluído (EQ-ALV-01). SRV-005 Retirada Elementos Parede concluído (EQ-ALV-01). SRV-008 Desmontagem Duto AC em andamento 60% (EQ-ACO-01).\nFoco semana ${String((contexto.semana||1)+1).padStart(2,'0')}: SRV-012 Infraestrutura Elétrica, SRV-015 Fechamento de Forro, liberar instalação AC sexta.",
   "aditivos_sugeridos": [
     {"descricao":"Serviço mencionado mas sem código SRV existente","categoria":"Elétrica","valor":0,"unidade":"vb","justificativa":"Motivo ou contexto mencionado na narrativa"}
   ]
@@ -10619,9 +10733,9 @@ REGRAS:
 - narrativa_revisada: REGISTRO TÉCNICO ANALÍTICO. REGRAS INVIOLÁVEIS:
   Tom: terceira pessoa, analítico, direto. ZERO floreio. ZERO "nossa equipe". ZERO "estamos felizes". ZERO linguagem motivacional.
   Estrutura obrigatória em 3 blocos curtos separados por quebra de linha:
-  BLOCO 1 — Cabeçalho: "Semana XX — [Nome da obra] — Avanço de XX% do cronograma executivo."
+  BLOCO 1 — Cabeçalho: "Semana ${String(contexto.semana).padStart(2,'0')} — [Nome da obra] — Avanço de XX% do cronograma executivo."
   BLOCO 2 — Executado: lista seca dos serviços executados com código SRV e código EQ. Só fatos. Ex: "SRV-003 Proteção de Piso concluído (EQ-ALV-01). SRV-008 Desmontagem de Duto AC em andamento, 60% (EQ-ACO-01)."
-  BLOCO 3 — Foco próxima semana: "Foco semana XX: [lista de serviços por código + descrição curta + ação concreta]."
+  BLOCO 3 — Foco próxima semana: "Foco semana ${String((contexto.semana||1)+1).padStart(2,'0')}: [lista de serviços por código + descrição curta + ação concreta]."
   PROIBIDO: adjetivos desnecessários, frases como "caminhando conforme o cronograma", "condições ideais", "manteremos o ritmo", "equipe focou", "praticamente limpo". Isso é enrolação barata.
   Se mencionar equipe, usar APENAS código: "EQ-ELE-01", nunca "nossa equipe de elétrica".
   Se mencionar serviço, usar SEMPRE código + nome: "SRV-013 Infraestrutura Elétrica".
@@ -11554,9 +11668,10 @@ function aplicarExtracoes(){
   // Save to visit history
   const narrativaOriginal = document.getElementById('transcricao').value.trim();
   if(!state.visitas) state.visitas = [];
+  var _semVisita = Math.max(1, (state.config.semana||1) + (diarioSemanaOffset||0));
   state.visitas.push({
     data: now(),
-    semana: state.config.semana || 1,
+    semana: _semVisita,
     narrativa_original: narrativaOriginal,
     narrativa_revisada: state.narrativa || '',
     itens_aplicados: count,
@@ -11686,10 +11801,6 @@ function downloadPortalHTML(){ _abrirRelatorios(); }
 function abrirGeradorLink(){ _abrirRelatorios(); }
 function salvarLinkPortal(){}
 function gerarMsgLinkWA(){}
-
-// Compat stubs
-function esc2(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function fmtDateNum(s){ return fmtDate(s)||'—'; }
 
 // ═══ INIT — restaurado do bloco original ═══
 function init(){
@@ -15945,6 +16056,17 @@ if(document.readyState === "loading"){
 } else {
   safeInit();
 }
+
+// v50 — Forçar sync com Supabase quando tab perde foco ou app vai pro background
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'hidden' && state?.config?.obra){
+    clearTimeout(_sbSaveTimer);
+    var obraKey = slugify(state.config.obra||'default');
+    var toSave = JSON.parse(JSON.stringify(state));
+    toSave.fotos = (toSave.fotos||[]).map(function(f){ return f.cloud&&f.url ? {...f,src:f.url,b64:undefined} : {...f,b64:undefined}; });
+    sbSaveImmediate(obraKey, toSave);
+  }
+});
 
 </script>
 <!-- ═══ GUIA INTERATIVO FLUTUANTE ═══ -->
