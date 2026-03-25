@@ -390,6 +390,14 @@ Contato: (41) 9183-6651
 - Vocabulário permitido: "executado", "concluído", "pendente", "previsto", "registrado", "em andamento", "aguardando", "solicitado"
 </regras_absolutas>
 
+<formato_saida>
+- ZERO markdown: proibido usar **, *, ##, ###, ---, _texto_, [texto], ou qualquer sintaxe markdown
+- Títulos de seção: SEMPRE em CAIXA ALTA sozinhos na linha (ex: SERVIÇOS EXECUTADOS)
+- Itens de lista: prefixo "- " (traço espaço)
+- Dados chave-valor: "Rótulo: valor" na mesma linha
+- Texto simples: sem formatação especial
+</formato_saida>
+
 <estrutura_obrigatoria>
 CABEÇALHO
 (dados: obra, cliente, semana, período, emissão)
@@ -419,6 +427,14 @@ Berti Construtora LTDA · CNPJ 59.622.624/0001-93
 - Linguagem técnica e direta: fatos, números, percentuais
 - Vocabulário: "registrado", "executado", "previsto", "real", "desvio", "risco", "recomendado"
 </regras_absolutas>
+
+<formato_saida>
+- ZERO markdown: proibido usar **, *, ##, ###, ---, _texto_, [texto], ou qualquer sintaxe markdown
+- Títulos de seção: SEMPRE em CAIXA ALTA sozinhos na linha (ex: PERFORMANCE POR SERVIÇO)
+- Itens de lista: prefixo "- " (traço espaço)
+- Dados chave-valor: "Rótulo: valor" na mesma linha
+- Texto simples: sem formatação especial
+</formato_saida>
 
 <estrutura_obrigatoria>
 CABEÇALHO
@@ -624,6 +640,21 @@ function renderResumoObra() {
 // ─── RENDERIZAR TEXTO DO AGENTE COMO HTML ────────────────────────────────────
 function textoParaHTML(txt) {
   if (!txt) return '';
+
+  // ── Pré-processamento: normaliza markdown → texto estruturado ──────────────
+  // Remove separadores markdown
+  txt = txt.replace(/^---+\s*$/gm, '');
+  txt = txt.replace(/^\*\*\*+\s*$/gm, '');
+  // Converte cabeçalhos markdown ## em CAPS para detecção posterior
+  txt = txt.replace(/^#{1,3}\s+(.+)$/gm, (_, h) => h.trim().toUpperCase());
+  // Remove negrito/itálico preservando o texto
+  txt = txt.replace(/\*\*(.+?)\*\*/g, '$1');
+  txt = txt.replace(/\*(.+?)\*/g, '$1');
+  txt = txt.replace(/__(.+?)__/g, '$1');
+  txt = txt.replace(/_(.+?)_/g, '$1');
+  // Remove links markdown [texto](url) → texto
+  txt = txt.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+
   const lines = txt.split('\n');
   let html = '';
   let inSection = false;
@@ -634,9 +665,9 @@ function textoParaHTML(txt) {
     const line = rawLine.trim();
     if (!line) continue;
 
-    // Detecta cabeçalho de seção: linha em CAPS ou CAPS com pontuação, curta
+    // Cabeçalho de seção: linha em CAPS, sem prefixo de lista
     const isSectionHead = /^[A-ZÁÉÍÓÚÀÂÃÕÊÔ\s\d\/\.\-–:]{3,}$/.test(line)
-      && line.length < 65 && line === line.toUpperCase() && !/^\d+\./.test(line);
+      && line.length < 70 && line === line.toUpperCase() && !/^\d+[\.\)]/.test(line);
 
     if (isSectionHead) {
       if (inSection) html += '</div>';
@@ -648,9 +679,9 @@ function textoParaHTML(txt) {
           <span class="rel-section-title">${esc(line)}</span>
         </div>`;
       inSection = true;
-    } else if (/^(\d+\.|[-·•])\s/.test(line)) {
+    } else if (/^(\d+[\.\)]|[-·•])\s/.test(line)) {
       itemIdx++;
-      const content = line.replace(/^(\d+\.|[-·•])\s+/, '');
+      const content = line.replace(/^(\d+[\.\)]|[-·•])\s+/, '');
       let tags = '';
       if (/conclu[íi]d[ao]|100%/i.test(content)) tags += '<span class="tag tag-ok">CONCLUÍDO</span>';
       else if (/em andamento/i.test(content)) tags += '<span class="tag tag-and">EM ANDAMENTO</span>';
@@ -660,20 +691,17 @@ function textoParaHTML(txt) {
         <span class="rel-item-num">${itemIdx}.</span>
         <span class="rel-item-body">${esc(content)}${tags}</span>
       </div>`;
+    } else if (/^[\w\sÀ-ú]+:\s*.+/.test(line) && line.indexOf(':') < 30) {
+      // Linha chave: valor
+      const sep = line.indexOf(':');
+      const k = line.slice(0, sep).trim();
+      const v = line.slice(sep + 1).trim();
+      html += `<div style="padding:4px 0;font-size:13px;border-bottom:1px solid #f5f5f5;display:flex;gap:8px">
+        <span style="color:var(--text-muted);font-family:var(--font-data);font-size:10px;letter-spacing:.5px;min-width:80px;padding-top:2px">${esc(k)}</span>
+        <span>${esc(v)}</span>
+      </div>`;
     } else {
-      // Linha de dado (ex: "Obra: X" ou parágrafo)
-      if (inSection) {
-        if (/^[\w\s]+:/.test(line) && line.indexOf(':') < 25) {
-          const [k, ...rest] = line.split(':');
-          html += `<div style="padding:4px 0;font-size:13px;border-bottom:1px solid #f5f5f5">
-            <span style="color:var(--text-muted);font-family:var(--font-data);font-size:10px;letter-spacing:.5px;margin-right:6px">${esc(k.trim())}</span>${esc(rest.join(':').trim())}
-          </div>`;
-        } else {
-          html += `<p class="rel-para">${esc(line)}</p>`;
-        }
-      } else {
-        html += `<p style="margin-bottom:8px;font-size:13px">${esc(line)}</p>`;
-      }
+      html += `<p class="rel-para">${esc(line)}</p>`;
     }
   }
 
@@ -1039,10 +1067,24 @@ function abrirPreviewHTML(html, titulo) {
     .pdf-meta-val{font-size:12px;font-weight:600;color:#111}
     .pdf-body{padding:28px 40px 20px}
     .pdf-footer{padding:12px 40px;border-top:1px solid #eee;display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:8px;color:#bbb;letter-spacing:.5px;position:fixed;bottom:0;left:0;right:0;background:#fff}
+    /* estilos compartilhados com textoParaHTML */
+    .rel-section{margin-bottom:22px}
+    .rel-section-head{display:flex;align-items:center;gap:10px;border-bottom:2px solid #1a2e1a;padding-bottom:6px;margin-bottom:10px}
+    .rel-section-num{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:#1a2e1a;line-height:1;min-width:28px}
+    .rel-section-title{font-family:'Jost',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;color:#1a2e1a;text-transform:uppercase}
+    .rel-item{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:13px}
+    .rel-item-num{font-family:'JetBrains Mono',monospace;font-size:10px;color:#aaa;min-width:18px;padding-top:2px}
+    .rel-item-body{flex:1;line-height:1.5}
+    .rel-para{font-size:13px;margin-bottom:6px;line-height:1.6}
+    .tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1px;padding:1px 5px;border-radius:2px;margin-left:6px;vertical-align:middle}
+    .tag-ok  {background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7}
+    .tag-and {background:#e3f2fd;color:#1565c0;border:1px solid #90caf9}
+    .tag-pend{background:#fff8e1;color:#f57f17;border:1px solid #ffe082}
+    .tag-alta{background:#fce4ec;color:#c62828;border:1px solid #ef9a9a}
     @media print{
-      @page{margin:0;size:A4}
+      @page{margin:15mm;size:A4}
       body{print-color-adjust:exact;-webkit-print-color-adjust:exact}
-      .pdf-footer{position:fixed;bottom:0}
+      .pdf-footer{position:fixed;bottom:0;left:0;right:0}
     }
     </style>
   </head><body>
@@ -1075,10 +1117,10 @@ function abrirPreviewHTML(html, titulo) {
 function imprimirPDF(tipo) {
   if (tipo === 'semanal') {
     if (!relTextos.semanal) { toast('Gere o relatório primeiro', 'warn'); return; }
-    abrirPreviewHTML(textoParaPDF(relTextos.semanal), 'Semanal Cliente');
+    abrirPreviewHTML(textoParaHTML(relTextos.semanal), 'Semanal Cliente');
   } else if (tipo === 'interno') {
     if (!relTextos.interno) { toast('Gere o relatório interno primeiro', 'warn'); return; }
-    abrirPreviewHTML(textoParaPDF(relTextos.interno), 'Interno');
+    abrirPreviewHTML(textoParaHTML(relTextos.interno), 'Interno');
   } else if (tipo === 'medicao') {
     const med = document.getElementById('medicao-output');
     if (!med?.innerHTML?.trim()) { toast('Carregue os dados primeiro', 'warn'); return; }
