@@ -4,30 +4,30 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#060D09">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f4f6f4">
 <title>DEKA · Cockpit — Berti Construtora</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Jost:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Syne:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --verde:      #2E9650;
   --verde-dim:  #1a5c30;
-  --verde-glow: rgba(46,150,80,0.15);
-  --ouro:       #B89A6A;
-  --ouro-dim:   #7a6445;
-  --bg:         #060D09;
-  --bg-2:       #0D1A10;
-  --bg-3:       #142018;
-  --bg-4:       #1a2a1e;
-  --border:     #1e2e20;
-  --border-2:   #2a3e2c;
-  --text:       #e8f0e8;
-  --text-dim:   #7a9a7a;
-  --text-muted: #4a6a4a;
+  --verde-glow: rgba(46,150,80,0.09);
+  --ouro:       #8B6914;
+  --ouro-dim:   #fdf5e6;
+  --bg:         #f4f6f4;
+  --bg-2:       #ffffff;
+  --bg-3:       #f0f3f0;
+  --bg-4:       #e8ece8;
+  --border:     #d0dcd0;
+  --border-2:   #bccbbc;
+  --text:       #1c2b1c;
+  --text-dim:   #3a5a3a;
+  --text-muted: #6a8a6a;
   --danger:     #cc3333;
-  --danger-dim: #3a0a0a;
-  --warn:       #cc8800;
-  --warn-dim:   #2a1800;
+  --danger-dim: #fde8e8;
+  --warn:       #b87700;
+  --warn-dim:   #fff3de;
   --font-display: 'Bebas Neue', sans-serif;
   --font-body:    'Jost', sans-serif;
   --font-data:    'JetBrains Mono', monospace;
@@ -35,11 +35,46 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;min-height:100vh;overflow-x:hidden}
 
-#app-header{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:52px;background:var(--bg-2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
-.header-brand{font-family:var(--font-display);font-size:22px;letter-spacing:2px;color:var(--verde)}
+#app-header{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:44px;background:var(--bg-2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.header-brand{font-family:var(--font-display);font-size:18px;letter-spacing:2px;color:var(--verde)}
 .header-brand span{color:var(--ouro)}
-.header-obra{font-family:var(--font-data);font-size:11px;color:var(--text-dim);text-align:right;max-width:300px}
-.header-obra strong{color:var(--ouro);display:block;font-size:13px}
+.header-meta{font-family:var(--font-data);font-size:11px;color:var(--text-muted);text-align:right}
+
+/* OBRA BANNER — destaque principal */
+#obra-banner{background:linear-gradient(135deg,var(--bg-2) 0%,var(--bg-3) 100%);border-bottom:2px solid var(--verde-dim);padding:14px 20px 12px;position:sticky;top:44px;z-index:99}
+#obra-banner-nome{font-family:var(--font-display);font-size:32px;letter-spacing:3px;color:var(--text);line-height:1;text-transform:uppercase}
+#obra-banner-nome.empty{color:var(--text-muted);font-size:20px}
+#obra-banner-sub{display:flex;align-items:center;gap:16px;margin-top:4px;flex-wrap:wrap}
+.banner-pill{font-family:var(--font-data);font-size:11px;color:var(--text-dim);background:var(--bg-4);border:1px solid var(--border);border-radius:3px;padding:2px 8px}
+.banner-pill.verde{color:var(--verde);border-color:var(--verde-dim);background:var(--verde-glow)}
+.banner-pill.ouro{color:var(--ouro);border-color:var(--ouro-dim)}
+.banner-pill.danger{color:var(--danger);border-color:var(--danger);background:var(--danger-dim)}
+#banner-pct-bar{height:3px;background:var(--bg-4);margin-top:10px;border-radius:2px;overflow:hidden}
+#banner-pct-fill{height:100%;background:var(--verde);border-radius:2px;transition:width .5s ease}
+
+/* DIÁRIO SEMANAL */
+.diario-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:8px}
+@media(max-width:700px){.diario-grid{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:400px){.diario-grid{grid-template-columns:repeat(2,1fr)}}
+.diario-dia{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:10px 8px;min-height:100px;cursor:pointer;transition:all .15s;position:relative}
+.diario-dia:hover{border-color:var(--verde-dim)}
+.diario-dia.hoje{border-color:var(--verde);background:var(--verde-glow)}
+.diario-dia.tem-dado{border-color:var(--border-2)}
+.diario-dia-label{font-family:var(--font-display);font-size:16px;letter-spacing:1px;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase}
+.diario-dia.hoje .diario-dia-label{color:var(--verde)}
+.diario-dia-presencas{font-family:var(--font-data);font-size:10px;color:var(--verde);margin-bottom:4px;line-height:1.4}
+.diario-dia-notas{font-size:11px;color:var(--text-dim);line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical}
+.diario-dia-empty{font-family:var(--font-data);font-size:10px;color:var(--text-muted);margin-top:8px}
+.diario-dia-badge{position:absolute;top:6px;right:6px;width:6px;height:6px;background:var(--verde);border-radius:50%}
+
+/* HISTÓRICO SEMANAS */
+.semana-hist-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;margin-bottom:8px}
+.semana-hist-item:hover{border-color:var(--border-2)}
+.semana-hist-num{font-family:var(--font-display);font-size:32px;color:var(--verde-dim);line-height:1;min-width:44px;text-align:center}
+.semana-hist-info{flex:1}
+.semana-hist-periodo{font-family:var(--font-data);font-size:11px;color:var(--text-muted);margin-bottom:2px}
+.semana-hist-pct{font-size:13px;font-weight:600;color:var(--text)}
+.semana-hist-actions{display:flex;gap:6px;flex-shrink:0}
 
 #nav-tabs{display:flex;background:var(--bg-2);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
 #nav-tabs::-webkit-scrollbar{display:none}
@@ -63,7 +98,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 .kpi-value.warn{color:var(--warn)}
 
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:5px;border:none;cursor:pointer;font-family:var(--font-body);font-size:13px;font-weight:500;transition:all .15s}
-.btn-verde{background:var(--verde-dim);border:1px solid var(--verde);color:var(--verde)}
+.btn-verde{background:var(--verde-glow);border:1px solid var(--verde);color:var(--verde-dim)}
 .btn-verde:hover{background:var(--verde);color:#fff}
 .btn-ouro{background:var(--ouro-dim);border:1px solid var(--ouro);color:var(--ouro)}
 .btn-ouro:hover{background:var(--ouro);color:#000}
@@ -90,15 +125,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 .progress-fill.danger{background:var(--danger)}
 
 .status-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:3px;font-size:11px;font-family:var(--font-data);font-weight:500}
-.status-planejado{background:rgba(74,106,74,.3);color:var(--text-dim)}
-.status-em_andamento{background:rgba(46,150,80,.2);color:var(--verde)}
-.status-concluido{background:rgba(46,150,80,.4);color:#6eff9e}
-.status-atrasado{background:rgba(204,51,51,.2);color:var(--danger)}
-.status-cancelado{background:rgba(50,50,50,.5);color:#666}
-.status-pendente{background:rgba(204,136,0,.2);color:var(--warn)}
-.status-pago{background:rgba(46,150,80,.3);color:var(--verde)}
-.status-solicitado{background:rgba(184,154,106,.2);color:var(--ouro)}
-.status-recebido{background:rgba(46,150,80,.3);color:var(--verde)}
+.status-planejado{background:#eef2ee;color:var(--text-muted)}
+.status-em_andamento{background:#e4f2eb;color:var(--verde-dim)}
+.status-concluido{background:#c8e8d4;color:#0f4a28}
+.status-atrasado{background:#fde8e8;color:var(--danger)}
+.status-cancelado{background:#f2f2f2;color:#888}
+.status-pendente{background:#fff3de;color:var(--warn)}
+.status-pago{background:#c8e8d4;color:#0f4a28}
+.status-solicitado{background:#fdf5e6;color:var(--ouro)}
+.status-recebido{background:#c8e8d4;color:#0f4a28}
 
 .list-item{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
 .list-item:hover{border-color:var(--border-2)}
@@ -119,8 +154,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 .gantt-table tr:last-child td{border-bottom:none}
 .gantt-table tr:hover td{background:var(--bg-4)}
 .gantt-semana-cell{background:var(--bg-4);border-radius:3px;padding:2px 6px;font-family:var(--font-data);font-size:11px;text-align:center}
-.gantt-semana-active{background:var(--verde-dim);color:var(--verde)}
-.gantt-semana-done{background:rgba(46,150,80,.15);color:var(--text-dim)}
+.gantt-semana-active{background:var(--verde);color:#fff}
+.gantt-semana-done{background:#c8e8d4;color:#1a5c30}
 .gantt-semana-planned{background:var(--bg-4);color:var(--text-muted)}
 
 /* AGT_COCKPIT */
@@ -147,10 +182,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 
 /* TOAST */
 .toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:6px;font-family:var(--font-body);font-size:14px;animation:toastIn .2s ease;max-width:320px}
-.toast-info{background:var(--bg-3);border:1px solid var(--verde);color:var(--text)}
-.toast-success{background:var(--verde-dim);border:1px solid var(--verde);color:#fff}
-.toast-error{background:#2a0808;border:1px solid var(--danger);color:#ff6666}
-.toast-warn{background:#2a1800;border:1px solid var(--warn);color:#ffaa33}
+.toast-info{background:#fff;border:1px solid var(--verde);color:var(--text);box-shadow:0 2px 12px rgba(0,0,0,0.12)}
+.toast-success{background:#e4f2eb;border:1px solid var(--verde);color:var(--verde-dim);box-shadow:0 2px 12px rgba(0,0,0,0.12)}
+.toast-error{background:#fde8e8;border:1px solid var(--danger);color:var(--danger);box-shadow:0 2px 12px rgba(0,0,0,0.12)}
+.toast-warn{background:#fff3de;border:1px solid var(--warn);color:var(--warn);box-shadow:0 2px 12px rgba(0,0,0,0.12)}
 @keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
 /* EMPTY STATE */
@@ -182,10 +217,19 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 
 <div id="app-header">
   <div class="header-brand">DEKA <span>·</span> COCKPIT</div>
-  <div class="header-obra">
-    <strong id="h-obra-nome">Nenhuma obra carregada</strong>
-    <span id="h-obra-info">— · —</span>
+  <div class="header-meta" id="h-obra-info">— · —</div>
+</div>
+
+<div id="obra-banner">
+  <div id="obra-banner-nome" class="empty">Nenhuma obra carregada</div>
+  <div id="obra-banner-sub">
+    <span class="banner-pill verde" id="banner-semana">S—</span>
+    <span class="banner-pill" id="banner-cliente">—</span>
+    <span class="banner-pill ouro" id="banner-valor">—</span>
+    <span class="banner-pill" id="banner-periodo">—</span>
+    <span class="banner-pill verde" id="banner-pct">0%</span>
   </div>
+  <div id="banner-pct-bar"><div id="banner-pct-fill" style="width:0%"></div></div>
 </div>
 
 <div id="nav-tabs">
@@ -256,6 +300,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
       <button class="btn btn-ghost btn-sm" onclick="abrirRelatorios()">↗ Relatórios</button>
       <button class="btn btn-ghost btn-sm" onclick="abrirBrain()">↗ Brain</button>
     </div>
+  </div>
+
+  <div class="card">
+    <div class="section-header">
+      <div class="card-title">DIÁRIO DA SEMANA</div>
+      <span id="diario-semana-label" style="font-family:var(--font-data);font-size:11px;color:var(--text-muted)"></span>
+    </div>
+    <div class="diario-grid" id="diario-grid"></div>
   </div>
 
   <div class="card">
@@ -391,7 +443,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
     <div id="medicao-semana"></div>
   </div>
   <div class="card">
-    <div class="card-title">SNAPSHOTS DE SEMANAS ANTERIORES</div>
+    <div class="card-title">HISTÓRICO POR SEMANA</div>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Cada semana fechada tem snapshot permanente. Clique em "Relatório" para abrir no módulo Relatórios.</p>
     <div id="snapshots-list"></div>
   </div>
   <div class="card" style="border-color:var(--warn)">
@@ -444,16 +497,17 @@ async function sbFetch(endpoint, options = {}) {
   return res.json();
 }
 
-const AI_URL   = 'https://anthropic-proxy.berti-b52.workers.dev/v1/messages';
-const AI_MODEL = 'claude-sonnet-4-5';
+const AI_URL        = 'https://anthropic-proxy.berti-b52.workers.dev/v1/messages';
+const AI_MODEL      = 'claude-sonnet-4-5';
+const AI_MODEL_FAST = 'claude-haiku-4-5-20251001'; // extração estruturada — JSON, parsing
 
-async function aiFetch(systemText, userMsg, maxTokens = 1024) {
+async function aiFetch(systemText, userMsg, maxTokens = 1024, model = AI_MODEL) {
   const res = await fetch(AI_URL, {
     method: 'POST',
     signal: AbortSignal.timeout(30000),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: AI_MODEL,
+      model: model,
       max_tokens: maxTokens,
       system: [{ type: 'text', text: systemText, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: userMsg }]
@@ -579,6 +633,34 @@ function getObraKey() {
   return slugify(state.config.obra) + '_' + ano;
 }
 
+// ─── KEY NORMALIZATION ───────────────────────────────────────────────────────
+// Mapeia chaves legadas (geradas por getObraKey) → chaves canônicas do Supabase
+const KEY_MAP = {
+  'badida_2026': 'badida-parkshopping-barigui-v1'
+};
+
+function normalizeKey(key) {
+  return KEY_MAP[key] || key;
+}
+
+// Converte pendência do schema antigo (descricao/prioridade/responsavel)
+// para o schema atual (titulo/urgencia/tipo)
+function normalizarPendencia(p) {
+  return {
+    ...p,
+    titulo:   p.titulo   ?? p.descricao  ?? '',
+    urgencia: p.urgencia ?? p.prioridade ?? 'media',
+    tipo:     p.tipo     ?? 'outro',
+  };
+}
+
+function normalizarPendencias(st) {
+  if (st?.pendencias?.length) {
+    st.pendencias = st.pendencias.map(normalizarPendencia);
+  }
+  return st;
+}
+
 // ─── SAVE ─────────────────────────────────────────────────────────────────────
 function saveState() {
   if (!obraKey) {
@@ -614,25 +696,38 @@ async function sbSave() {
 
 // ─── LOAD ─────────────────────────────────────────────────────────────────────
 async function carregarObra(key) {
-  obraKey = key;
-  // 1. Tenta localStorage
-  const local = localStorage.getItem(`cockpit_${key}`);
-  if (local) {
-    try { state = JSON.parse(local); renderAll(); return; } catch {}
+  const canonicalKey = normalizeKey(key);
+  obraKey = canonicalKey;
+
+  // Migrar entrada legada se existir sob chave antiga
+  if (canonicalKey !== key) {
+    const legacy = localStorage.getItem(`cockpit_${key}`);
+    if (legacy) {
+      localStorage.setItem(`cockpit_${canonicalKey}`, legacy);
+      localStorage.removeItem(`cockpit_${key}`);
+    }
   }
-  // 2. Tenta Supabase
+
+  // 1. Tenta Supabase (fonte de verdade quando chave vem de URL)
   try {
-    const rows = await sbFetch(`cockpit_obras?obra_key=eq.${key}&select=*`);
+    const rows = await sbFetch(`cockpit_obras?obra_key=eq.${canonicalKey}&select=*`);
     if (rows?.length) {
-      state = rows[0].data;
-      localStorage.setItem(`cockpit_${key}`, JSON.stringify(state));
+      state = normalizarPendencias(rows[0].data);
+      localStorage.setItem(`cockpit_${canonicalKey}`, JSON.stringify(state));
       renderAll();
       return;
     }
   } catch(e) {
     console.error('Supabase load error:', e);
-    toast('Erro ao carregar do Supabase', 'error');
+    // fallthrough para localStorage
   }
+
+  // 2. Tenta localStorage (offline fallback)
+  const local = localStorage.getItem(`cockpit_${canonicalKey}`);
+  if (local) {
+    try { state = normalizarPendencias(JSON.parse(local)); renderAll(); return; } catch {}
+  }
+
   // 3. Estado vazio
   state = estadoVazio();
   renderAll();
@@ -643,6 +738,7 @@ function renderAll() {
   renderHeader();
   renderKpiObra();
   renderConfigForm();
+  renderDiario();
   renderCronograma();
   renderServicos();
   renderEquipes();
@@ -653,13 +749,88 @@ function renderAll() {
   renderFechamento();
 }
 
+// ─── DIÁRIO SEMANAL ───────────────────────────────────────────────────────────
+function renderDiario() {
+  const c = state?.config || {};
+  const semana = calcSemanaAtual(c.periodo_ini);
+  const diario = state?.diario || {};
+  const hojeStr = hoje();
+  const diaSemanaHoje = ['dom','seg','ter','qua','qui','sex','sab'][new Date().getDay()];
+  const periodo = getPeriodoSemana(c.periodo_ini, semana);
+
+  document.getElementById('diario-semana-label').textContent = `S${semana} · ${periodo}`;
+
+  const dias = [
+    { key:'seg', label:'SEG' },
+    { key:'ter', label:'TER' },
+    { key:'qua', label:'QUA' },
+    { key:'qui', label:'QUI' },
+    { key:'sex', label:'SEX' },
+    { key:'sab', label:'SÁB' },
+    { key:'dom', label:'DOM' }
+  ];
+
+  const el = document.getElementById('diario-grid');
+  el.innerHTML = dias.map(d => {
+    const dadoDia = diario[d.key] || {};
+    const presencas = Array.isArray(dadoDia.presencas) ? dadoDia.presencas : [];
+    const notas = dadoDia.notas || '';
+    const temDado = presencas.length > 0 || notas;
+    const isHoje = d.key === diaSemanaHoje;
+
+    return `
+    <div class="diario-dia${isHoje?' hoje':''}${temDado?' tem-dado':''}" onclick="editarDiarioDia('${d.key}','${esc(d.label)}')">
+      ${temDado ? '<div class="diario-dia-badge"></div>' : ''}
+      <div class="diario-dia-label">${d.label}</div>
+      ${presencas.length ? `<div class="diario-dia-presencas">👷 ${presencas.map(esc).join(', ')}</div>` : ''}
+      ${notas ? `<div class="diario-dia-notas">${esc(notas)}</div>` : `<div class="diario-dia-empty">${isHoje ? '← hoje' : 'sem registro'}</div>`}
+    </div>`;
+  }).join('');
+}
+
+function editarDiarioDia(diaKey, diaLabel) {
+  const dadoDia = state?.diario?.[diaKey] || {};
+  const presAtual = Array.isArray(dadoDia.presencas) ? dadoDia.presencas.join(', ') : '';
+  const notasAtual = dadoDia.notas || '';
+
+  abrirModalForm(`Diário — ${diaLabel}`, [
+    { id:'f-presencas', label:'Presenças (separadas por vírgula)', type:'text', value: presAtual },
+    { id:'f-notas', label:'Notas do dia', type:'text', value: notasAtual }
+  ], (vals) => {
+    state.diario = state.diario || {};
+    state.diario[diaKey] = {
+      presencas: vals['f-presencas'].split(',').map(s => s.trim()).filter(Boolean),
+      notas: vals['f-notas']
+    };
+    saveState();
+    renderDiario();
+  });
+}
+
 function renderHeader() {
   const c = state?.config;
   if (!c) return;
-  document.getElementById('h-obra-nome').textContent = c.obra || 'Sem nome';
   const semana = calcSemanaAtual(c.periodo_ini);
-  document.getElementById('h-obra-info').textContent =
-    `S${semana} · ${fmtDate(c.periodo_ini)} → ${fmtDate(c.periodo_fim)}`;
+  const pct = calcPctGeral(state?.servicos || []);
+
+  // Banner — obra title grande
+  const bannerNome = document.getElementById('obra-banner-nome');
+  if (c.obra) {
+    bannerNome.textContent = c.obra;
+    bannerNome.classList.remove('empty');
+  } else {
+    bannerNome.textContent = 'Nenhuma obra carregada';
+    bannerNome.classList.add('empty');
+  }
+  document.getElementById('banner-semana').textContent  = `S${semana}`;
+  document.getElementById('banner-cliente').textContent = c.cliente || '—';
+  document.getElementById('banner-valor').textContent   = fmtMoney(c.valor_contrato);
+  document.getElementById('banner-periodo').textContent = `${fmtDate(c.periodo_ini)} → ${fmtDate(c.periodo_fim)}`;
+  document.getElementById('banner-pct').textContent     = `${pct}%`;
+  document.getElementById('banner-pct-fill').style.width = `${pct}%`;
+
+  // Compact header meta
+  document.getElementById('h-obra-info').textContent = `S${semana} · ${pct}%`;
   document.getElementById('btn-semana-label').textContent = `S${semana}`;
 }
 
@@ -1061,34 +1232,47 @@ function renderMedicaoSemana() {
 function renderSnapshots() {
   const snaps = state?.snapshots || {};
   const keys = Object.keys(snaps).sort((a, b) => {
-    const na = parseInt(a.replace('S',''));
-    const nb = parseInt(b.replace('S',''));
-    return nb - na;
+    return parseInt(b.replace('S','')) - parseInt(a.replace('S',''));
   });
 
   const el = document.getElementById('snapshots-list');
   if (!keys.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📦</div>Nenhum snapshot gravado ainda</div>`;
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📦</div>Nenhum snapshot gravado ainda.<br>Feche a semana atual para criar o primeiro.</div>`;
     return;
   }
 
   el.innerHTML = keys.map(k => {
     const snap = snaps[k];
-    const semNum = k.replace('S','');
+    const semNum = parseInt(k.replace('S',''));
     const periodo = getPeriodoSemana(state?.config?.periodo_ini, semNum);
     const pct = calcPctGeral(snap?.servicos || []);
+    const concluidos = (snap?.servicos || []).filter(s => s.pct_atual >= 100).length;
+    const pendsAbertas = (snap?.pendencias || []).filter(p => p.status === 'ABERTO').length;
+    const pctFill = pct;
+    const pctClass = pct >= 100 ? 'verde' : '';
+
+    // Medição da semana: valor acumulado no snapshot
+    const valorMedido = (snap?.servicos || []).reduce((s, v) =>
+      s + (Number(v.valor)||0) * (Number(v.pct_atual)||0) / 100, 0);
+
     return `
-    <div class="list-item">
-      <div class="list-item-main">
-        <div class="list-item-title">Semana ${k} — ${periodo}</div>
-        <div class="list-item-sub" style="margin-top:4px">
-          <span>Progresso: ${pct}%</span>
-          <span style="margin-left:10px">${snap?.servicos?.length||0} serviços</span>
+    <div class="semana-hist-item">
+      <div class="semana-hist-num">S${semNum}</div>
+      <div class="semana-hist-info">
+        <div class="semana-hist-periodo">${esc(periodo)}</div>
+        <div class="semana-hist-pct">${pct}% concluído · ${esc(String(snap?.servicos?.length||0))} serviços</div>
+        <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
+          ${concluidos ? `<span style="font-size:11px;font-family:var(--font-data);color:var(--verde)">✓ ${concluidos} finalizado${concluidos!==1?'s':''}</span>` : ''}
+          ${pendsAbertas ? `<span style="font-size:11px;font-family:var(--font-data);color:var(--warn)">⚠ ${pendsAbertas} pendência${pendsAbertas!==1?'s':''}</span>` : ''}
+          <span style="font-size:11px;font-family:var(--font-data);color:var(--ouro)">${fmtMoney(valorMedido)} medido</span>
+        </div>
+        <div style="height:3px;background:var(--bg-4);border-radius:2px;margin-top:6px;max-width:200px;overflow:hidden">
+          <div style="height:100%;width:${pctFill}%;background:var(--verde);border-radius:2px"></div>
         </div>
       </div>
-      <div class="list-actions">
-        <button class="btn btn-ghost btn-sm" onclick='abrirRelatoriosSemana("${k.replace('S','')}")''>↗ Relatório</button>
-        <button class="btn btn-danger btn-sm" onclick="deletarSnapshot('${semNum}')">Apagar</button>
+      <div class="semana-hist-actions">
+        <button class="btn btn-verde btn-sm" onclick="abrirRelatoriosSemana('${semNum}')">↗ Relatório</button>
+        <button class="btn btn-danger btn-sm" onclick="deletarSnapshot('${semNum}')">✕</button>
       </div>
     </div>`;
   }).join('');
@@ -1100,7 +1284,7 @@ Sua única função: interpretar relatos de visita e extrair dados estruturados.
 
 RESPONDA APENAS COM JSON VÁLIDO. Sem texto antes ou depois. Sem markdown.
 
-Schema obrigatório:
+<schema_saida>
 {
   "presencas": ["nome1", "nome2"],
   "servicos": [
@@ -1124,15 +1308,18 @@ Schema obrigatório:
   ],
   "observacao_geral": "resumo do dia em 1-2 frases"
 }
+</schema_saida>
 
-Regras de interpretação:
+<regras_interpretacao>
 - "quase pronto" → pct_novo: 90
 - "metade" → pct_novo: 50
 - "começamos" → pct_novo: 15
 - "finalizamos" / "concluído" → concluido: true, pct_novo: 100
 - Nunca inventar serviços não mencionados
 - Arrays vazios [] quando não mencionado — nunca null
-- ref pode ser código SRV-XXX ou vazio se não identificado`;
+- ref pode ser código SRV-XXX ou vazio se não identificado
+- Nunca regredir % sem flag concluido=true
+</regras_interpretacao>`;
 
 async function processarVisita() {
   const input = document.getElementById('cockpit-input').value.trim();
@@ -1149,7 +1336,7 @@ async function processarVisita() {
 
   try {
     const ctx = `Serviços da obra: ${JSON.stringify(state.servicos.map(s => ({cod:s.cod,descricao:s.descricao,pct_atual:s.pct_atual})))}`;
-    const raw = await aiFetch(SYS_COCKPIT, `${ctx}\n\nRelato da visita:\n${input}`, 1024);
+    const raw = await aiFetch(SYS_COCKPIT, `${ctx}\n\nRelato da visita:\n${input}`, 1024, AI_MODEL_FAST);
     const json = parseAgentJSON(raw);
     if (!json) { toast('Agente retornou resposta inválida', 'error'); result.style.display='none'; return; }
 
