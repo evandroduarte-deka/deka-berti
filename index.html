@@ -211,6 +211,33 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 
 /* BLOCKED OVERLAY */
 .blocked-badge{display:inline-flex;align-items:center;gap:4px;background:var(--danger-dim);border:1px solid var(--danger);color:var(--danger);border-radius:3px;padding:2px 8px;font-size:11px;font-family:var(--font-data)}
+
+/* COLLAPSE SECTION */
+.sec-toggle{background:none;border:none;cursor:pointer;font-size:13px;color:var(--text-muted);padding:0 4px;line-height:1;transition:transform .2s;display:inline-block;transform:rotate(0deg)}
+.sec-toggle.collapsed{transform:rotate(-90deg)}
+.collapsible{overflow:hidden}
+.collapsible.collapsed{display:none}
+
+/* VISITA — chamada e serviços */
+.visita-srv-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;margin-bottom:6px}
+.chamada-item{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;transition:border-color .15s}
+.chamada-item.presente{border-color:var(--verde);background:var(--verde-glow)}
+
+/* FOTOS — badge semana */
+.foto-sem-header{font-family:var(--font-display);font-size:13px;letter-spacing:1px;color:var(--text-muted);margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border);grid-column:1/-1}
+
+/* GANTT — view visual barras */
+.gantt-view-toggle{display:flex;gap:6px;margin-bottom:12px}
+.gantt-view-btn{background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-size:11px;font-family:var(--font-data);cursor:pointer;color:var(--text-dim)}
+.gantt-view-btn.active{background:var(--verde-glow);border-color:var(--verde);color:var(--verde-dim)}
+.gantt-visual-wrap{overflow-x:auto}
+.gantt-visual-row{display:grid;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)}
+.gantt-visual-row.header{font-family:var(--font-data);font-size:10px;color:var(--text-muted);border-bottom:2px solid var(--border-2)}
+.gantt-visual-label{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.gantt-visual-track{height:18px;background:var(--bg-4);border-radius:3px;position:relative}
+.gantt-bar-bg{position:absolute;top:0;height:100%;border-radius:3px;background:var(--border-2)}
+.gantt-bar-real{position:absolute;top:3px;height:12px;border-radius:2px;background:var(--verde);transition:width .3s}
+.gantt-sem-cur{position:absolute;top:0;width:2px;height:100%;background:var(--ouro);opacity:.8}
 </style>
 </head>
 <body>
@@ -306,6 +333,36 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 
 <!-- ═══════════════════════════════ ABA VISITA ══════════════════════════════ -->
 <div id="panel-visita" class="panel">
+
+  <!-- CHAMADA DO DIA -->
+  <div class="card">
+    <div class="section-header">
+      <div class="card-title" style="display:flex;align-items:center;gap:8px">
+        CHAMADA DO DIA
+        <button class="sec-toggle" id="tog-chamada" onclick="toggleSec('chamada')">▼</button>
+      </div>
+      <span id="chamada-dia-label" style="font-family:var(--font-data);font-size:11px;color:var(--text-muted)"></span>
+    </div>
+    <div class="collapsible" id="sec-chamada">
+      <div id="chamada-equipes-list"></div>
+    </div>
+  </div>
+
+  <!-- SERVIÇOS DESTA SEMANA -->
+  <div class="card">
+    <div class="section-header">
+      <div class="card-title" style="display:flex;align-items:center;gap:8px">
+        SERVIÇOS DESTA SEMANA
+        <button class="sec-toggle" id="tog-vsrv" onclick="toggleSec('vsrv')">▼</button>
+      </div>
+      <span id="visita-semana-label" style="font-family:var(--font-data);font-size:11px;color:var(--text-muted)"></span>
+    </div>
+    <div class="collapsible" id="sec-vsrv">
+      <div id="visita-servicos-list"></div>
+    </div>
+  </div>
+
+  <!-- NARRATIVA -->
   <div class="card">
     <div class="section-header">
       <div class="card-title">NARRATIVA DA SEMANA</div>
@@ -315,6 +372,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
     <button class="btn btn-verde btn-sm" style="margin-top:8px" onclick="salvarNarrativa()">Salvar Narrativa</button>
   </div>
 
+  <!-- DIÁRIO -->
   <div class="card">
     <div class="section-header">
       <div class="card-title">DIÁRIO DA SEMANA</div>
@@ -322,6 +380,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
     <div class="diario-grid" id="diario-grid"></div>
   </div>
 
+  <!-- AGT_COCKPIT -->
   <div class="card">
     <div class="card-title">AGT_COCKPIT — PROCESSAR VISITA DE CAMPO</div>
     <p style="font-size:12px;color:var(--text-dim);margin-bottom:10px">Digite ou cole o relato da visita. O agente extrai serviços, presenças, pendências e materiais automaticamente.</p>
@@ -355,23 +414,32 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
       <button class="btn btn-ghost btn-sm" id="btn-fechar-semana" onclick="fecharSemana()">Fechar Semana</button>
     </div>
   </div>
-  <div class="gantt-wrap">
-    <table class="gantt-table" id="gantt-table">
-      <thead>
-        <tr>
-          <th style="width:200px">Serviço</th>
-          <th>Equipe</th>
-          <th>S.Ini</th>
-          <th>S.Fim</th>
-          <th>% Prev</th>
-          <th>% Real</th>
-          <th>Status</th>
-          <th>Valor</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="gantt-body"></tbody>
-    </table>
+  <div class="gantt-view-toggle">
+    <button class="gantt-view-btn active" id="gvb-tabela" onclick="setCronoView('tabela')">Tabela</button>
+    <button class="gantt-view-btn" id="gvb-visual" onclick="setCronoView('visual')">Gantt Visual</button>
+  </div>
+  <div id="gantt-view-tabela">
+    <div class="gantt-wrap">
+      <table class="gantt-table" id="gantt-table">
+        <thead>
+          <tr>
+            <th style="width:200px">Serviço</th>
+            <th>Equipe</th>
+            <th>S.Ini</th>
+            <th>S.Fim</th>
+            <th>% Prev</th>
+            <th>% Real</th>
+            <th>Status</th>
+            <th>Valor</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="gantt-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <div id="gantt-view-visual" style="display:none">
+    <div class="gantt-visual-wrap" id="gantt-visual-content"></div>
   </div>
 </div>
 
@@ -413,11 +481,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
     <button class="btn btn-ghost btn-sm" onclick="adicionarFoto()">+ Foto</button>
   </div>
   <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <select class="form-select" id="foto-filtro-sem" onchange="renderFotos()" style="max-width:110px;font-size:12px">
+      <option value="">Todas semanas</option>
+    </select>
     <select class="form-select" id="foto-filtro-srv" onchange="renderFotos()" style="max-width:200px;font-size:12px">
       <option value="">Todos os serviços</option>
     </select>
     <input class="form-input" id="foto-filtro-data" type="date" onchange="renderFotos()" style="max-width:160px;font-size:12px">
-    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('foto-filtro-srv').value='';document.getElementById('foto-filtro-data').value='';renderFotos()">Limpar filtro</button>
+    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('foto-filtro-sem').value='';document.getElementById('foto-filtro-srv').value='';document.getElementById('foto-filtro-data').value='';renderFotos()">Limpar filtro</button>
   </div>
   <div class="foto-grid" id="fotos-grid"></div>
 </div>
@@ -425,27 +496,42 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 <!-- ═══════════════════════════════ ABA REGISTROS ═══════════════════════════ -->
 <div id="panel-registros" class="panel">
   <div class="section-header">
-    <div class="section-title">PENDÊNCIAS</div>
+    <div class="section-title" style="display:flex;align-items:center;gap:8px">
+      PENDÊNCIAS
+      <button class="sec-toggle" id="tog-pend" onclick="toggleSec('pend')">▼</button>
+    </div>
     <button class="btn btn-ghost btn-sm" onclick="adicionarPendencia()">+ Pendência</button>
   </div>
-  <div style="display:flex;gap:8px;margin-bottom:12px">
-    <button class="btn btn-ghost btn-sm" id="pfiltro-aberto" onclick="setPendFiltro('aberto')" style="border-color:var(--verde);color:var(--verde)">Abertas</button>
-    <button class="btn btn-ghost btn-sm" id="pfiltro-resolvido" onclick="setPendFiltro('resolvido')">Resolvidas</button>
-    <button class="btn btn-ghost btn-sm" id="pfiltro-todos" onclick="setPendFiltro('todos')">Todas</button>
+  <div class="collapsible" id="sec-pend">
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="btn btn-ghost btn-sm" id="pfiltro-aberto" onclick="setPendFiltro('aberto')" style="border-color:var(--verde);color:var(--verde)">Abertas</button>
+      <button class="btn btn-ghost btn-sm" id="pfiltro-resolvido" onclick="setPendFiltro('resolvido')">Resolvidas</button>
+      <button class="btn btn-ghost btn-sm" id="pfiltro-todos" onclick="setPendFiltro('todos')">Todas</button>
+    </div>
+    <div id="pendencias-list"></div>
   </div>
-  <div id="pendencias-list"></div>
 
   <div class="section-header" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
-    <div class="section-title">NOTAS</div>
+    <div class="section-title" style="display:flex;align-items:center;gap:8px">
+      NOTAS
+      <button class="sec-toggle" id="tog-notas" onclick="toggleSec('notas')">▼</button>
+    </div>
     <button class="btn btn-ghost btn-sm" onclick="adicionarNota()">+ Nota</button>
   </div>
-  <div id="notas-list"></div>
+  <div class="collapsible" id="sec-notas">
+    <div id="notas-list"></div>
+  </div>
 
   <div class="section-header" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
-    <div class="section-title">MATERIAIS</div>
+    <div class="section-title" style="display:flex;align-items:center;gap:8px">
+      MATERIAIS
+      <button class="sec-toggle" id="tog-mats" onclick="toggleSec('mats')">▼</button>
+    </div>
     <button class="btn btn-ghost btn-sm" onclick="adicionarMaterial()">+ Material</button>
   </div>
-  <div id="materiais-list"></div>
+  <div class="collapsible" id="sec-mats">
+    <div id="materiais-list"></div>
+  </div>
 </div>
 
 <!-- ═══════════════════════════════ ABA 9 — FECHAMENTO ═══════════════════════ -->
@@ -462,10 +548,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
     <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Cada semana fechada tem snapshot permanente. Clique em "Relatório" para abrir no módulo Relatórios.</p>
     <div id="snapshots-list"></div>
   </div>
+  <div class="card" style="background:var(--verde-glow);border-color:var(--verde)">
+    <div class="card-title" style="color:var(--verde-dim)">SALVAMENTO AUTOMÁTICO</div>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:6px">Os dados da obra são salvos automaticamente no Supabase a cada 10 segundos após qualquer alteração. Não é necessário nenhuma ação manual para salvar o estado atual.</p>
+    <p style="font-size:11px;font-family:var(--font-data);color:var(--text-muted)">localStorage → imediato · Supabase → debounce 10s</p>
+  </div>
   <div class="card" style="border-color:var(--warn)">
-    <div class="card-title" style="color:var(--warn)">FECHAR SEMANA</div>
-    <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Grava snapshot imutável da semana atual. Esta ação é permanente — a semana será bloqueada para edição.</p>
-    <button class="btn btn-warn" onclick="fecharSemana()">Fechar Semana <span id="btn-semana-label"></span></button>
+    <div class="card-title" style="color:var(--warn)">FECHAR SEMANA — CRIAR SNAPSHOT</div>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Ação deliberada: grava snapshot imutável da semana. Use apenas quando a semana estiver concluída. O relatório semanal é gerado no módulo Relatórios a partir deste snapshot.</p>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-warn" onclick="fecharSemana()">Fechar Semana <span id="btn-semana-label"></span></button>
+      <button class="btn btn-ghost btn-sm" onclick="abrirRelatorios()">↗ Gerar Relatório</button>
+    </div>
   </div>
 </div>
 
@@ -764,6 +858,7 @@ function renderAll() {
   renderConfigForm();
   renderNarrativa();
   renderDiario();
+  renderVisita();
   renderCronograma();
   renderServicos();
   renderEquipes();
@@ -810,6 +905,100 @@ function renderDiario() {
       ${notas ? `<div class="diario-dia-notas">${esc(notas)}</div>` : `<div class="diario-dia-empty">${isHoje ? '← hoje' : 'sem registro'}</div>`}
     </div>`;
   }).join('');
+}
+
+// ─── ABA VISITA — chamada + serviços ─────────────────────────────────────────
+function renderVisita() {
+  const c = state?.config || {};
+  const semana = calcSemanaAtual(c.periodo_ini);
+  const dKeys = ['dom','seg','ter','qua','qui','sex','sab'];
+  const diaKey = dKeys[new Date().getDay()];
+  const dLabels = {seg:'SEG',ter:'TER',qua:'QUA',qui:'QUI',sex:'SEX',sab:'SÁB',dom:'DOM'};
+  const hojeStr = hoje();
+
+  // Label do dia
+  const chamLabel = document.getElementById('chamada-dia-label');
+  if (chamLabel) chamLabel.textContent = `${dLabels[diaKey]||''} · ${hojeStr.split('-').reverse().join('/')}`;
+  const vsrvLabel = document.getElementById('visita-semana-label');
+  if (vsrvLabel) vsrvLabel.textContent = `S${semana} · ${getPeriodoSemana(c.periodo_ini, semana)}`;
+
+  // Equipes — chamada
+  const equipes = state?.equipes || [];
+  const presEquipes = state?.diario?.[diaKey]?.equipes_presentes || [];
+  const elCham = document.getElementById('chamada-equipes-list');
+  if (elCham) {
+    if (!equipes.length) {
+      elCham.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👷</div>Nenhuma equipe cadastrada — adicione na aba Equipes</div>`;
+    } else {
+      elCham.innerHTML = equipes.map(e => {
+        const presente = presEquipes.includes(e.id);
+        const tel = e.contato ? e.contato.replace(/\D/g,'') : '';
+        return `<div class="chamada-item${presente?' presente':''}">
+          <input type="checkbox" ${presente?'checked':''} onchange="togglePresencaEquipeRender('${esc(e.id)}','${diaKey}')"
+            style="cursor:pointer;accent-color:var(--verde);width:18px;height:18px;flex-shrink:0">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:500;font-size:13px">${esc(e.nome||'')}</div>
+            <div style="font-size:11px;font-family:var(--font-data);color:var(--text-dim);margin-top:2px">
+              ${esc(e.especialidade||'—')}${e.contato?` · 📱 ${esc(e.contato)}`:''}
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            ${tel ? `<a href="https://wa.me/55${tel}" target="_blank" class="btn btn-verde btn-sm">WhatsApp</a>` : ''}
+            ${presente ? '<span style="font-size:11px;font-family:var(--font-data);color:var(--verde)">✓ presente</span>' : ''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // Serviços da semana — em andamento ou planejados (exceto concluídos/cancelados)
+  const servicos = state?.servicos || [];
+  const srvAtivos = servicos.filter(s =>
+    s.status_atual !== 'CONCLUÍDO' && s.status_atual !== 'cancelado'
+  );
+  const elSrv = document.getElementById('visita-servicos-list');
+  if (elSrv) {
+    if (!srvAtivos.length) {
+      elSrv.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔨</div>Todos os serviços concluídos ou nenhum cadastrado</div>`;
+    } else {
+      elSrv.innerHTML = srvAtivos.map(s => {
+        const idx = servicos.indexOf(s);
+        const pct = s.pct_atual || 0;
+        const fillClass = pct < 30 ? 'danger' : pct < 70 ? 'warn' : '';
+        return `<div class="visita-srv-item">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+              <span style="font-family:var(--font-data);font-size:10px;color:var(--text-muted)">${esc(s.cod||'')}</span>
+              <span style="font-weight:500;font-size:13px">${esc(s.descricao||'')}</span>
+              <span class="status-badge status-${esc((s.status_atual||'planejado').toLowerCase().replace(' ','_'))}" style="font-size:10px">${esc(s.status_atual||'planejado')}</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill ${fillClass}" style="width:${pct}%"></div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0">
+            <input type="number" min="0" max="100" value="${pct}"
+              style="width:56px;text-align:center;font-family:var(--font-data);font-weight:600;font-size:15px;color:var(--verde);background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:4px 5px"
+              onchange="updateServicoPct(${idx},this.value);renderVisita()">
+            <label style="font-size:9px;font-family:var(--font-data);color:var(--text-muted)">%</label>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+}
+
+function togglePresencaEquipeRender(equipeId, dia) {
+  togglePresencaEquipe(equipeId, dia);
+  renderVisita();
+}
+
+// ─── COLLAPSE ─────────────────────────────────────────────────────────────────
+function toggleSec(id) {
+  const sec = document.getElementById('sec-' + id);
+  const tog = document.getElementById('tog-' + id);
+  if (!sec) return;
+  const isOpen = !sec.classList.contains('collapsed');
+  sec.classList.toggle('collapsed', isOpen);
+  if (tog) tog.classList.toggle('collapsed', isOpen);
 }
 
 function editarDiarioDia(diaKey, diaLabel) {
@@ -962,6 +1151,77 @@ function renderCronograma() {
       </td>
     </tr>`;
   }).join('');
+}
+
+// ─── CRONOGRAMA VIEW ─────────────────────────────────────────────────────────
+let cronoView = 'tabela';
+function setCronoView(v) {
+  cronoView = v;
+  document.getElementById('gantt-view-tabela').style.display = v === 'tabela' ? '' : 'none';
+  document.getElementById('gantt-view-visual').style.display = v === 'visual' ? '' : 'none';
+  document.getElementById('gvb-tabela').classList.toggle('active', v === 'tabela');
+  document.getElementById('gvb-visual').classList.toggle('active', v === 'visual');
+  if (v === 'visual') renderCronoVisual();
+}
+
+function renderCronoVisual() {
+  const c = state?.config || {};
+  const semAtual = calcSemanaAtual(c.periodo_ini);
+  const crono = state?.cronograma || [];
+  const el = document.getElementById('gantt-visual-content');
+  if (!el) return;
+  if (!crono.length) { el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📅</div>Nenhuma entrada no cronograma</div>`; return; }
+
+  // Calcular total de semanas
+  const maxSem = Math.max(...crono.map(i => i.semana_prevista_fim || 1), semAtual, 1);
+  const cols = Math.max(maxSem, 4);
+  const colW = Math.max(28, Math.min(60, Math.floor(600 / cols)));
+
+  // Header de semanas
+  const semCols = Array.from({length: cols}, (_, i) => i + 1);
+  const headerCells = semCols.map(s =>
+    `<div style="width:${colW}px;text-align:center;font-size:10px;font-family:var(--font-data);color:${s===semAtual?'var(--verde)':'var(--text-muted)'};font-weight:${s===semAtual?'700':'400'};flex-shrink:0">S${s}</div>`
+  ).join('');
+
+  let html = `<div style="display:flex;align-items:center;gap:4px;padding:6px 0;border-bottom:2px solid var(--border-2);margin-bottom:4px">
+    <div style="width:180px;flex-shrink:0;font-family:var(--font-data);font-size:10px;color:var(--text-muted)">SERVIÇO</div>
+    <div style="display:flex;gap:1px">${headerCells}</div>
+  </div>`;
+
+  crono.forEach(item => {
+    const ini = item.semana_prevista_ini || 1;
+    const fim = item.semana_prevista_fim || ini;
+    const pct = item.pct_real || 0;
+    const equipe = (state?.equipes || []).find(e => e.id === item.equipe_ref || e.nome === item.equipe_ref);
+    const equipeLabel = equipe ? equipe.nome : (item.equipe_ref || '—');
+    const tel = equipe?.contato ? equipe.contato.replace(/\D/g,'') : '';
+
+    const cells = semCols.map(s => {
+      let bg = 'transparent';
+      if (s >= ini && s <= fim) {
+        const total = fim - ini + 1;
+        const semsFeitas = Math.round(total * pct / 100);
+        const sFim_real = ini + semsFeitas - 1;
+        bg = s <= sFim_real ? 'var(--verde)' : 'var(--border-2)';
+      }
+      const isCur = s === semAtual && s >= ini && s <= fim;
+      return `<div style="width:${colW}px;height:18px;background:${bg};opacity:${isCur?1:.8};border-radius:2px;flex-shrink:0;outline:${s===semAtual&&s>=ini&&s<=fim?'2px solid var(--ouro)':'none'};outline-offset:-1px"></div>`;
+    }).join('');
+
+    html += `<div style="display:flex;align-items:center;gap:4px;padding:5px 0;border-bottom:1px solid var(--border)">
+      <div style="width:180px;flex-shrink:0;min-width:0">
+        <div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(item.descricao||'')}</div>
+        <div style="font-size:10px;font-family:var(--font-data);color:var(--text-muted);display:flex;gap:6px;margin-top:1px">
+          <span>${esc(equipeLabel)}</span>
+          ${tel ? `<a href="https://wa.me/55${tel}" target="_blank" style="color:var(--verde)">📱</a>` : ''}
+          <span style="color:var(--verde)">${pct}%</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:1px">${cells}</div>
+    </div>`;
+  });
+
+  el.innerHTML = html;
 }
 
 // ─── ABA SERVIÇOS ────────────────────────────────────────────────────────────
@@ -1144,21 +1404,34 @@ function renderPagamentos() {
 // ─── ABA FOTOS ────────────────────────────────────────────────────────────────
 function renderFotos() {
   const fotos = state?.fotos || [];
-  const filtroSrv  = document.getElementById('foto-filtro-srv').value;
-  const filtroData = document.getElementById('foto-filtro-data').value;
+  const filtroSem  = parseInt(document.getElementById('foto-filtro-sem')?.value || '') || 0;
+  const filtroSrv  = document.getElementById('foto-filtro-srv')?.value || '';
+  const filtroData = document.getElementById('foto-filtro-data')?.value || '';
 
-  // Populate filter dropdown
+  // Populate semanas dropdown
+  const semSelect = document.getElementById('foto-filtro-sem');
+  if (semSelect && semSelect.options.length <= 1) {
+    const semanas = [...new Set(fotos.map(f => f.semana).filter(Boolean))].sort((a,b) => a-b);
+    semanas.forEach(s => {
+      const o = document.createElement('option');
+      o.value = s; o.textContent = `S${s}`;
+      semSelect.appendChild(o);
+    });
+  }
+
+  // Populate serviços dropdown
   const srvSelect = document.getElementById('foto-filtro-srv');
-  const srvOptions = [...new Set(fotos.map(f => f.servico_ref).filter(Boolean))];
-  if (srvSelect.options.length <= 1) {
-    srvOptions.forEach(s => {
+  if (srvSelect && srvSelect.options.length <= 1) {
+    const srvOpts = [...new Set(fotos.map(f => f.servico_ref).filter(Boolean))];
+    srvOpts.forEach(s => {
       const o = document.createElement('option');
       o.value = s; o.textContent = s;
       srvSelect.appendChild(o);
     });
   }
 
-  const filtered = fotos.filter(f => {
+  const filtered = fotos.filter((f, i) => {
+    if (filtroSem && f.semana !== filtroSem) return false;
     if (filtroSrv && f.servico_ref !== filtroSrv) return false;
     if (filtroData && normData(f.data) !== filtroData) return false;
     return true;
@@ -1169,15 +1442,37 @@ function renderFotos() {
     el.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon">📷</div>Nenhuma foto encontrada</div>`;
     return;
   }
-  el.innerHTML = filtered.map((f, i) => `
-    <div class="foto-card">
-      <img src="${esc(f.url||'')}" alt="${esc(f.legenda||'')}" onerror="this.style.height='80px';this.style.background='var(--bg-4)'">
-      <div class="foto-card-info">
-        <div class="foto-card-leg">${esc(f.legenda||'Sem legenda')}</div>
-        <div class="foto-card-data">${fmtDate(normData(f.data))}${f.semana ? ' · S'+f.semana : ''} ${f.servico_ref ? '· '+esc(f.servico_ref) : ''}</div>
-        <button class="btn btn-danger btn-sm" style="margin-top:6px;width:100%" onclick="deletarFoto(${i})">Remover</button>
-      </div>
-    </div>`).join('');
+
+  // Agrupar por semana (quando sem filtro de semana específica)
+  if (!filtroSem) {
+    const porSemana = {};
+    filtered.forEach((f, fi) => {
+      const sem = f.semana || 0;
+      if (!porSemana[sem]) porSemana[sem] = [];
+      porSemana[sem].push({ f, fi: fotos.indexOf(f) });
+    });
+    const sems = Object.keys(porSemana).sort((a,b) => b-a);
+    el.innerHTML = sems.map(sem => {
+      const header = sem > 0
+        ? `<div class="foto-sem-header">Semana S${sem}</div>`
+        : `<div class="foto-sem-header">Sem semana</div>`;
+      const cards = porSemana[sem].map(({f, fi}) => fotoCard(f, fi)).join('');
+      return header + cards;
+    }).join('');
+  } else {
+    el.innerHTML = filtered.map(f => fotoCard(f, fotos.indexOf(f))).join('');
+  }
+}
+
+function fotoCard(f, i) {
+  return `<div class="foto-card">
+    <img src="${esc(f.url||'')}" alt="${esc(f.legenda||'')}" onerror="this.style.height='80px';this.style.background='var(--bg-4)'">
+    <div class="foto-card-info">
+      <div class="foto-card-leg">${esc(f.legenda||'Sem legenda')}</div>
+      <div class="foto-card-data">${fmtDate(normData(f.data))}${f.semana?' · S'+f.semana:''} ${f.servico_ref?'· '+esc(f.servico_ref):''}</div>
+      <button class="btn btn-danger btn-sm" style="margin-top:6px;width:100%" onclick="deletarFoto(${i})">Remover</button>
+    </div>
+  </div>`;
 }
 
 // ─── ABA PENDÊNCIAS ───────────────────────────────────────────────────────────
@@ -2067,6 +2362,11 @@ function showTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(`panel-${name}`).classList.add('active');
   event.currentTarget.classList.add('active');
+  // refresh por aba
+  if (state) {
+    if (name === 'visita') renderVisita();
+    if (name === 'cronograma' && cronoView === 'visual') renderCronoVisual();
+  }
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
