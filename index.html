@@ -164,6 +164,28 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 #cockpit-result{background:var(--bg-3);border:1px solid var(--border-2);border-radius:6px;padding:16px;margin-top:12px;display:none}
 #cockpit-result.loading{animation:pulse 1.5s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+/* REVISÃO MODAL */
+.revisao-header{font-family:var(--font-display);font-size:13px;letter-spacing:1.5px;color:var(--verde);margin-bottom:14px}
+.revisao-secao{border:1px solid var(--border-2);border-radius:6px;margin-bottom:10px;overflow:hidden}
+.revisao-secao-header{font-family:var(--font-display);font-size:11px;letter-spacing:1px;color:var(--text-dim);background:var(--bg-4);padding:8px 12px;border-bottom:1px solid var(--border)}
+.revisao-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border)}
+.revisao-item:last-child{border-bottom:none}
+.revisao-item:hover{background:var(--bg-4)}
+.revisao-item input[type=checkbox]{margin-top:3px;accent-color:var(--verde);flex-shrink:0;width:15px;height:15px;cursor:pointer}
+.revisao-item-body{flex:1;min-width:0}
+.revisao-item-header{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.revisao-cod{font-family:var(--font-data);font-size:10px;color:var(--text-muted);background:var(--bg-4);border:1px solid var(--border);border-radius:3px;padding:1px 6px}
+.revisao-desc{font-size:12px;color:var(--text);font-weight:500}
+.revisao-item-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.revisao-status-change{font-size:11px;color:var(--text-dim);font-family:var(--font-data)}
+.revisao-status-change strong{color:var(--text)}
+.revisao-pct{font-size:11px;color:var(--text-dim);font-family:var(--font-data)}
+.revisao-pct strong{color:var(--verde)}
+.revisao-badge-ok{font-size:10px;background:var(--verde-dim);color:#6fce8f;border:1px solid var(--verde);border-radius:3px;padding:1px 6px;font-family:var(--font-data)}
+.revisao-nota{font-size:11px;color:var(--ouro);margin-top:4px;padding:4px 8px;background:var(--warn-dim);border-radius:3px;border-left:2px solid var(--ouro)}
+.revisao-narrativa-preview{font-size:12px;color:var(--text);line-height:1.6;background:var(--bg-4);border:1px solid var(--border);border-radius:4px;padding:10px;margin-top:6px;max-height:120px;overflow-y:auto;white-space:pre-wrap;font-family:var(--font-body)}
+.revisao-item-narrativa{align-items:flex-start}
+.revisao-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 
 /* FOTOS */
 .foto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:8px}
@@ -1907,29 +1929,128 @@ async function processarVisita() {
     const json = parseAgentJSON(raw);
     if (!json) { toast('Agente retornou resposta inválida', 'error'); result.style.display='none'; return; }
 
-    // Mostrar resultado para confirmação
+    window._visitaJson = json;
     result.className = '';
+
+    const diaLabel = ['DOM','SEG','TER','QUA','QUI','SEX','SAB'][new Date().getDay()];
+    const servicos = json.servicos || [];
+    const presencas = json.presencas || [];
+    const pendencias = json.pendencias || [];
+    const materiais = json.materiais || [];
+
+    // Seção SERVIÇOS
+    let servicosSec = '';
+    if (servicos.length) {
+      servicosSec = `
+        <div class="revisao-secao">
+          <div class="revisao-secao-header">SERVIÇOS (${servicos.length})</div>
+          ${servicos.map((s, i) => {
+            const srv = (state.servicos||[]).find(sv =>
+              sv.cod === s.ref ||
+              (sv.descricao||'').toLowerCase().includes((s.descricao_identificada||'').toLowerCase())
+            );
+            const statusAnterior = srv?.status_atual || '—';
+            const pctAnterior = srv?.pct_atual || 0;
+            const novoStatus = s.concluido ? 'CONCLUÍDO' : (s.pct_novo > 0 ? 'EM ANDAMENTO' : statusAnterior);
+            return `
+              <label class="revisao-item">
+                <input type="checkbox" class="revisao-check" data-tipo="servico" data-idx="${i}" checked>
+                <div class="revisao-item-body">
+                  <div class="revisao-item-header">
+                    ${s.ref ? `<span class="revisao-cod">${esc(s.ref)}</span>` : ''}
+                    <span class="revisao-desc">${esc(s.descricao_identificada)}</span>
+                  </div>
+                  <div class="revisao-item-meta">
+                    <span class="revisao-status-change">${esc(statusAnterior)} → <strong>${esc(novoStatus)}</strong></span>
+                    <span class="revisao-pct">${pctAnterior}% → <strong>${s.pct_novo}%</strong></span>
+                    ${s.concluido ? '<span class="revisao-badge-ok">✓ CONCLUÍDO</span>' : ''}
+                  </div>
+                  ${s.nota ? `<div class="revisao-nota">${esc(s.nota)}</div>` : ''}
+                </div>
+              </label>`;
+          }).join('')}
+        </div>`;
+    }
+
+    // Seção PRESENÇA
+    let presencasSec = '';
+    if (presencas.length) {
+      presencasSec = `
+        <div class="revisao-secao">
+          <div class="revisao-secao-header">PRESENÇA DE EQUIPES — ${diaLabel} (${presencas.length})</div>
+          ${presencas.map((p, i) => `
+            <label class="revisao-item">
+              <input type="checkbox" class="revisao-check" data-tipo="presenca" data-idx="${i}" checked>
+              <div class="revisao-item-body">
+                <div class="revisao-item-header">
+                  <span class="revisao-desc">${esc(p)}</span>
+                </div>
+              </div>
+            </label>`).join('')}
+        </div>`;
+    }
+
+    // Seção PENDÊNCIAS (informativa, sempre aplicada)
+    let pendenciasSec = '';
+    if (pendencias.length) {
+      pendenciasSec = `
+        <div class="revisao-secao">
+          <div class="revisao-secao-header">PENDÊNCIAS IDENTIFICADAS (${pendencias.length}) — serão adicionadas automaticamente</div>
+          ${pendencias.map(p => `
+            <div class="revisao-item" style="cursor:default">
+              <div class="revisao-item-body">
+                <div class="revisao-item-header">
+                  <span style="font-size:10px;color:var(--urgencia-${p.urgencia||'media'})">⚠</span>
+                  <span class="revisao-desc">${esc(p.titulo)}</span>
+                  <span style="font-size:10px;color:var(--text-muted);margin-left:auto">${esc(p.tipo||'')} · ${esc(p.urgencia||'')}</span>
+                </div>
+              </div>
+            </div>`).join('')}
+        </div>`;
+    }
+
+    // Seção MATERIAIS (informativa)
+    let materiaisSec = '';
+    if (materiais.length) {
+      materiaisSec = `
+        <div class="revisao-secao">
+          <div class="revisao-secao-header">MATERIAIS (${materiais.length}) — serão adicionados automaticamente</div>
+          ${materiais.map(m => `
+            <div class="revisao-item" style="cursor:default">
+              <div class="revisao-item-body">
+                <div class="revisao-item-header">
+                  <span class="revisao-desc">${esc(m.item)}</span>
+                  <span style="font-size:11px;color:var(--ouro);margin-left:auto">${esc(m.quantidade)}</span>
+                </div>
+              </div>
+            </div>`).join('')}
+        </div>`;
+    }
+
+    // Seção NARRATIVA
+    const narrativaTxt = json.observacao_geral || '';
+    const narrativaSec = narrativaTxt ? `
+      <div class="revisao-secao">
+        <div class="revisao-secao-header">NARRATIVA DA VISITA (REVISADA PELA IA)</div>
+        <label class="revisao-item revisao-item-narrativa">
+          <input type="checkbox" class="revisao-check" data-tipo="narrativa" checked>
+          <div class="revisao-item-body">
+            <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">SUBSTITUIR CAMPO "NARRATIVA DA SEMANA" PELO TEXTO ABAIXO</div>
+            <div class="revisao-narrativa-preview">${esc(narrativaTxt)}</div>
+          </div>
+        </label>
+      </div>` : '';
+
     result.innerHTML = `
-      <div style="margin-bottom:12px">
-        <div style="font-family:var(--font-display);font-size:14px;letter-spacing:1px;color:var(--verde);margin-bottom:8px">RESULTADO DO AGENTE</div>
-        ${json.observacao_geral ? `<div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">${esc(json.observacao_geral)}</div>` : ''}
-        ${json.presencas?.length ? `<div style="font-size:12px;margin-bottom:6px"><span style="color:var(--text-muted)">Presenças:</span> ${json.presencas.map(esc).join(', ')}</div>` : ''}
-        ${json.servicos?.length ? `
-          <div style="font-size:12px;margin-bottom:6px"><span style="color:var(--text-muted)">Serviços:</span>
-            ${json.servicos.map(s => `<span style="display:inline-block;margin:2px 4px;background:var(--bg-4);border:1px solid var(--border);border-radius:3px;padding:2px 8px;font-family:var(--font-data);font-size:11px">${esc(s.descricao_identificada)} → ${s.pct_novo}%${s.concluido?' ✓':''}</span>`).join('')}
-          </div>` : ''}
-        ${json.pendencias?.length ? `
-          <div style="font-size:12px;margin-bottom:6px"><span style="color:var(--text-muted)">Pendências:</span>
-            ${json.pendencias.map(p => `<span style="color:var(--urgencia-${p.urgencia||'media'});margin-left:6px">⚠ ${esc(p.titulo)}</span>`).join('')}
-          </div>` : ''}
-        ${json.materiais?.length ? `
-          <div style="font-size:12px;margin-bottom:6px"><span style="color:var(--text-muted)">Materiais:</span>
-            ${json.materiais.map(m => `<span style="margin-left:6px;color:var(--ouro)">${esc(m.item)} (${esc(m.quantidade)})</span>`).join('')}
-          </div>` : ''}
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-verde" onclick="confirmarVisita(${esc(JSON.stringify(JSON.stringify(json)))})">✓ Confirmar e Aplicar</button>
-        <button class="btn btn-ghost" onclick="document.getElementById('cockpit-result').style.display='none'">Cancelar</button>
+      <div class="revisao-header">REVISAR ANTES DE APLICAR</div>
+      ${servicosSec}
+      ${presencasSec}
+      ${pendenciasSec}
+      ${materiaisSec}
+      ${narrativaSec}
+      <div class="revisao-actions">
+        <button class="btn btn-ghost" onclick="document.getElementById('cockpit-result').style.display='none';window._visitaJson=null">CANCELAR</button>
+        <button class="btn btn-verde" onclick="confirmarVisita()">✓ APLICAR AO COCKPIT</button>
       </div>`;
   } catch(e) {
     toast('Erro: ' + e.message, 'error');
@@ -1940,14 +2061,45 @@ async function processarVisita() {
   }
 }
 
-function confirmarVisita(jsonStr) {
-  const json = parseAgentJSON(jsonStr);
+function confirmarVisita() {
+  const json = window._visitaJson;
   if (!json) return;
-  aplicarResultadoVisita(json, state);
+
+  // Ler checkboxes selecionados
+  const checks = document.querySelectorAll('#cockpit-result .revisao-check');
+  const checkedServicos = new Set();
+  const checkedPresencas = new Set();
+  let aplicarNarrativa = false;
+
+  checks.forEach(c => {
+    if (!c.checked) return;
+    const tipo = c.dataset.tipo;
+    const idx = parseInt(c.dataset.idx);
+    if (tipo === 'servico') checkedServicos.add(idx);
+    else if (tipo === 'presenca') checkedPresencas.add(idx);
+    else if (tipo === 'narrativa') aplicarNarrativa = true;
+  });
+
+  // Filtrar JSON com apenas itens selecionados
+  const jsonFiltrado = {
+    ...json,
+    servicos: (json.servicos || []).filter((_, i) => checkedServicos.has(i)),
+    presencas: (json.presencas || []).filter((_, i) => checkedPresencas.has(i))
+  };
+
+  aplicarResultadoVisita(jsonFiltrado, state);
+
+  // Narrativa: só substituir se checkbox marcado
+  if (aplicarNarrativa && json.observacao_geral) {
+    state.narrativa = json.observacao_geral;
+    renderNarrativa();
+  }
+
   saveState();
   renderAll();
   document.getElementById('cockpit-result').style.display = 'none';
   document.getElementById('cockpit-input').value = '';
+  window._visitaJson = null;
   toast('Visita aplicada com sucesso', 'success');
 }
 
