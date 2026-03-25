@@ -1010,7 +1010,7 @@ function abrirRelatorioFotografico(semNumSel){
   const cabHeader = buildBertiHeader({
     tipo: 'Registro Fotográfico de Obra',
     obra: c.obra || 'Obra',
-    end: esc2(c.endereco_obra || ''),
+    end: esc2(c.endereco_obra || '—'),
     campos: [
       {l:'Contratante', v: esc2(c.razao_cliente||c.cliente||'—'), s: c.cnpj_cliente?`CNPJ ${esc2(c.cnpj_cliente)}`:''},
       {l:'Semana', v: `Semana ${semana} / ${c.medicoes||7}`},
@@ -1271,7 +1271,7 @@ function _gerarGanttPDF(modo){
   var cabHeader = buildBertiHeader({
     tipo: 'Cronograma Visual — Gantt · ' + periodoLabel,
     obra: c.obra || 'Obra',
-    end: esc2(c.endereco_obra || ''),
+    end: esc2(c.endereco_obra || '—'),
     campos: [
       {l:'Contratante', v: esc2(c.razao_cliente||c.cliente||'—')},
       {l:'Período', v: periodoLabel + ' · ' + fmt(rangeIni) + ' a ' + fmt(rangeFim)},
@@ -1497,7 +1497,7 @@ function _gerarRelSemanal(){
   const cabHeader = buildBertiHeader({
     tipo: 'Relatório Semanal Interno — Uso Confidencial',
     obra: c.obra || 'Obra',
-    end: esc2(c.endereco_obra || ''),
+    end: esc2(c.endereco_obra || '—'),
     campos: [
       {l:'Contratante', v: esc2(c.razao_cliente||c.cliente||'—'), s: c.cnpj_cliente ? `CNPJ ${esc2(c.cnpj_cliente)}` : ''},
       {l:'Semana / Medição', v: `Semana ${semNum} — Med. ${semNum} / ${c.medicoes||7}`},
@@ -1634,8 +1634,7 @@ async function _gerarRelClienteSemana(semNumSel){
     return fISO < new Date().toISOString().slice(0,10);
   }).map(s=>s.descricao||'').filter(Boolean);
 
-  const apiKey = localStorage.getItem('mdo_api_key');
-  if(narrativaOriginal && apiKey){
+  if(narrativaOriginal){
     toast('Gerando registro técnico...','info');
     try {
       const promptNarr = 'Gere o resumo da semana para relatório de acompanhamento de obra ao cliente.\n\n'
@@ -1758,7 +1757,7 @@ async function _gerarRelClienteSemana(semNumSel){
   const cabHeader = buildBertiHeader({
     tipo: 'Relatório de Acompanhamento de Obra',
     obra: c.obra || 'Obra',
-    end: esc2(c.endereco_obra || ''),
+    end: esc2(c.endereco_obra || '—'),
     campos: [
       {l:'Contratante', v: esc2(c.razao_cliente||c.cliente||'—'), s: c.cnpj_cliente?`CNPJ ${esc2(c.cnpj_cliente)}`:''},
       {l:'Semana / Revisão', v: `Semana ${semana} — Rev. A`},
@@ -2177,7 +2176,7 @@ function abrirRelatorioOrcamento(){
   const cabHeader = buildBertiHeader({
     tipo: 'Orçamento Detalhado',
     obra: c.obra || 'Obra',
-    end: esc2(c.endereco_obra || ''),
+    end: esc2(c.endereco_obra || '—'),
     campos: [
       {l:'Contratante', v: esc2(c.razao_cliente||c.cliente||'—'), s: c.cnpj_cliente?`CNPJ ${esc2(c.cnpj_cliente)}`:''},
       {l:'Valor do Contrato', v: `R$ ${fmtNum(valContrato)}`},
@@ -2266,7 +2265,7 @@ function abrirRelatorioFinanceiro(){
   const cabHeader = buildBertiHeader({
     tipo: 'Financeiro Completo — Extrato de Pagamentos',
     obra: c.obra || 'Obra',
-    end: esc2(c.endereco_obra || ''),
+    end: esc2(c.endereco_obra || '—'),
     campos: [
       {l:'Contratante', v: esc2(c.razao_cliente||c.cliente||'—'), s: c.cnpj_cliente?`CNPJ ${esc2(c.cnpj_cliente)}`:''},
       {l:'Valor do Contrato', v: `R$ ${fmtNum(valContrato)}`},
@@ -2398,7 +2397,7 @@ function abrirMedicaoFormal(){
   const cabHeader = buildBertiHeader({
     tipo: `Boletim de Medição · Nº ${String(semana).padStart(2,'0')} de ${String(totalMed).padStart(2,'0')}`,
     obra: c.obra || 'Obra',
-    end: esc2(c.endereco_obra || ''),
+    end: esc2(c.endereco_obra || '—'),
     campos: [
       {l:'Contratante', v: esc2(c.razao_cliente||c.cliente||'—'), s: c.cnpj_cliente?`CNPJ ${esc2(c.cnpj_cliente)}`:(c.telefone_cliente?`Tel. ${esc2(c.telefone_cliente)}`:'' )},
       {l:'Contratada', v: esc2(c.empresa||'Berti Construtora LTDA'), s: c.email_empresa?esc2(c.email_empresa):''},
