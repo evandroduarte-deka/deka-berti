@@ -1410,8 +1410,9 @@ PARCEIROS SEM CONTATO HÁ 15+ DIAS:
 ${parcsAlerta.map(p => `- ${p.nome} · ${diasSemInteracao(p.ultima_interacao)}d`).join('\n') || '(nenhum)'}`;
 
   try {
+    const resposta = await aiFetch(SYS_JARVIS, userMsg, 2048);
     out.className = '';
-    await aiStream(SYS_JARVIS, userMsg, chunk => { out.textContent += chunk; }, 2048);
+    out.textContent = resposta || '(sem resposta)';
   } catch(e) {
     out.className = '';
     out.textContent = `Erro ao gerar briefing: ${e.message}`;
