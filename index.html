@@ -548,6 +548,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
     <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Cada semana fechada tem snapshot permanente. Clique em "Relatório" para abrir no módulo Relatórios.</p>
     <div id="snapshots-list"></div>
   </div>
+  <div class="card" style="border-color:var(--ouro)">
+    <div class="card-title" style="color:var(--ouro)">SNAPSHOT RETROATIVO</div>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Cria snapshot de semana passada que não foi fechada no momento certo. Os dados refletem o estado atual da obra. Use para criar S1 e S2 da Badida.</p>
+    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <div class="form-group" style="min-width:100px;flex:0">
+        <label class="form-label">Semana</label>
+        <select class="form-select" id="retro-semana" style="font-size:13px"></select>
+      </div>
+      <button class="btn btn-ouro" onclick="criarSnapshotRetroativo()">Gravar Snapshot</button>
+    </div>
+  </div>
+
   <div class="card" style="background:var(--verde-glow);border-color:var(--verde)">
     <div class="card-title" style="color:var(--verde-dim)">SALVAMENTO AUTOMÁTICO</div>
     <p style="font-size:12px;color:var(--text-dim);margin-bottom:6px">Os dados da obra são salvos automaticamente no Supabase a cada 10 segundos após qualquer alteração. Não é necessário nenhuma ação manual para salvar o estado atual.</p>
@@ -736,6 +748,13 @@ function calcSemanaAtual(periodoIni) {
   return Math.max(1, Math.floor((agora - ini) / (7 * 86400000)) + 1);
 }
 
+// Semana canônica: MAX(calendário, manual) — permite fechar semana antes do calendário virar
+function semanaAtiva() {
+  const calc   = calcSemanaAtual(state?.config?.periodo_ini);
+  const manual = state?.config?.semana || 1;
+  return Math.max(calc, manual);
+}
+
 function getPeriodoSemana(periodoIni, semana) {
   if (!periodoIni) return '—';
   const ini = new Date(periodoIni + 'T00:00:00');
@@ -871,7 +890,7 @@ function renderAll() {
 // ─── DIÁRIO SEMANAL ───────────────────────────────────────────────────────────
 function renderDiario() {
   const c = state?.config || {};
-  const semana = calcSemanaAtual(c.periodo_ini);
+  const semana = semanaAtiva();
   const diario = state?.diario || {};
   const hojeStr = hoje();
   const diaSemanaHoje = ['dom','seg','ter','qua','qui','sex','sab'][new Date().getDay()];
@@ -910,7 +929,7 @@ function renderDiario() {
 // ─── ABA VISITA — chamada + serviços ─────────────────────────────────────────
 function renderVisita() {
   const c = state?.config || {};
-  const semana = calcSemanaAtual(c.periodo_ini);
+  const semana = semanaAtiva();
   const dKeys = ['dom','seg','ter','qua','qui','sex','sab'];
   const diaKey = dKeys[new Date().getDay()];
   const dLabels = {seg:'SEG',ter:'TER',qua:'QUA',qui:'QUI',sex:'SEX',sab:'SÁB',dom:'DOM'};
@@ -1023,7 +1042,7 @@ function editarDiarioDia(diaKey, diaLabel) {
 function renderHeader() {
   const c = state?.config;
   if (!c) return;
-  const semana = calcSemanaAtual(c.periodo_ini);
+  const semana = semanaAtiva();
   const pct = calcPctGeral(state?.servicos || []);
 
   // Banner — obra title grande
@@ -1050,7 +1069,7 @@ function renderHeader() {
 function renderKpiObra() {
   const c = state?.config || {};
   const pct = calcPctGeral(state?.servicos || []);
-  const semana = calcSemanaAtual(c.periodo_ini);
+  const semana = semanaAtiva();
 
   // Dias restantes
   let diasRest = '—';
@@ -1104,13 +1123,13 @@ function renderConfigForm() {
   document.getElementById('cfg-ini').value      = c.periodo_ini || '';
   document.getElementById('cfg-fim').value      = c.periodo_fim || '';
   document.getElementById('cfg-obs').value      = c.obs_interna || '';
-  document.getElementById('cfg-semana').value   = calcSemanaAtual(c.periodo_ini);
+  document.getElementById('cfg-semana').value   = semanaAtiva();
 }
 
 // ─── ABA CRONOGRAMA ───────────────────────────────────────────────────────────
 function renderCronograma() {
   const c = state?.config || {};
-  const semana = calcSemanaAtual(c.periodo_ini);
+  const semana = semanaAtiva();
   document.getElementById('si-num').textContent = `S${semana}`;
   document.getElementById('si-periodo').textContent = getPeriodoSemana(c.periodo_ini, semana);
 
@@ -1166,7 +1185,7 @@ function setCronoView(v) {
 
 function renderCronoVisual() {
   const c = state?.config || {};
-  const semAtual = calcSemanaAtual(c.periodo_ini);
+  const semAtual = semanaAtiva();
   const crono = state?.cronograma || [];
   const el = document.getElementById('gantt-visual-content');
   if (!el) return;
@@ -1559,11 +1578,70 @@ function renderMateriais() {
 function renderFechamento() {
   renderMedicaoSemana();
   renderSnapshots();
+  renderSnapshotSelect();
+}
+
+function renderSnapshotSelect() {
+  const sel = document.getElementById('retro-semana');
+  if (!sel || !state) return;
+  const atual = semanaAtiva();
+  sel.innerHTML = '';
+  for (let s = 1; s < atual; s++) {
+    const hasSnap = !!(state.snapshots?.[`S${s}`]);
+    const o = document.createElement('option');
+    o.value = s;
+    o.textContent = `S${s}${hasSnap ? ' ✓' : ''}`;
+    sel.appendChild(o);
+  }
+  if (!sel.options.length) {
+    const o = document.createElement('option');
+    o.value = ''; o.textContent = 'Nenhuma semana anterior';
+    sel.appendChild(o);
+  }
+}
+
+function criarSnapshotRetroativo() {
+  const semana = parseInt(document.getElementById('retro-semana')?.value) || 0;
+  if (!semana) { toast('Selecione uma semana', 'warn'); return; }
+  const atual = semanaAtiva();
+  if (semana >= atual) { toast('Só é possível criar snapshot de semanas passadas', 'warn'); return; }
+
+  const jaExiste = !!(state.snapshots?.[`S${semana}`]);
+  abrirModal(
+    `Snapshot Retroativo S${semana}`,
+    `${jaExiste ? '<strong style="color:var(--warn)">⚠ Já existe snapshot S'+semana+'. Será sobrescrito.</strong><br><br>' : ''}
+    Gravar snapshot da Semana S${semana} com os dados atuais da obra?<br><br>
+    O diário arquivado de S${semana} será incluído se existir.<br>
+    <strong>Esta ação reflete o estado atual, não o estado real naquela data.</strong>`,
+    [
+      { label: `Gravar S${semana}`, cls: 'btn-warn', fn: () => executarSnapshotRetroativo(semana) },
+      { label: 'Cancelar', cls: 'btn-ghost', fn: fecharModal }
+    ]
+  );
+}
+
+function executarSnapshotRetroativo(semana) {
+  fecharModal();
+  state.snapshots = state.snapshots || {};
+  state.snapshots[`S${semana}`] = {
+    semana,
+    gravado_em: hoje(),
+    retroativo: true,
+    pct_geral: calcPctGeral(state.servicos),
+    servicos: state.servicos.map(s => ({ ...s })),
+    pendencias: (state.pendencias || []).filter(p => p.status === 'ABERTO').map(p => ({...p})),
+    materiais: (state.materiais || []).filter(m => m.status !== 'recebido').map(m => ({...m})),
+    fotos: (state.fotos || []).filter(f => f.semana === semana).map(f => ({...f})),
+    diario: state.diario_historico?.[`S${semana}`] || {}
+  };
+  saveState();
+  renderFechamento();
+  toast(`Snapshot retroativo S${semana} gravado.`, 'success');
 }
 
 function renderMedicaoSemana() {
   const c = state?.config || {};
-  const semana = calcSemanaAtual(c.periodo_ini);
+  const semana = semanaAtiva();
   const snapAnt = state?.snapshots?.[`S${semana - 1}`];
   const servicos = state?.servicos || [];
 
@@ -1770,7 +1848,7 @@ function confirmarVisita(jsonStr) {
 function aplicarResultadoVisita(jsonAgente, st) {
   if (!jsonAgente) return;
   const hojeStr = hoje();
-  const semAtual = `S${calcSemanaAtual(st.config?.periodo_ini)}`;
+  const semAtual = `S${semanaAtiva()}`;
   const diaSemana = ['dom','seg','ter','qua','qui','sex','sab'][new Date().getDay()];
 
   // 1. Registrar presenças
@@ -1831,7 +1909,7 @@ function aplicarResultadoVisita(jsonAgente, st) {
 
 // ─── FECHAR SEMANA (SNAPSHOT) ─────────────────────────────────────────────────
 function fecharSemana() {
-  const semana = calcSemanaAtual(state?.config?.periodo_ini);
+  const semana = semanaAtiva();
   abrirModal(
     `Fechar Semana S${semana}`,
     `Esta ação irá:<br><br>
@@ -1981,7 +2059,7 @@ function adicionarCrono() {
 }
 
 function editarCrono(i) {
-  const semana = calcSemanaAtual(state?.config?.periodo_ini);
+  const semana = semanaAtiva();
   const item = state.cronograma[i];
   if (item.semana_prevista_ini < semana && state?.snapshots?.[`S${item.semana_prevista_ini}`]) {
     mostrarBloqueioSemana(); return;
@@ -2121,7 +2199,7 @@ function adicionarFoto() {
     state.fotos.unshift({
       id:'foto-'+Date.now(), url:vals['f-url'], legenda:vals['f-leg'],
       data:vals['f-data'], servico_ref:vals['f-srv'], ambiente:vals['f-amb'],
-      semana: calcSemanaAtual(state?.config?.periodo_ini)
+      semana: semanaAtiva()
     });
     saveState(); renderFotos();
   });
@@ -2279,7 +2357,7 @@ function importarJSON() {
 // ─── NAVEGAÇÃO ────────────────────────────────────────────────────────────────
 function abrirRelatorios() {
   const ok = obraKey || getObraKey();
-  const s = calcSemanaAtual(state?.config?.periodo_ini);
+  const s = semanaAtiva();
   window.open(`relatorios.html?obra_key=${ok}&semana=${s}`, '_blank');
 }
 
