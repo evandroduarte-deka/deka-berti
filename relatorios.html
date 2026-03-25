@@ -105,9 +105,10 @@ html,body{height:100%;background:var(--void);color:var(--t1);font-family:var(--b
 
   <div class="sec-label">Uso interno</div>
   <div class="rel-grid">
-    <button class="rel-btn" onclick="gerar('semanal_interno')"><span class="rel-ico">📋</span><div class="rel-txt"><div class="rel-nm">Semanal Interno</div><div class="rel-ds">Confidencial · aderência · financeiro</div></div><span class="rel-arrow">→</span></button>
     <button class="rel-btn" onclick="gerar('orcamento')"><span class="rel-ico">💰</span><div class="rel-txt"><div class="rel-nm">Orçamento Detalhado</div><div class="rel-ds">Serviços × valores × %</div></div><span class="rel-arrow">→</span></button>
-    <button class="rel-btn" onclick="gerar('gantt')"><span class="rel-ico">📅</span><div class="rel-txt"><div class="rel-nm">Cronograma Gantt</div><div class="rel-ds">PDF visual do cronograma</div></div><span class="rel-arrow">→</span></button>
+    <button class="rel-btn" onclick="_gerarGanttPDF('2semanas')"><span class="rel-ico">📅</span><div class="rel-txt"><div class="rel-nm">Cronograma · Próximas 2 semanas</div><div class="rel-ds">Semana atual + 2 seguintes</div></div><span class="rel-arrow">→</span></button>
+    <button class="rel-btn" onclick="_gerarGanttPDF('mes')"><span class="rel-ico">🗓</span><div class="rel-txt"><div class="rel-nm">Cronograma · Este mês</div><div class="rel-ds">4 semanas a partir da atual</div></div><span class="rel-arrow">→</span></button>
+    <button class="rel-btn" onclick="_gerarGanttPDF('completo')"><span class="rel-ico">📊</span><div class="rel-txt"><div class="rel-nm">Cronograma · Período completo</div><div class="rel-ds">Todas as semanas da obra</div></div><span class="rel-arrow">→</span></button>
   </div>
 
   <div class="sec-label">Pacote</div>
@@ -1637,19 +1638,18 @@ async function _gerarRelClienteSemana(semNumSel){
   if(narrativaOriginal && apiKey){
     toast('Gerando registro técnico...','info');
     try {
-      const promptNarr = 'Gere o registro técnico da semana para relatório de acompanhamento de obra.\n\n'
-        +'REGRAS ABSOLUTAS — quebre qualquer uma e o texto é descartado:\n'
-        +'- Terceira pessoa SEMPRE. PROIBIDO: "nós", "nossa equipe", "nosso time", "estamos", "iniciamos".\n'
-        +'- PROIBIDO enrolação: "caminhando conforme", "condições ideais", "manteremos o ritmo".\n'
-        +'- PROIBIDO tom motivacional ou otimista genérico.\n'
-        +'- NÃO use códigos internos (SRV-XXX, EQ-XXX).\n'
+      const promptNarr = 'Gere o resumo da semana para relatório de acompanhamento de obra ao cliente.\n\n'
+        +'REGRAS ABSOLUTAS:\n'
+        +'- Texto corrido, máximo 4 frases, sem títulos, sem listas, sem bullets.\n'
+        +'- Terceira pessoa SEMPRE. PROIBIDO: "nós", "nossa equipe", "nosso time".\n'
         +'- ZERO markdown: PROIBIDO usar **, *, ##, ---, _, #.\n'
-        +'- Formato: 4 linhas secas separadas por quebra de linha.\n'
-        +'- Linha 1: "Semana XX — [nome obra] — Avanço de XX% do cronograma. [Status: Adiantado/No prazo/Atenção]."\n'
-        +'- Linha 2: Serviços concluídos e em andamento com percentual. Só fatos.\n'
-        +'- Linha 3: "Foco semana XX:" + lista concreta do que será executado.\n'
-        +'- Linha 4 (SE houver atrasados ou pendências): "Atenção:" + pontos que requerem acompanhamento.\n'
-        +'- Máximo 100 palavras TOTAL. Cada palavra precisa ter informação.\n\n'
+        +'- NÃO use códigos internos (SRV-XXX, EQ-XXX).\n'
+        +'- Estrutura obrigatória (uma frase para cada tópico, na ordem):\n'
+        +'  1. Status geral: avanço percentual e situação do cronograma.\n'
+        +'  2. O que foi concluído nesta semana (nomear os serviços).\n'
+        +'  3. O que está em andamento com percentual atual.\n'
+        +'  4. Foco da próxima semana: o que será executado.\n'
+        +'- Máximo 120 palavras. Cada palavra precisa ter informação.\n\n'
         +'DADOS:\nObra: '+(c.obra||'—')+'\nSemana: '+semNum+'\nAvanço geral: '+pctGeral+'%\n'
         +_narrPrazoCtx+'\n'
         +'Concluídos: '+(concluidos_lst.join(', ')||'nenhum')+'\n'
@@ -4475,18 +4475,19 @@ function _getRelDelta(semNum){
 }
 
 function _filtrarFotosSemana(semNum){
+  // Sempre filtra por range de datas (inclusive semana atual)
+  var range = _calcSemanaRange(semNum);
+  if(range.iniISO && range.fimISO){
+    var fotosPorData = (state.fotos || []).filter(function(f){
+      if(!f.data) return false;
+      var fISO = f.data.includes('/') ? f.data.split('/').reverse().join('-') : f.data;
+      return fISO >= range.iniISO && fISO <= range.fimISO;
+    });
+    if(fotosPorData.length) return fotosPorData;
+  }
+  // Fallback: semana atual sem range → todas as fotos; semana passada → snapshot
   var semAtual = _calcSemanaReal();
   if(semNum === semAtual) return state.fotos || [];
-  // Semana passada: filtrar por range de datas
-  var range = _calcSemanaRange(semNum);
-  if(!range.ini || !range.fim) return [];
-  var fotosPorData = (state.fotos || []).filter(function(f){
-    if(!f.data) return false;
-    var fISO = f.data.includes('/') ? f.data.split('/').reverse().join('-') : f.data;
-    return fISO >= range.iniISO && fISO <= range.fimISO;
-  });
-  if(fotosPorData.length) return fotosPorData;
-  // Fallback: tentar fotos no snapshot
   var snap = (state.snapshots||{})['S'+semNum];
   if(snap && Array.isArray(snap.fotos) && snap.fotos.length) return snap.fotos;
   return [];
