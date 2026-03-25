@@ -4,30 +4,30 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#060D09">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f4f6f4">
 <title>DEKA · Cockpit — Berti Construtora</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Jost:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Syne:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --verde:      #2E9650;
   --verde-dim:  #1a5c30;
-  --verde-glow: rgba(46,150,80,0.15);
-  --ouro:       #B89A6A;
-  --ouro-dim:   #7a6445;
-  --bg:         #060D09;
-  --bg-2:       #0D1A10;
-  --bg-3:       #142018;
-  --bg-4:       #1a2a1e;
-  --border:     #1e2e20;
-  --border-2:   #2a3e2c;
-  --text:       #e8f0e8;
-  --text-dim:   #7a9a7a;
-  --text-muted: #4a6a4a;
+  --verde-glow: rgba(46,150,80,0.09);
+  --ouro:       #8B6914;
+  --ouro-dim:   #fdf5e6;
+  --bg:         #f4f6f4;
+  --bg-2:       #ffffff;
+  --bg-3:       #f0f3f0;
+  --bg-4:       #e8ece8;
+  --border:     #d0dcd0;
+  --border-2:   #bccbbc;
+  --text:       #1c2b1c;
+  --text-dim:   #3a5a3a;
+  --text-muted: #6a8a6a;
   --danger:     #cc3333;
-  --danger-dim: #3a0a0a;
-  --warn:       #cc8800;
-  --warn-dim:   #2a1800;
+  --danger-dim: #fde8e8;
+  --warn:       #b87700;
+  --warn-dim:   #fff3de;
   --font-display: 'Bebas Neue', sans-serif;
   --font-body:    'Jost', sans-serif;
   --font-data:    'JetBrains Mono', monospace;
@@ -98,7 +98,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 .kpi-value.warn{color:var(--warn)}
 
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:5px;border:none;cursor:pointer;font-family:var(--font-body);font-size:13px;font-weight:500;transition:all .15s}
-.btn-verde{background:var(--verde-dim);border:1px solid var(--verde);color:var(--verde)}
+.btn-verde{background:var(--verde-glow);border:1px solid var(--verde);color:var(--verde-dim)}
 .btn-verde:hover{background:var(--verde);color:#fff}
 .btn-ouro{background:var(--ouro-dim);border:1px solid var(--ouro);color:var(--ouro)}
 .btn-ouro:hover{background:var(--ouro);color:#000}
@@ -125,15 +125,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 .progress-fill.danger{background:var(--danger)}
 
 .status-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:3px;font-size:11px;font-family:var(--font-data);font-weight:500}
-.status-planejado{background:rgba(74,106,74,.3);color:var(--text-dim)}
-.status-em_andamento{background:rgba(46,150,80,.2);color:var(--verde)}
-.status-concluido{background:rgba(46,150,80,.4);color:#6eff9e}
-.status-atrasado{background:rgba(204,51,51,.2);color:var(--danger)}
-.status-cancelado{background:rgba(50,50,50,.5);color:#666}
-.status-pendente{background:rgba(204,136,0,.2);color:var(--warn)}
-.status-pago{background:rgba(46,150,80,.3);color:var(--verde)}
-.status-solicitado{background:rgba(184,154,106,.2);color:var(--ouro)}
-.status-recebido{background:rgba(46,150,80,.3);color:var(--verde)}
+.status-planejado{background:#eef2ee;color:var(--text-muted)}
+.status-em_andamento{background:#e4f2eb;color:var(--verde-dim)}
+.status-concluido{background:#c8e8d4;color:#0f4a28}
+.status-atrasado{background:#fde8e8;color:var(--danger)}
+.status-cancelado{background:#f2f2f2;color:#888}
+.status-pendente{background:#fff3de;color:var(--warn)}
+.status-pago{background:#c8e8d4;color:#0f4a28}
+.status-solicitado{background:#fdf5e6;color:var(--ouro)}
+.status-recebido{background:#c8e8d4;color:#0f4a28}
 
 .list-item{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
 .list-item:hover{border-color:var(--border-2)}
@@ -154,8 +154,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 .gantt-table tr:last-child td{border-bottom:none}
 .gantt-table tr:hover td{background:var(--bg-4)}
 .gantt-semana-cell{background:var(--bg-4);border-radius:3px;padding:2px 6px;font-family:var(--font-data);font-size:11px;text-align:center}
-.gantt-semana-active{background:var(--verde-dim);color:var(--verde)}
-.gantt-semana-done{background:rgba(46,150,80,.15);color:var(--text-dim)}
+.gantt-semana-active{background:var(--verde);color:#fff}
+.gantt-semana-done{background:#c8e8d4;color:#1a5c30}
 .gantt-semana-planned{background:var(--bg-4);color:var(--text-muted)}
 
 /* AGT_COCKPIT */
@@ -182,10 +182,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 
 /* TOAST */
 .toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:6px;font-family:var(--font-body);font-size:14px;animation:toastIn .2s ease;max-width:320px}
-.toast-info{background:var(--bg-3);border:1px solid var(--verde);color:var(--text)}
-.toast-success{background:var(--verde-dim);border:1px solid var(--verde);color:#fff}
-.toast-error{background:#2a0808;border:1px solid var(--danger);color:#ff6666}
-.toast-warn{background:#2a1800;border:1px solid var(--warn);color:#ffaa33}
+.toast-info{background:#fff;border:1px solid var(--verde);color:var(--text);box-shadow:0 2px 12px rgba(0,0,0,0.12)}
+.toast-success{background:#e4f2eb;border:1px solid var(--verde);color:var(--verde-dim);box-shadow:0 2px 12px rgba(0,0,0,0.12)}
+.toast-error{background:#fde8e8;border:1px solid var(--danger);color:var(--danger);box-shadow:0 2px 12px rgba(0,0,0,0.12)}
+.toast-warn{background:#fff3de;border:1px solid var(--warn);color:var(--warn);box-shadow:0 2px 12px rgba(0,0,0,0.12)}
 @keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
 /* EMPTY STATE */
