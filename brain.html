@@ -574,7 +574,7 @@ async function sbFetch(endpoint, options = {}) {
 }
 
 const AI_URL   = 'https://anthropic-proxy.berti-b52.workers.dev/v1/messages';
-const AI_MODEL = 'claude-sonnet-4-20250514';
+const AI_MODEL = 'claude-sonnet-4-5';
 
 async function aiFetch(systemText, userMsg, maxTokens = 1024) {
   const res = await fetch(AI_URL, {
@@ -732,7 +732,7 @@ function setupTabs() {
 
 async function carregarTarefas() {
   try {
-    const rows = await sbFetch('brain_data?tipo=eq.tarefa&status=eq.ativo&select=id,data');
+    const rows = await sbFetch('brain_data?tipo=eq.tarefa&status=eq.ativo&select=*');
     tarefas = rows.map(r => ({ _id: r.id, ...r.data }));
   } catch(e) {
     console.error('Erro ao carregar tarefas:', e);
@@ -913,7 +913,7 @@ function abrirModalTarefa(id) {
 
 async function carregarParceiros() {
   try {
-    const rows = await sbFetch('brain_data?tipo=eq.parceiro&status=eq.ativo&select=id,data');
+    const rows = await sbFetch('brain_data?tipo=eq.parceiro&status=eq.ativo&select=*');
     parceiros = rows.map(r => ({ _id: r.id, ...r.data }));
   } catch(e) {
     console.error('Erro ao carregar parceiros:', e);
