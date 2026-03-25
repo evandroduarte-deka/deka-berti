@@ -164,6 +164,56 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 #cockpit-result{background:var(--bg-3);border:1px solid var(--border-2);border-radius:6px;padding:16px;margin-top:12px;display:none}
 #cockpit-result.loading{animation:pulse 1.5s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+/* CHAMADA DO DIA — pills + chips */
+.chamada-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.chamada-nav-btn{background:var(--bg-4);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:4px 10px;cursor:pointer;font-size:13px;font-family:var(--font-body)}
+.chamada-nav-btn:hover{border-color:var(--verde)}
+.chamada-nav-center{display:flex;align-items:center;gap:8px;font-family:var(--font-data);font-size:11px;color:var(--text-dim)}
+.chamada-badge-ant{background:var(--warn-dim);border:1px solid var(--warn);color:var(--warn);border-radius:3px;padding:2px 6px;font-size:10px}
+.chamada-pills{display:flex;gap:5px;margin-bottom:14px}
+.chamada-pill{flex:1;min-width:40px;background:var(--bg-3);border:2px solid var(--border);border-radius:8px;padding:7px 4px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.chamada-pill:hover{border-color:var(--border-2)}
+.chamada-pill.cham-sel{border-color:var(--verde);background:var(--verde-glow)}
+.chamada-pill.cham-hoje{border-color:var(--ouro);background:var(--ouro-dim)}
+.chamada-pill-dia{font-family:var(--font-display);font-size:13px;letter-spacing:.5px}
+.chamada-pill.cham-hoje .chamada-pill-dia{color:var(--ouro)}
+.chamada-pill.cham-sel .chamada-pill-dia{color:var(--verde)}
+.chamada-pill-data{font-size:9px;color:var(--text-muted);font-family:var(--font-data);margin-top:1px}
+.chamada-pill-dot{width:5px;height:5px;border-radius:50%;margin:3px auto 0;background:var(--ouro)}
+.chamada-chips{display:flex;flex-wrap:wrap;gap:8px}
+.chamada-chip{display:flex;align-items:center;gap:6px;padding:5px 12px;border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:12px;background:var(--bg-3);transition:background .15s,border-color .15s;max-width:200px;user-select:none}
+.chamada-chip:hover{border-color:var(--border-2)}
+.chamada-chip.cham-pres{background:var(--verde-dim);border-color:var(--verde)}
+.chamada-chip-icon{font-family:var(--font-data);font-size:11px;color:var(--text-muted);font-weight:700;flex-shrink:0}
+.chamada-chip.cham-pres .chamada-chip-icon{color:var(--verde)}
+.chamada-chip-nome{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* PRESENÇA GRID */
+.pres-grid-wrap{overflow-x:auto;margin-bottom:12px;padding-bottom:4px}
+.pres-grid{border-collapse:collapse;font-family:var(--font-data);font-size:10px}
+.pres-grid th{color:var(--text-muted);font-weight:400;text-align:center;padding:1px 0;white-space:nowrap}
+.pres-grid td{padding:1px 1px;text-align:center}
+.pres-nome{text-align:left!important;padding:4px 10px 4px 0!important;font-size:11px;color:var(--text);white-space:nowrap;font-family:var(--font-body)}
+.pres-sub{font-size:9px;color:var(--text-muted);display:block;font-family:var(--font-data)}
+.pres-total{padding-left:8px!important;color:var(--verde);font-weight:500;text-align:right!important;white-space:nowrap}
+.pres-sq{width:14px;height:14px;border-radius:2px;cursor:pointer;display:inline-block;transition:opacity .1s;vertical-align:middle}
+.pres-sq:hover{opacity:.7}
+.pres-sq.presente{background:var(--verde)}
+.pres-sq.ausente{background:var(--danger)}
+.pres-sq.agendado{background:#3a7bd5}
+.pres-sq.vazio{background:var(--bg-4);border:1px solid var(--border)}
+.pres-legend{display:flex;gap:14px;font-size:10px;color:var(--text-muted);margin-top:8px;font-family:var(--font-data);flex-wrap:wrap}
+.pres-legend-item{display:flex;align-items:center;gap:4px}
+/* EQUIPE CARDS */
+.equipes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:14px}
+.eq-card{background:var(--bg-3);border:1px solid var(--border-2);border-radius:8px;padding:12px;position:relative}
+.eq-card-cod{font-family:var(--font-data);font-size:10px;color:var(--text-muted);letter-spacing:.5px;margin-bottom:8px}
+.eq-card input,.eq-card textarea{width:100%;background:var(--bg-4);border:1px solid transparent;border-radius:4px;color:var(--text);font-size:12px;padding:5px 8px;margin-bottom:4px;font-family:var(--font-body);outline:none;box-sizing:border-box}
+.eq-card input:focus,.eq-card textarea:focus{border-color:var(--verde)}
+.eq-card input.eq-nome{font-weight:600;font-size:13px}
+.eq-card input.eq-esp{font-style:italic;color:var(--text-dim)}
+.eq-card-actions{display:flex;gap:6px;margin-top:8px}
+.eq-card-close{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;padding:2px 6px;border-radius:3px;line-height:1}
+.eq-card-close:hover{color:var(--danger);background:var(--danger-dim)}
 /* REVISÃO MODAL */
 .revisao-header{font-family:var(--font-display);font-size:13px;letter-spacing:1.5px;color:var(--verde);margin-bottom:14px}
 .revisao-secao{border:1px solid var(--border-2);border-radius:6px;margin-bottom:10px;overflow:hidden}
@@ -530,8 +580,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 <!-- ═══════════════════════════════ ABA 4 — EQUIPES ═══════════════════════════ -->
 <div id="panel-equipes" class="panel">
   <div class="section-header">
-    <div class="section-title">EQUIPES E TERCEIROS</div>
-    <button class="btn btn-ghost btn-sm" onclick="adicionarEquipe()">+ Equipe</button>
+    <div class="section-title" id="equipes-header-title">EQUIPES — PRESENÇA</div>
+    <button class="btn btn-ghost btn-sm" onclick="adicionarEquipeInline()">+ Equipe</button>
   </div>
   <div id="equipes-list"></div>
 </div>
@@ -789,6 +839,8 @@ let obraKey = '';
 let state = null;
 let pendFiltro = 'aberto';
 let saveTimer = null;
+let _chamadaVisSem = null;   // semana exibida na chamada (null = atual)
+let _chamadaSelDiaIdx = null; // dia selecionado na chamada (null = hoje)
 
 function estadoVazio() {
   return {
@@ -1003,72 +1055,89 @@ function renderDiario() {
 function renderVisita() {
   const c = state?.config || {};
   const semana = semanaAtiva();
-  const dOrder = ['seg','ter','qua','qui','sex','sab','dom'];
-  const dLabels = { seg:'SEG', ter:'TER', qua:'QUA', qui:'QUI', sex:'SEX', sab:'SÁB', dom:'DOM' };
-  const diaKey = ['dom','seg','ter','qua','qui','sex','sab'][new Date().getDay()];
-  const hojeStr = hoje();
-
-  // Labels
   const chamLabel = document.getElementById('chamada-dia-label');
-  if (chamLabel) chamLabel.textContent = `${dLabels[diaKey]||''} · ${hojeStr.split('-').reverse().join('/')}`;
+  if (chamLabel) chamLabel.textContent = '';
   const vsrvLabel = document.getElementById('visita-semana-label');
   if (vsrvLabel) vsrvLabel.textContent = `S${semana} · ${getPeriodoSemana(c.periodo_ini, semana)}`;
 
-  // ── CHAMADA DO DIA — tabela equipe × dias da semana ──────────────────────
+  // ── CHAMADA DO DIA — navegação semanal + pills + chips ────────────────────
   const equipes = state?.equipes || [];
-  const diario  = state?.diario  || {};
   const elCham  = document.getElementById('chamada-equipes-list');
   if (elCham) {
-    if (!equipes.length) {
-      elCham.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👷</div>Nenhuma equipe cadastrada — adicione na aba Equipes</div>`;
-    } else {
-      // Cabeçalho dos dias
-      const thDias = dOrder.map(d =>
-        `<th style="width:36px;text-align:center;font-family:var(--font-data);font-size:10px;color:${d===diaKey?'var(--verde)':'var(--text-muted)'};font-weight:${d===diaKey?'700':'400'}">${dLabels[d]}</th>`
-      ).join('');
+    const visSem  = _chamadaVisSem ?? semana;
+    const semAtual = semana;
+    const periodoIni = new Date((c.periodo_ini || hoje()) + 'T12:00:00');
+    const dLabelsArr = ['SEG','TER','QUA','QUI','SEX','SÁB','DOM'];
 
-      const rows = equipes.map(e => {
-        const tel = (e.contato||'').replace(/\D/g,'');
-        const tdDias = dOrder.map(d => {
-          const presentes = diario[d]?.equipes_presentes || [];
-          const checked = presentes.includes(e.id);
-          const isHoje = d === diaKey;
-          return `<td style="text-align:center;padding:6px 4px">
-            <input type="checkbox" ${checked?'checked':''}
-              onchange="togglePresencaEquipe('${esc(e.id)}','${d}');renderVisita()"
-              style="cursor:pointer;accent-color:var(--verde);width:15px;height:15px;${isHoje?'outline:2px solid var(--verde);outline-offset:1px':''}">
-          </td>`;
-        }).join('');
+    // 7 datas ISO desta semana exibida
+    const weekDates = Array.from({length:7}, (_, i) => {
+      const d = new Date(periodoIni);
+      d.setDate(periodoIni.getDate() + (visSem - 1) * 7 + i);
+      return d.toISOString().split('T')[0];
+    });
 
-        // Contar dias presentes esta semana
-        const diasPres = dOrder.filter(d => (diario[d]?.equipes_presentes||[]).includes(e.id)).length;
+    const todayIso = hoje();
+    const todayIdx = weekDates.indexOf(todayIso);
+    if (_chamadaSelDiaIdx === null) _chamadaSelDiaIdx = todayIdx >= 0 ? todayIdx : 0;
+    const selIdx  = Math.min(_chamadaSelDiaIdx, 6);
+    const selDate = weekDates[selIdx];
 
-        return `<tr style="border-bottom:1px solid var(--border)">
-          <td style="padding:8px 10px 8px 0;min-width:0">
-            <div style="font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">${esc(e.nome||'')}</div>
-            <div style="font-size:11px;font-family:var(--font-data);color:var(--text-muted);display:flex;gap:8px;margin-top:1px;flex-wrap:wrap">
-              <span>${esc(e.especialidade||'—')}</span>
-              ${tel ? `<a href="https://wa.me/55${tel}" target="_blank" style="color:var(--verde);text-decoration:none">📱 ${esc(e.contato)}</a>` : ''}
-            </div>
-          </td>
-          ${tdDias}
-          <td style="padding:6px 0 6px 8px;font-family:var(--font-data);font-size:11px;color:var(--text-muted);white-space:nowrap">${diasPres}d</td>
-        </tr>`;
-      }).join('');
+    const diff = visSem - semAtual;
+    const semLabel = diff === 0 ? 'Semana atual'
+      : diff > 0 ? `${diff} semana${diff>1?'s':''} à frente`
+      : `${Math.abs(diff)} semana${Math.abs(diff)>1?'s':''} atrás`;
 
-      elCham.innerHTML = `<div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse">
-          <thead>
-            <tr style="border-bottom:2px solid var(--border)">
-              <th style="text-align:left;padding:6px 0;font-size:11px;font-family:var(--font-data);color:var(--text-muted);font-weight:400">EQUIPE / CONTATO</th>
-              ${thDias}
-              <th style="width:28px"></th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
+    const navHtml = `
+      <div class="chamada-nav">
+        <button class="chamada-nav-btn" onclick="_chamadaVisSem=Math.max(1,(_chamadaVisSem??${semAtual})-1);_chamadaSelDiaIdx=null;renderVisita()">◄</button>
+        <div class="chamada-nav-center">
+          <span>${esc(semLabel)}</span>
+          ${diff !== 0 ? `<span class="chamada-badge-ant">⚠ editando semana ${diff<0?'anterior':'futura'}</span>` : ''}
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="chamada-nav-btn" onclick="_chamadaVisSem=${semAtual};_chamadaSelDiaIdx=null;renderVisita()">Hoje</button>
+          <button class="chamada-nav-btn" onclick="_chamadaVisSem=(_chamadaVisSem??${semAtual})+1;_chamadaSelDiaIdx=null;renderVisita()">►</button>
+        </div>
       </div>`;
+
+    const pillsHtml = `
+      <div class="chamada-pills">
+        ${weekDates.map((iso, i) => {
+          const isToday = iso === todayIso;
+          const isSel   = i === selIdx;
+          let cls = 'chamada-pill';
+          if (isToday) cls += ' cham-hoje';
+          if (isSel)   cls += ' cham-sel';
+          const [,mm,dd] = iso.split('-');
+          return `<div class="${cls}" onclick="_chamadaSelDiaIdx=${i};renderVisita()">
+            <div class="chamada-pill-dia">${dLabelsArr[i]}</div>
+            <div class="chamada-pill-data">${parseInt(dd)}/${parseInt(mm)}</div>
+            ${isToday ? '<div class="chamada-pill-dot"></div>' : ''}
+          </div>`;
+        }).join('')}
+      </div>`;
+
+    const presencaPeriodo = state?.presenca_periodo || {};
+    let chipsHtml = '';
+    if (!equipes.length) {
+      chipsHtml = `<div class="empty-state"><div class="empty-state-icon">👷</div>Nenhuma equipe cadastrada — adicione na aba Equipes</div>`;
+    } else {
+      const chips = equipes.map(e => {
+        const isPresente = (presencaPeriodo[selDate]?.[e.id] || null) === 'presente';
+        const parts = (e.nome||'').split(' ').filter(Boolean);
+        const nomeCurto = parts.length > 2
+          ? `${parts[0]} ${parts[1]} ${parts[2][0]}.`
+          : parts.join(' ');
+        return `<div class="chamada-chip${isPresente?' cham-pres':''}"
+          onclick="toggleChamadaChip('${esc(e.id)}','${selDate}');renderVisita()">
+          <span class="chamada-chip-icon">${isPresente?'✓':'—'}</span>
+          <span class="chamada-chip-nome">${esc(nomeCurto)}</span>
+        </div>`;
+      }).join('');
+      chipsHtml = `<div class="chamada-chips">${chips}</div>`;
     }
+
+    elCham.innerHTML = navHtml + pillsHtml + chipsHtml;
   }
 
   // ── SERVIÇOS DESTA SEMANA — filtro por cronograma ──────────────────────────
@@ -1449,46 +1518,136 @@ function updateServicoValor(i, val) {
 function renderEquipes() {
   const equipes = state?.equipes || [];
   const el = document.getElementById('equipes-list');
+  const c  = state?.config || {};
+
+  // Atualizar count no header
+  const hTitle = document.getElementById('equipes-header-title');
+  if (hTitle) hTitle.textContent = `EQUIPES — PRESENÇA${equipes.length ? ' · ' + equipes.length + ' equipes' : ''}`;
+
   if (!equipes.length) {
     el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👷</div>Nenhuma equipe cadastrada</div>`;
     return;
   }
-  const diasKeys   = ['seg','ter','qua','qui','sex','sab','dom'];
-  const diasLabels = ['S','T','Q','Q','S','S','D'];
-  const diario = state?.diario || {};
 
-  el.innerHTML = equipes.map((e, i) => {
-    const presencaCells = diasKeys.map((d, di) => {
-      const presentes = diario[d]?.equipes_presentes || [];
-      const checked = presentes.includes(e.id) ? 'checked' : '';
-      return `<label style="display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font-family:var(--font-data);font-size:10px;color:var(--text-muted)">
-        ${diasLabels[di]}
-        <input type="checkbox" ${checked} onchange="togglePresencaEquipe('${esc(e.id)}','${d}')" style="cursor:pointer;accent-color:var(--verde);width:14px;height:14px">
-      </label>`;
+  const periodoIni = c.periodo_ini;
+  const periodoFim = c.periodo_fim;
+  const presencaPeriodo = state?.presenca_periodo || {};
+
+  // ─ Calendário período completo ─
+  let gridHtml = '';
+  if (periodoIni) {
+    const allDates = [];
+    const dCur = new Date(periodoIni + 'T12:00:00');
+    const dFim = periodoFim ? new Date(periodoFim + 'T12:00:00') : new Date(dCur.getTime() + 55 * 86400000);
+    while (dCur <= dFim) {
+      allDates.push(dCur.toISOString().split('T')[0]);
+      dCur.setDate(dCur.getDate() + 1);
+    }
+
+    const todayIso = hoje();
+    const mNames = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+    const dlArr  = ['D','S','T','Q','Q','S','S']; // 0=Dom…6=Sab
+
+    // Agrupar por mês
+    const monthSpans = [];
+    allDates.forEach(iso => {
+      const m = iso.slice(0,7);
+      if (!monthSpans.length || monthSpans[monthSpans.length-1].key !== m)
+        monthSpans.push({ key:m, count:0, label: mNames[parseInt(iso.slice(5,7))-1]+' '+iso.slice(0,4) });
+      monthSpans[monthSpans.length-1].count++;
+    });
+
+    const thMonths = '<td class="pres-nome" style="min-width:120px"></td>' +
+      monthSpans.map(m => `<th colspan="${m.count}" style="background:var(--bg-4);border-right:1px solid var(--border);padding:2px 4px;color:var(--text-dim)">${m.label}</th>`).join('') +
+      '<th></th>';
+
+    const thLetters = '<td></td>' +
+      allDates.map(iso => {
+        const dl = dlArr[new Date(iso+'T12:00:00').getDay()];
+        const isT = iso === todayIso;
+        return `<th style="${isT?'color:var(--verde);font-weight:700':''}">${dl}</th>`;
+      }).join('') + '<th></th>';
+
+    const thNums = '<td></td>' +
+      allDates.map(iso => {
+        const day = parseInt(iso.slice(8));
+        const isT = iso === todayIso;
+        return `<th style="${isT?'color:var(--verde);font-weight:700':''}"><span style="${isT?'background:var(--verde);color:#000;border-radius:50%;padding:0 2px':''}">${day}</span></th>`;
+      }).join('') + '<th></th>';
+
+    const tbRows = equipes.map(e => {
+      let totalPres = 0;
+      const cells = allDates.map(iso => {
+        const status = presencaPeriodo[iso]?.[e.id] || 'vazio';
+        if (status === 'presente') totalPres++;
+        return `<td><span class="pres-sq ${status}" onclick="togglePresencaPeriodo('${esc(e.id)}','${iso}')" title="${iso}"></span></td>`;
+      }).join('');
+      return `<tr>
+        <td class="pres-nome">
+          <div>${esc(e.nome||'—')}</div>
+          <span class="pres-sub">${esc(e.cod||e.id)}</span>
+        </td>
+        ${cells}
+        <td class="pres-total">${totalPres > 0 ? totalPres+'d' : '—'}</td>
+      </tr>`;
     }).join('');
-    return `
-    <div class="list-item" style="flex-wrap:wrap;gap:10px">
-      <div class="list-item-main">
-        <div class="list-item-title">${esc(e.nome||'')}</div>
-        <div class="list-item-sub" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px">
-          <span>${esc(e.especialidade||'—')}</span>
-          ${e.contato ? `<span>📱 ${esc(e.contato)}</span>` : ''}
-          ${e.valor_diaria ? `<span style="color:var(--ouro)">${fmtMoney(e.valor_diaria)}/dia</span>` : ''}
-          ${e.pix ? `<span>PIX: ${esc(e.pix)}</span>` : ''}
+
+    gridHtml = `
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-family:var(--font-display);letter-spacing:1px;font-size:13px">PRESENÇA — PERÍODO COMPLETO</div>
+          <span style="font-family:var(--font-data);font-size:11px;color:var(--text-muted)">${allDates.length} dias</span>
         </div>
-        ${e.notas ? `<div style="font-size:11px;color:var(--text-muted);margin-top:4px">${esc(e.notas)}</div>` : ''}
-        <div style="margin-top:10px">
-          <div style="font-size:10px;font-family:var(--font-data);color:var(--text-muted);margin-bottom:5px;letter-spacing:.5px">PRESENÇA SEMANAL</div>
-          <div style="display:flex;gap:12px">${presencaCells}</div>
+        <div class="pres-grid-wrap">
+          <table class="pres-grid">
+            <thead>
+              <tr>${thMonths}</tr>
+              <tr>${thLetters}</tr>
+              <tr>${thNums}</tr>
+            </thead>
+            <tbody>${tbRows}</tbody>
+          </table>
         </div>
-      </div>
-      <div class="list-actions">
-        ${e.contato ? `<a href="https://wa.me/55${e.contato.replace(/\D/g,'')}" target="_blank" class="btn btn-verde btn-sm">WhatsApp</a>` : ''}
-        <button class="btn btn-ghost btn-sm" onclick="editarEquipe(${i})">✎</button>
-        <button class="btn btn-danger btn-sm" onclick="deletarEquipe(${i})">✕</button>
-      </div>
-    </div>`;
-  }).join('');
+        <div class="pres-legend">
+          <div class="pres-legend-item"><span class="pres-sq presente" style="display:inline-block"></span> Presente</div>
+          <div class="pres-legend-item"><span class="pres-sq ausente" style="display:inline-block"></span> Ausente</div>
+          <div class="pres-legend-item"><span class="pres-sq agendado" style="display:inline-block"></span> Agendado</div>
+          <div class="pres-legend-item"><span class="pres-sq vazio" style="display:inline-block;width:10px;height:10px"></span> Não marcado</div>
+        </div>
+      </div>`;
+  }
+
+  // ─ Cards de equipes ─
+  const cardsHtml = `<div class="equipes-grid">
+    ${equipes.map((e, i) => {
+      const cod = e.cod || ('EQ-' + String(i+1).padStart(2,'0'));
+      const tel = (e.contato||'').replace(/\D/g,'');
+      return `<div class="eq-card">
+        <button class="eq-card-close" onclick="deletarEquipe(${i})" title="Remover equipe">✕</button>
+        <div class="eq-card-cod">${esc(cod)}</div>
+        <input class="eq-nome" value="${esc(e.nome||'')}" placeholder="Nome da equipe"
+          onblur="salvarEquipeCampo(${i},'nome',this.value)">
+        <input class="eq-esp" value="${esc(e.especialidade||'')}" placeholder="Especialidade"
+          onblur="salvarEquipeCampo(${i},'especialidade',this.value)">
+        <input value="${esc(e.contato||'')}" placeholder="Telefone / WhatsApp"
+          onblur="salvarEquipeCampo(${i},'contato',this.value)">
+        <input value="${esc(e.email||'')}" placeholder="E-mail"
+          onblur="salvarEquipeCampo(${i},'email',this.value)">
+        <input value="${esc(e.pix||'')}" placeholder="Chave PIX"
+          onblur="salvarEquipeCampo(${i},'pix',this.value)">
+        <input value="${esc(e.notas||'')}" placeholder="Observações"
+          onblur="salvarEquipeCampo(${i},'notas',this.value)">
+        <div class="eq-card-actions">
+          ${tel
+            ? `<a href="https://wa.me/55${tel}" target="_blank" class="btn btn-verde btn-sm">📱 WhatsApp</a>`
+            : `<button class="btn btn-ghost btn-sm" disabled>Sem tel</button>`}
+          <button class="btn btn-ghost btn-sm" onclick="copiarEquipe(${i})">📋 Copiar</button>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  el.innerHTML = gridHtml + cardsHtml;
 }
 
 function togglePresencaEquipe(equipeId, dia) {
@@ -1500,6 +1659,62 @@ function togglePresencaEquipe(equipeId, dia) {
   if (idx >= 0) arr.splice(idx, 1);
   else arr.push(equipeId);
   saveState();
+}
+
+// Toggler da chamada do dia (pill + chip): alterna presente ↔ null
+function toggleChamadaChip(equipeId, isoDate) {
+  state.presenca_periodo = state.presenca_periodo || {};
+  state.presenca_periodo[isoDate] = state.presenca_periodo[isoDate] || {};
+  const cur = state.presenca_periodo[isoDate][equipeId];
+  if (cur === 'presente') delete state.presenca_periodo[isoDate][equipeId];
+  else state.presenca_periodo[isoDate][equipeId] = 'presente';
+  saveState();
+}
+
+// Toggler do grid período completo: cicla vazio → presente → ausente → agendado → vazio
+function togglePresencaPeriodo(equipeId, isoDate) {
+  state.presenca_periodo = state.presenca_periodo || {};
+  state.presenca_periodo[isoDate] = state.presenca_periodo[isoDate] || {};
+  const cycle = { vazio:'presente', presente:'ausente', ausente:'agendado', agendado:'vazio' };
+  const cur  = state.presenca_periodo[isoDate][equipeId] || 'vazio';
+  const next = cycle[cur];
+  if (next === 'vazio') delete state.presenca_periodo[isoDate][equipeId];
+  else state.presenca_periodo[isoDate][equipeId] = next;
+  saveState();
+  renderEquipes();
+}
+
+// Salva campo de uma equipe inline (onblur dos inputs dos cards)
+function salvarEquipeCampo(i, campo, valor) {
+  if (!state.equipes?.[i]) return;
+  state.equipes[i][campo] = valor;
+  saveState();
+}
+
+// Copia dados da equipe para clipboard
+function copiarEquipe(i) {
+  const e = state.equipes?.[i];
+  if (!e) return;
+  const txt = [e.nome, e.especialidade, e.contato ? 'Tel: '+e.contato : '', e.pix ? 'PIX: '+e.pix : '', e.notas].filter(Boolean).join('\n');
+  navigator.clipboard?.writeText(txt).then(() => toast('Copiado!', 'success')).catch(() => toast('Clipboard indisponível', 'warn'));
+}
+
+// Adiciona equipe inline (sem modal)
+function adicionarEquipeInline() {
+  state.equipes = state.equipes || [];
+  const num = String(state.equipes.length + 1).padStart(2, '0');
+  state.equipes.push({
+    id: 'eq-' + Date.now(),
+    cod: 'EQ-' + num,
+    nome: '', especialidade: '', contato: '', email: '', pix: '', notas: ''
+  });
+  saveState();
+  renderEquipes();
+  // Focar no primeiro input do novo card
+  setTimeout(() => {
+    const cards = document.querySelectorAll('.eq-card');
+    if (cards.length) cards[cards.length-1].querySelector('input')?.focus();
+  }, 50);
 }
 
 // ─── ABA PAGAMENTOS ───────────────────────────────────────────────────────────
