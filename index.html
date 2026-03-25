@@ -497,16 +497,17 @@ async function sbFetch(endpoint, options = {}) {
   return res.json();
 }
 
-const AI_URL   = 'https://anthropic-proxy.berti-b52.workers.dev/v1/messages';
-const AI_MODEL = 'claude-sonnet-4-5';
+const AI_URL        = 'https://anthropic-proxy.berti-b52.workers.dev/v1/messages';
+const AI_MODEL      = 'claude-sonnet-4-5';
+const AI_MODEL_FAST = 'claude-haiku-4-5-20251001'; // extração estruturada — JSON, parsing
 
-async function aiFetch(systemText, userMsg, maxTokens = 1024) {
+async function aiFetch(systemText, userMsg, maxTokens = 1024, model = AI_MODEL) {
   const res = await fetch(AI_URL, {
     method: 'POST',
     signal: AbortSignal.timeout(30000),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: AI_MODEL,
+      model: model,
       max_tokens: maxTokens,
       system: [{ type: 'text', text: systemText, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: userMsg }]
@@ -1242,7 +1243,7 @@ Sua única função: interpretar relatos de visita e extrair dados estruturados.
 
 RESPONDA APENAS COM JSON VÁLIDO. Sem texto antes ou depois. Sem markdown.
 
-Schema obrigatório:
+<schema_saida>
 {
   "presencas": ["nome1", "nome2"],
   "servicos": [
@@ -1266,15 +1267,18 @@ Schema obrigatório:
   ],
   "observacao_geral": "resumo do dia em 1-2 frases"
 }
+</schema_saida>
 
-Regras de interpretação:
+<regras_interpretacao>
 - "quase pronto" → pct_novo: 90
 - "metade" → pct_novo: 50
 - "começamos" → pct_novo: 15
 - "finalizamos" / "concluído" → concluido: true, pct_novo: 100
 - Nunca inventar serviços não mencionados
 - Arrays vazios [] quando não mencionado — nunca null
-- ref pode ser código SRV-XXX ou vazio se não identificado`;
+- ref pode ser código SRV-XXX ou vazio se não identificado
+- Nunca regredir % sem flag concluido=true
+</regras_interpretacao>`;
 
 async function processarVisita() {
   const input = document.getElementById('cockpit-input').value.trim();
@@ -1291,7 +1295,7 @@ async function processarVisita() {
 
   try {
     const ctx = `Serviços da obra: ${JSON.stringify(state.servicos.map(s => ({cod:s.cod,descricao:s.descricao,pct_atual:s.pct_atual})))}`;
-    const raw = await aiFetch(SYS_COCKPIT, `${ctx}\n\nRelato da visita:\n${input}`, 1024);
+    const raw = await aiFetch(SYS_COCKPIT, `${ctx}\n\nRelato da visita:\n${input}`, 1024, AI_MODEL_FAST);
     const json = parseAgentJSON(raw);
     if (!json) { toast('Agente retornou resposta inválida', 'error'); result.style.display='none'; return; }
 
