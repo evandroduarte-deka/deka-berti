@@ -391,56 +391,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 <!-- ═══════════════════════════════ ABA VISITA ══════════════════════════════ -->
 <div id="panel-visita" class="panel">
 
-  <!-- CHAMADA DO DIA -->
+  <!-- 1. AGT_COCKPIT — processar visita (primeiro) -->
   <div class="card">
     <div class="section-header">
-      <div class="card-title" style="display:flex;align-items:center;gap:8px">
-        CHAMADA DO DIA
-        <button class="sec-toggle" id="tog-chamada" onclick="toggleSec('chamada')">▼</button>
-      </div>
-      <span id="chamada-dia-label" style="font-family:var(--font-data);font-size:11px;color:var(--text-muted)"></span>
-    </div>
-    <div class="collapsible" id="sec-chamada">
-      <div id="chamada-equipes-list"></div>
-    </div>
-  </div>
-
-  <!-- SERVIÇOS DESTA SEMANA -->
-  <div class="card">
-    <div class="section-header">
-      <div class="card-title" style="display:flex;align-items:center;gap:8px">
-        SERVIÇOS DESTA SEMANA
-        <button class="sec-toggle" id="tog-vsrv" onclick="toggleSec('vsrv')">▼</button>
-      </div>
-      <span id="visita-semana-label" style="font-family:var(--font-data);font-size:11px;color:var(--text-muted)"></span>
-    </div>
-    <div class="collapsible" id="sec-vsrv">
-      <div id="visita-servicos-list"></div>
-    </div>
-  </div>
-
-  <!-- NARRATIVA -->
-  <div class="card">
-    <div class="section-header">
-      <div class="card-title">NARRATIVA DA SEMANA</div>
+      <div class="card-title">PROCESSAR VISITA DE CAMPO</div>
       <span id="diario-semana-label" style="font-family:var(--font-data);font-size:11px;color:var(--text-muted)"></span>
     </div>
-    <textarea class="form-textarea" id="narrativa-semana" rows="3" placeholder="Resumo geral da semana em andamento..." style="width:100%"></textarea>
-    <button class="btn btn-verde btn-sm" style="margin-top:8px" onclick="salvarNarrativa()">Salvar Narrativa</button>
-  </div>
-
-  <!-- DIÁRIO -->
-  <div class="card">
-    <div class="section-header">
-      <div class="card-title">DIÁRIO DA SEMANA</div>
-    </div>
-    <div class="diario-grid" id="diario-grid"></div>
-  </div>
-
-  <!-- AGT_COCKPIT -->
-  <div class="card">
-    <div class="card-title">AGT_COCKPIT — PROCESSAR VISITA DE CAMPO</div>
-    <p style="font-size:12px;color:var(--text-dim);margin-bottom:10px">Digite ou cole o relato da visita. O agente extrai serviços, presenças, pendências e materiais automaticamente.</p>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:10px">Relate o que aconteceu hoje em campo. O agente extrai presenças, avanços, pendências e materiais automaticamente.</p>
     <textarea id="cockpit-input" placeholder="Ex: Hoje estavam o João e o Pedro. Terminamos a alvenaria do salão 1, tá 100%. A pintura da fachada foi para 60%, falta secar. Precisamos de mais tinta — urgente. Tem uma decisão sobre o piso do banheiro que o cliente precisa tomar."></textarea>
     <div style="display:flex;gap:8px;margin-top:10px">
       <button class="btn btn-verde" id="btn-processar" onclick="processarVisita()">Processar Visita</button>
@@ -448,6 +405,42 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
     </div>
     <div id="cockpit-result"></div>
   </div>
+
+  <!-- 2. NARRATIVA DA SEMANA -->
+  <div class="card">
+    <div class="section-header">
+      <div class="card-title">NARRATIVA DA SEMANA</div>
+    </div>
+    <textarea class="form-textarea" id="narrativa-semana" rows="3" placeholder="Resumo geral da semana em andamento..." style="width:100%"></textarea>
+    <button class="btn btn-verde btn-sm" style="margin-top:8px" onclick="salvarNarrativa()">Salvar Narrativa</button>
+  </div>
+
+  <!-- 3. DIÁRIO DA SEMANA -->
+  <div class="card">
+    <div class="section-header">
+      <div class="card-title">DIÁRIO DA SEMANA</div>
+    </div>
+    <div class="diario-grid" id="diario-grid"></div>
+  </div>
+
+  <!-- 4. CHAMADA DO DIA -->
+  <div class="card">
+    <div class="section-header">
+      <div class="card-title">CHAMADA DO DIA</div>
+      <span id="chamada-dia-label" style="font-family:var(--font-data);font-size:11px;color:var(--text-muted)"></span>
+    </div>
+    <div id="chamada-equipes-list"></div>
+  </div>
+
+  <!-- 5. SERVIÇOS DESTA SEMANA (filtrado por cronograma) -->
+  <div class="card">
+    <div class="section-header">
+      <div class="card-title">SERVIÇOS DESTA SEMANA</div>
+      <span id="visita-semana-label" style="font-family:var(--font-data);font-size:11px;color:var(--text-muted)"></span>
+    </div>
+    <div id="visita-servicos-list"></div>
+  </div>
+
 </div>
 
 <!-- ═══════════════════════════════ ABA 2 — CRONOGRAMA ═══════════════════════════ -->
@@ -988,72 +981,128 @@ function renderDiario() {
 function renderVisita() {
   const c = state?.config || {};
   const semana = semanaAtiva();
-  const dKeys = ['dom','seg','ter','qua','qui','sex','sab'];
-  const diaKey = dKeys[new Date().getDay()];
-  const dLabels = {seg:'SEG',ter:'TER',qua:'QUA',qui:'QUI',sex:'SEX',sab:'SÁB',dom:'DOM'};
+  const dOrder = ['seg','ter','qua','qui','sex','sab','dom'];
+  const dLabels = { seg:'SEG', ter:'TER', qua:'QUA', qui:'QUI', sex:'SEX', sab:'SÁB', dom:'DOM' };
+  const diaKey = ['dom','seg','ter','qua','qui','sex','sab'][new Date().getDay()];
   const hojeStr = hoje();
 
-  // Label do dia
+  // Labels
   const chamLabel = document.getElementById('chamada-dia-label');
   if (chamLabel) chamLabel.textContent = `${dLabels[diaKey]||''} · ${hojeStr.split('-').reverse().join('/')}`;
   const vsrvLabel = document.getElementById('visita-semana-label');
   if (vsrvLabel) vsrvLabel.textContent = `S${semana} · ${getPeriodoSemana(c.periodo_ini, semana)}`;
 
-  // Equipes — chamada
+  // ── CHAMADA DO DIA — tabela equipe × dias da semana ──────────────────────
   const equipes = state?.equipes || [];
-  const presEquipes = state?.diario?.[diaKey]?.equipes_presentes || [];
-  const elCham = document.getElementById('chamada-equipes-list');
+  const diario  = state?.diario  || {};
+  const elCham  = document.getElementById('chamada-equipes-list');
   if (elCham) {
     if (!equipes.length) {
       elCham.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👷</div>Nenhuma equipe cadastrada — adicione na aba Equipes</div>`;
     } else {
-      elCham.innerHTML = equipes.map(e => {
-        const presente = presEquipes.includes(e.id);
-        const tel = e.contato ? e.contato.replace(/\D/g,'') : '';
-        return `<div class="chamada-item${presente?' presente':''}">
-          <input type="checkbox" ${presente?'checked':''} onchange="togglePresencaEquipeRender('${esc(e.id)}','${diaKey}')"
-            style="cursor:pointer;accent-color:var(--verde);width:18px;height:18px;flex-shrink:0">
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:500;font-size:13px">${esc(e.nome||'')}</div>
-            <div style="font-size:11px;font-family:var(--font-data);color:var(--text-dim);margin-top:2px">
-              ${esc(e.especialidade||'—')}${e.contato?` · 📱 ${esc(e.contato)}`:''}
+      // Cabeçalho dos dias
+      const thDias = dOrder.map(d =>
+        `<th style="width:36px;text-align:center;font-family:var(--font-data);font-size:10px;color:${d===diaKey?'var(--verde)':'var(--text-muted)'};font-weight:${d===diaKey?'700':'400'}">${dLabels[d]}</th>`
+      ).join('');
+
+      const rows = equipes.map(e => {
+        const tel = (e.contato||'').replace(/\D/g,'');
+        const tdDias = dOrder.map(d => {
+          const presentes = diario[d]?.equipes_presentes || [];
+          const checked = presentes.includes(e.id);
+          const isHoje = d === diaKey;
+          return `<td style="text-align:center;padding:6px 4px">
+            <input type="checkbox" ${checked?'checked':''}
+              onchange="togglePresencaEquipe('${esc(e.id)}','${d}');renderVisita()"
+              style="cursor:pointer;accent-color:var(--verde);width:15px;height:15px;${isHoje?'outline:2px solid var(--verde);outline-offset:1px':''}">
+          </td>`;
+        }).join('');
+
+        // Contar dias presentes esta semana
+        const diasPres = dOrder.filter(d => (diario[d]?.equipes_presentes||[]).includes(e.id)).length;
+
+        return `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:8px 10px 8px 0;min-width:0">
+            <div style="font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">${esc(e.nome||'')}</div>
+            <div style="font-size:11px;font-family:var(--font-data);color:var(--text-muted);display:flex;gap:8px;margin-top:1px;flex-wrap:wrap">
+              <span>${esc(e.especialidade||'—')}</span>
+              ${tel ? `<a href="https://wa.me/55${tel}" target="_blank" style="color:var(--verde);text-decoration:none">📱 ${esc(e.contato)}</a>` : ''}
             </div>
-          </div>
-          <div style="display:flex;gap:6px;flex-shrink:0">
-            ${tel ? `<a href="https://wa.me/55${tel}" target="_blank" class="btn btn-verde btn-sm">WhatsApp</a>` : ''}
-            ${presente ? '<span style="font-size:11px;font-family:var(--font-data);color:var(--verde)">✓ presente</span>' : ''}
-          </div>
-        </div>`;
+          </td>
+          ${tdDias}
+          <td style="padding:6px 0 6px 8px;font-family:var(--font-data);font-size:11px;color:var(--text-muted);white-space:nowrap">${diasPres}d</td>
+        </tr>`;
       }).join('');
+
+      elCham.innerHTML = `<div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border)">
+              <th style="text-align:left;padding:6px 0;font-size:11px;font-family:var(--font-data);color:var(--text-muted);font-weight:400">EQUIPE / CONTATO</th>
+              ${thDias}
+              <th style="width:28px"></th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
     }
   }
 
-  // Serviços da semana — em andamento ou planejados (exceto concluídos/cancelados)
+  // ── SERVIÇOS DESTA SEMANA — filtro por cronograma ──────────────────────────
+  // Busca serviços cujas entradas no cronograma cobrem a semana atual
   const servicos = state?.servicos || [];
-  const srvAtivos = servicos.filter(s =>
-    s.status_atual !== 'CONCLUÍDO' && s.status_atual !== 'cancelado'
+  const crono    = state?.cronograma || [];
+
+  // Códigos previstos para esta semana via cronograma
+  const codsSemana = new Set(
+    crono
+      .filter(cr => (cr.semana_prevista_ini||1) <= semana && semana <= (cr.semana_prevista_fim||1))
+      .map(cr => cr.servico_ref)
+      .filter(Boolean)
   );
+
+  // Se não há cronograma configurado, fallback: em andamento
+  let srvSemana;
+  if (crono.length) {
+    srvSemana = servicos.filter(s =>
+      codsSemana.has(s.cod) && s.status_atual !== 'CONCLUÍDO' && s.status_atual !== 'cancelado'
+    );
+    // Se cronograma existe mas nenhum serviço desta semana, mostrar os em andamento
+    if (!srvSemana.length) {
+      srvSemana = servicos.filter(s => s.status_atual === 'EM ANDAMENTO');
+    }
+  } else {
+    srvSemana = servicos.filter(s =>
+      s.status_atual !== 'CONCLUÍDO' && s.status_atual !== 'cancelado'
+    );
+  }
+
   const elSrv = document.getElementById('visita-servicos-list');
   if (elSrv) {
-    if (!srvAtivos.length) {
-      elSrv.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔨</div>Todos os serviços concluídos ou nenhum cadastrado</div>`;
+    if (!srvSemana.length) {
+      elSrv.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📅</div>Nenhum serviço programado para S${semana}<br><span style="font-size:11px">Configure o cronograma na aba Cronograma</span></div>`;
     } else {
-      elSrv.innerHTML = srvAtivos.map(s => {
+      elSrv.innerHTML = srvSemana.map(s => {
         const idx = servicos.indexOf(s);
         const pct = s.pct_atual || 0;
         const fillClass = pct < 30 ? 'danger' : pct < 70 ? 'warn' : '';
+        const crEntry = crono.find(cr => cr.servico_ref === s.cod);
+        const equipeLabel = crEntry?.equipe_ref
+          ? (equipes.find(e => e.id === crEntry.equipe_ref || e.nome === crEntry.equipe_ref)?.nome || crEntry.equipe_ref)
+          : '';
         return `<div class="visita-srv-item">
           <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap">
               <span style="font-family:var(--font-data);font-size:10px;color:var(--text-muted)">${esc(s.cod||'')}</span>
               <span style="font-weight:500;font-size:13px">${esc(s.descricao||'')}</span>
-              <span class="status-badge status-${esc((s.status_atual||'planejado').toLowerCase().replace(' ','_'))}" style="font-size:10px">${esc(s.status_atual||'planejado')}</span>
+              ${equipeLabel ? `<span style="font-size:11px;font-family:var(--font-data);color:var(--text-dim)">→ ${esc(equipeLabel)}</span>` : ''}
             </div>
             <div class="progress-bar"><div class="progress-fill ${fillClass}" style="width:${pct}%"></div></div>
           </div>
-          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;margin-left:10px">
             <input type="number" min="0" max="100" value="${pct}"
-              style="width:56px;text-align:center;font-family:var(--font-data);font-weight:600;font-size:15px;color:var(--verde);background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:4px 5px"
+              style="width:58px;text-align:center;font-family:var(--font-data);font-weight:700;font-size:16px;color:var(--verde);background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:5px 6px"
               onchange="updateServicoPct(${idx},this.value);renderVisita()">
             <label style="font-size:9px;font-family:var(--font-data);color:var(--text-muted)">%</label>
           </div>
