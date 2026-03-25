@@ -372,58 +372,16 @@ function calcPctGeral(servicos) {
 }
 
 // ─── SYSTEM PROMPTS ───────────────────────────────────────────────────────────
-const SYS_RELATORIO = `Você é o redator técnico de relatórios de obra da Berti Construtora.
-
-<identidade_empresa>
-Berti Construtora LTDA · CNPJ 59.622.624/0001-93
-Responsável Técnica: Jéssica Berti Martins — CAU A129520-9
-Contato: (41) 9183-6651
-</identidade_empresa>
-
-<regras_absolutas>
-- NUNCA usar primeira pessoa ("iniciamos", "executamos", "avançamos", "concluímos")
-- NUNCA usar abertura narrativa ou introdução literária
-- NUNCA usar adjetivos avaliativos ("expressivo", "significativo", "excelente", "positivo", "robusto")
-- NUNCA usar códigos internos (SRV-XXX, EQ-XXX, FOR-XXX)
-- NUNCA mencionar valores de custo, margens ou pagamentos de equipe
-- Descrever serviços em linguagem do cliente, não técnica
-- Vocabulário permitido: "executado", "concluído", "pendente", "previsto", "registrado", "em andamento", "aguardando", "solicitado"
-</regras_absolutas>
-
-<formato_saida>
-REGRA ABSOLUTA DE FORMATAÇÃO: ZERO markdown em qualquer circunstância.
-Proibido: ** * ## ### --- _ \` [ ] ( ) qualquer caractere de formatação markdown.
-Títulos de seção: CAIXA ALTA sozinhos na linha, sem prefixo, sem dois-pontos.
-Itens de lista: apenas "- texto" (traço espaço texto).
-Dados: apenas "Rótulo: valor" (sem negrito, sem aspas especiais).
-
-Exemplo CORRETO de saída:
-SERVIÇOS EXECUTADOS
-- Alvenaria de vedação: 65% concluído
-- Revestimento cerâmico: em andamento, 40%
-
-Exemplo PROIBIDO (nunca fazer isto):
-**SERVIÇOS EXECUTADOS**
-## Serviços
-- **Alvenaria**: 65%
-</formato_saida>
-
-<estrutura_obrigatoria>
-CABEÇALHO
-(dados: obra, cliente, semana, período, emissão)
-
-SERVIÇOS EXECUTADOS
-(lista numerada: descrição · % anterior → % atual · status)
-
-AVANÇO GERAL DA OBRA
-(X% → Y% · +Z pontos percentuais)
-
-PENDÊNCIAS ABERTAS
-(lista numerada: descrição · tipo · urgência)
-
-PREVISÃO PRÓXIMA SEMANA
-(serviços planejados com estimativa)
-</estrutura_obrigatoria>`;
+// AGT_NARRATIVA — gera apenas o parágrafo de resumo da semana (Seção 01)
+// Seções 02 e 03 são geradas em JS puro a partir dos dados — sem IA
+const SYS_RELATORIO = `Você é o redator da Berti Construtora.
+Gere SOMENTE o parágrafo de Resumo da Semana: 3 a 4 frases corridas.
+REGRAS ABSOLUTAS:
+- ZERO markdown: proibido usar **, *, ##, ---, _, \\\`, [ ], ou qualquer formatação
+- Texto corrido, sem bullets, sem numeração, sem subtítulos
+- Terceira pessoa: "Os serviços avançaram...", "A equipe executou..."
+- Máximo 4 frases, mínimo 2
+- Baseado APENAS nos dados fornecidos, sem inventar`;
 
 const SYS_RELATORIO_INTERNO = `Você é o redator de relatórios internos de gestão de obra da Berti Construtora.
 
@@ -774,26 +732,183 @@ function textoParaPDF(txt) {
 async function gerarRelatorioSemanal() {
   if (!obraAtual) { toast('Selecione uma obra primeiro', 'warn'); return; }
 
-  const el = document.getElementById('rel-semanal-output');
+  const el  = document.getElementById('rel-semanal-output');
   const btn = document.getElementById('btn-gerar-semanal');
   const stat = document.getElementById('rel-semanal-status');
   btn.disabled = true; btn.textContent = 'Gerando...';
   el.className = 'rel-output loading';
-  el.innerHTML = '<div style="text-align:center;padding:40px;font-family:var(--font-data);font-size:12px;color:var(--text-muted)">Aguardando agente...</div>';
+  el.innerHTML = '<div style="text-align:center;padding:40px;font-family:var(--font-data);font-size:12px;color:var(--text-muted)">Gerando relatório...</div>';
   stat.textContent = 'gerando';
   relTextos.semanal = '';
 
   try {
-    const ctx = montarContextoSemana();
-    const userMsg = `Gere o RELATÓRIO SEMANAL DO CLIENTE para a Semana S${semanaAtual}.\n\nDados da obra:\n${ctx}`;
-    const resposta = await aiFetch(SYS_RELATORIO, userMsg, 3000);
-    relTextos.semanal = resposta;
+    const c       = obraAtual.config || {};
+    const snap    = obraAtual?.snapshots?.[`S${semanaAtual}`];
+    const snapAnt = obraAtual?.snapshots?.[`S${semanaAtual - 1}`];
+    const servicos = snap?.servicos || obraAtual?.servicos || [];
+    const servAnt  = snapAnt?.servicos || [];
+    const fotos    = obraAtual?.fotos || [];
+    const pagamentos = obraAtual?.pagamentos || [];
+
+    const pctAtual   = calcPctGeral(servicos);
+    const pctAnt     = calcPctGeral(servAnt);
+    const concluidos = servicos.filter(s => (s.pct_atual||0) >= 100 || s.status_atual === 'CONCLUÍDO').length;
+    const emAndamento = servicos.filter(s => (s.pct_atual||0) > 0 && (s.pct_atual||0) < 100).length;
+    const periodo    = getPeriodoSemana(c.periodo_ini, semanaAtual);
+    const totalPago  = pagamentos.filter(p => p.status === 'pago').reduce((s,p) => s + (Number(p.valor)||0), 0);
+    const saldo      = Math.max(0, (Number(c.valor_contrato)||0) - totalPago);
+    const servsAvancaram = servicos.filter(s => (s.pct_atual||0) > (servAnt.find(x => x.cod === s.cod)?.pct_atual||0));
+    const dataEmissao = new Date().toLocaleDateString('pt-BR');
+
+    // ── SEÇÃO 01: narrativa via IA (único ponto de chamada à IA) ──────────────
+    const ctxNarrativa =
+      `Obra: ${c.obra||''}\nSemana: ${semanaAtual} (${periodo})\n` +
+      `Avanço: ${pctAnt}% → ${pctAtual}% (+${pctAtual - pctAnt}pp)\n` +
+      `Serviços com avanço: ${servsAvancaram.map(s => s.descricao).join(', ') || 'nenhum'}\n` +
+      `Concluídos: ${concluidos} de ${servicos.length} · Em andamento: ${emAndamento}`;
+
+    const narrativaRaw = await aiFetch(SYS_RELATORIO, ctxNarrativa, 300);
+    const narrativa = narrativaRaw
+      .replace(/\*\*([\s\S]+?)\*\*/g, '$1').replace(/\*([\s\S]+?)\*/g, '$1')
+      .replace(/^#{1,6}\s+/gm, '').replace(/^---+$/gm, '').replace(/\n{2,}/g, ' ').trim();
+    relTextos.semanal = narrativa;
+
+    // ── SEÇÃO 02: tabela de serviços — JS puro, sem IA ───────────────────────
+    function badge(pct, st) {
+      if (pct >= 100 || st === 'CONCLUÍDO')
+        return '<span style="background:#dcfce7;color:#166534;font-size:9px;padding:2px 8px;border-radius:10px;font-family:var(--font-data);white-space:nowrap">CONCLUÍDO</span>';
+      if (pct > 0)
+        return '<span style="background:#dbeafe;color:#1e40af;font-size:9px;padding:2px 8px;border-radius:10px;font-family:var(--font-data);white-space:nowrap">EM ANDAMENTO</span>';
+      return '<span style="background:#f1f5f9;color:#64748b;font-size:9px;padding:2px 8px;border-radius:10px;font-family:var(--font-data);white-space:nowrap">A EXECUTAR</span>';
+    }
+    function barra(pct) {
+      const p = Math.min(100, Math.max(0, pct||0));
+      const cor = p >= 100 ? '#16a34a' : '#2563eb';
+      return `<div style="display:flex;align-items:center;gap:6px"><div style="flex:1;height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden"><div style="width:${p}%;height:100%;background:${cor};border-radius:3px"></div></div><span style="font-family:var(--font-data);font-size:10px;color:#374151;min-width:28px">${p}%</span></div>`;
+    }
+    function local(desc) {
+      const m = String(desc).match(/[—\-–]\s*(.{2,30})$/);
+      return m ? m[1].trim() : '—';
+    }
+    const servsVis = [...servicos]
+      .filter(s => (s.pct_atual||0) > 0)
+      .sort((a, b) => (b.pct_atual||0) - (a.pct_atual||0));
+    const tabelaRows = servsVis.length
+      ? servsVis.map(s => `<tr>
+          <td style="padding:8px 10px;font-size:12px;border-bottom:1px solid #f1f5f9">${esc(s.descricao||'')}</td>
+          <td style="padding:8px 10px;font-size:11px;color:#6b7280;border-bottom:1px solid #f1f5f9;white-space:nowrap">${esc(local(s.descricao||''))}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9">${badge(s.pct_atual||0, s.status_atual)}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;min-width:130px">${barra(s.pct_atual||0)}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="4" style="padding:20px;text-align:center;color:#9ca3af;font-size:12px">Nenhum serviço iniciado</td></tr>';
+
+    // ── SEÇÃO 03: fotos — JS puro, sem IA ────────────────────────────────────
+    const fotosHTML = fotos.length
+      ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">${fotos.map(f =>
+          `<div><img src="${esc(f.url||f.src||'')}" alt="${esc(f.descricao||'')}"
+            style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:4px;border:1px solid #e5e7eb">
+           <div style="font-size:10px;color:#6b7280;font-family:var(--font-data);margin-top:4px;display:flex;justify-content:space-between">
+             <span>${esc(f.descricao||f.ambiente||'')}</span><span>${f.data ? fmtDate(f.data) : '—'}</span>
+           </div></div>`).join('')}</div>`
+      : '<div style="padding:24px;text-align:center;color:#9ca3af;font-size:12px;border:1px dashed #e5e7eb;border-radius:4px">Nenhuma foto registrada para esta semana</div>';
+
+    // ── MONTAR DOCUMENTO COMPLETO ─────────────────────────────────────────────
+    function secHead(num, titulo) {
+      return `<div style="display:flex;align-items:center;gap:10px;border-bottom:2px solid #1a2e1a;padding-bottom:6px;margin-bottom:14px">
+        <div style="background:#1a2e1a;color:#fff;font-family:var(--font-data);font-size:12px;font-weight:700;padding:2px 8px;border-radius:2px">${num}</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#1a2e1a;text-transform:uppercase">${titulo}</div>
+      </div>`;
+    }
+    function metaCell(label, val) {
+      return `<div style="padding:5px 0;border-bottom:1px solid #f3f4f6">
+        <div style="font-family:var(--font-data);font-size:8px;letter-spacing:1px;color:#9ca3af;text-transform:uppercase;margin-bottom:2px">${esc(label)}</div>
+        <div style="font-size:12px;font-weight:600;color:#111">${val}</div>
+      </div>`;
+    }
+    function kpiCard(label, val, cor) {
+      return `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:14px;text-align:center;border-top:3px solid ${cor}">
+        <div style="font-family:var(--font-display);font-size:26px;letter-spacing:1px;color:${cor};line-height:1">${val}</div>
+        <div style="font-family:var(--font-data);font-size:8px;letter-spacing:1px;color:#9ca3af;margin-top:4px;text-transform:uppercase">${esc(label)}</div>
+      </div>`;
+    }
+
+    const html = `<div style="background:#fff;font-family:'Jost',sans-serif;font-size:13px;color:#111;max-width:820px;margin:0 auto;padding:0">
+
+      <!-- CABEÇALHO -->
+      <div style="border-bottom:3px solid #1a2e1a;padding-bottom:20px;margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+          <div>
+            <div style="font-family:var(--font-display);font-size:34px;letter-spacing:4px;color:#1a2e1a;line-height:1">BERTI.</div>
+            <div style="font-family:var(--font-data);font-size:8px;letter-spacing:3px;color:#9ca3af;margin-top:2px">CONSTRUTORA</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:var(--font-data);font-size:8px;letter-spacing:2px;color:#9ca3af;text-transform:uppercase;margin-bottom:4px">Relatório de Acompanhamento de Obra</div>
+            <div style="font-size:11px;color:#6b7280">Emissão: ${esc(dataEmissao)} · Rev. A</div>
+          </div>
+        </div>
+        <div style="font-family:var(--font-display);font-size:24px;letter-spacing:2px;color:#1a2e1a;margin-bottom:3px">${esc((c.obra||'').toUpperCase())}</div>
+        <div style="font-size:11px;color:#6b7280;margin-bottom:16px">${esc(c.endereco||'—')}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 28px">
+          ${metaCell('Contratante', esc(c.cliente||'—'))}
+          ${metaCell('Semana de Referência', `S${semanaAtual} · ${esc(periodo)}`)}
+          ${metaCell('Período da Obra', `${fmtDate(c.periodo_ini)} a ${fmtDate(c.periodo_fim)}`)}
+          ${metaCell('Contratada', 'Berti Construtora LTDA')}
+          ${metaCell('Valor do Contrato', fmtMoney(c.valor_contrato))}
+          ${metaCell('Valor Pago', fmtMoney(totalPago))}
+          ${metaCell('Saldo em Aberto', fmtMoney(saldo))}
+          ${metaCell('Próx. Medição', esc(c.prox_medicao ? fmtDate(c.prox_medicao) : '—'))}
+        </div>
+      </div>
+
+      <!-- KPI STRIP -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px">
+        ${kpiCard('Avanço Geral', pctAtual + '%', '#1a2e1a')}
+        ${kpiCard('Serviços Concluídos', String(concluidos), '#16a34a')}
+        ${kpiCard('Em Andamento', String(emAndamento), '#2563eb')}
+        ${kpiCard('Entrega Prevista', fmtDate(c.periodo_fim), '#b45309')}
+      </div>
+
+      <!-- SEÇÃO 01 — RESUMO DA SEMANA (IA) -->
+      <div style="margin-bottom:28px">
+        ${secHead('01', 'Resumo da Semana')}
+        <p style="font-size:13px;line-height:1.75;color:#374151">${esc(narrativa)}</p>
+      </div>
+
+      <!-- SEÇÃO 02 — SERVIÇOS EXECUTADOS (dados) -->
+      <div style="margin-bottom:28px">
+        ${secHead('02', 'Serviços Executados')}
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr style="background:#1a2e1a">
+            <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.7);text-align:left;font-weight:500">SERVIÇO</th>
+            <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.7);text-align:left;font-weight:500">LOCAL</th>
+            <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.7);text-align:left;font-weight:500">STATUS</th>
+            <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.7);text-align:left;font-weight:500;min-width:140px">PROGRESSO</th>
+          </tr></thead>
+          <tbody>${tabelaRows}</tbody>
+        </table>
+      </div>
+
+      <!-- SEÇÃO 03 — REGISTRO FOTOGRÁFICO (dados) -->
+      <div style="margin-bottom:40px">
+        ${secHead('03', 'Registro Fotográfico')}
+        ${fotosHTML}
+      </div>
+
+      <!-- RODAPÉ -->
+      <div style="border-top:1px solid #e5e7eb;padding-top:10px;display:flex;justify-content:space-between;font-family:var(--font-data);font-size:8px;color:#9ca3af;letter-spacing:.5px">
+        <span>Berti Construtora LTDA · CNPJ 59.622.624/0001-93</span>
+        <span>${esc((c.obra||'').toUpperCase())} — SEMANA ${semanaAtual}</span>
+        <span>${esc(dataEmissao)} · Rev. A</span>
+      </div>
+    </div>`;
+
     el.className = 'rel-output';
-    el.innerHTML = textoParaHTML(resposta);
+    el.innerHTML = html;
     stat.textContent = `gerado · ${new Date().toLocaleTimeString('pt-BR')}`;
     ['btn-copy-semanal','btn-pdf-semanal'].forEach(id => { const b = document.getElementById(id); if(b) b.disabled = false; });
     ['btn-top-copy','btn-top-pdf'].forEach(id => { const b = document.getElementById(id); if(b) b.disabled = false; });
     toast('Relatório gerado', 'success');
+
   } catch(e) {
     el.className = 'rel-output';
     el.innerHTML = `<div style="color:var(--danger);font-family:var(--font-data);font-size:12px;padding:20px">Erro: ${esc(e.message)}</div>`;
@@ -1131,8 +1246,18 @@ function abrirPreviewHTML(html, titulo) {
 
 function imprimirPDF(tipo) {
   if (tipo === 'semanal') {
-    if (!relTextos.semanal) { toast('Gere o relatório primeiro', 'warn'); return; }
-    abrirPreviewHTML(textoParaHTML(relTextos.semanal), 'Semanal Cliente');
+    const elSem = document.getElementById('rel-semanal-output');
+    if (!elSem?.innerHTML?.trim() || elSem.classList.contains('empty')) { toast('Gere o relatório primeiro', 'warn'); return; }
+    // O HTML já está montado com estrutura completa — abrir direto para impressão
+    const c = obraAtual?.config || {};
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Relatório Semanal — ${esc(c.obra||'')}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Jost:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>*{box-sizing:border-box;margin:0;padding:0}body{background:#fff;padding:28px 32px;max-width:860px;margin:0 auto}
+    @media print{@page{margin:12mm;size:A4}body{padding:0;max-width:none}print-color-adjust:exact;-webkit-print-color-adjust:exact}</style>
+    </head><body>${elSem.innerHTML}<script>setTimeout(()=>window.print(),800);<\/script></body></html>`);
+    w.document.close();
+    return;
   } else if (tipo === 'interno') {
     if (!relTextos.interno) { toast('Gere o relatório interno primeiro', 'warn'); return; }
     abrirPreviewHTML(textoParaHTML(relTextos.interno), 'Interno');
