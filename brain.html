@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#060D09">
+<title>DEKA · Brain — Berti Construtora</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Jost:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Syne:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --verde:      #2E9650;
+  --verde-dim:  #1a5c30;
+  --verde-glow: rgba(46,150,80,0.15);
+  --ouro:       #B89A6A;
+  --ouro-dim:   #7a6445;
+  --bg:         #060D09;
+  --bg-2:       #0D1A10;
+  --bg-3:       #142018;
+  --bg-4:       #1a2a1e;
+  --border:     #1e2e20;
+  --border-2:   #2a3e2c;
+  --text:       #e8f0e8;
+  --text-dim:   #7a9a7a;
+  --text-muted: #4a6a4a;
+  --danger:     #cc3333;
+  --danger-dim: #3a0a0a;
+  --warn:       #cc8800;
+  --warn-dim:   #2a1800;
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body:    'Jost', sans-serif;
+  --font-data:    'JetBrains Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;min-height:100vh;overflow-x:hidden}
+
+/* HEADER */
+#app-header{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:52px;background:var(--bg-2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.header-brand{font-family:var(--font-display);font-size:22px;letter-spacing:2px;color:var(--verde)}
+.header-brand span{color:var(--ouro)}
+.header-info{font-family:var(--font-data);font-size:11px;color:var(--text-dim);text-align:right}
+
+/* TABS */
+#nav-tabs{display:flex;background:var(--bg-2);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+#nav-tabs::-webkit-scrollbar{display:none}
+.tab-btn{flex:none;padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-dim);font-family:var(--font-body);font-size:13px;font-weight:500;letter-spacing:.5px;cursor:pointer;white-space:nowrap;transition:all .15s}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--verde);border-bottom-color:var(--verde)}
+.tab-badge{display:inline-flex;align-items:center;justify-content:center;background:var(--danger);color:#fff;font-size:10px;font-family:var(--font-data);width:16px;height:16px;border-radius:50%;margin-left:6px}
+
+/* PANELS */
+.panel{display:none;padding:20px;max-width:1200px;margin:0 auto}
+.panel.active{display:block}
+
+/* CARDS */
+.card{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px}
+.card-title{font-family:var(--font-display);font-size:14px;letter-spacing:1px;color:var(--text-dim);margin-bottom:12px}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.kpi-box{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:12px 14px}
+.kpi-label{font-size:10px;font-family:var(--font-data);color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.kpi-value{font-family:var(--font-display);font-size:28px;color:var(--verde);letter-spacing:1px}
+.kpi-value.ouro{color:var(--ouro)}
+.kpi-value.danger{color:var(--danger)}
+.kpi-value.warn{color:var(--warn)}
+
+/* JARVIS */
+#jarvis-out{background:var(--bg-3);border:1px solid var(--border-2);border-radius:6px;padding:16px;font-family:var(--font-data);font-size:12px;line-height:1.7;color:var(--text);min-height:80px;white-space:pre-wrap}
+#jarvis-out.loading{color:var(--text-dim);animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* AGENDA */
+#agenda-input{width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-data);font-size:12px;padding:10px 12px;resize:vertical;min-height:80px}
+#agenda-input:focus{outline:none;border-color:var(--verde)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:5px;border:none;cursor:pointer;font-family:var(--font-body);font-size:13px;font-weight:500;transition:all .15s}
+.btn-verde{background:var(--verde-dim);border:1px solid var(--verde);color:var(--verde)}
+.btn-verde:hover{background:var(--verde);color:#fff}
+.btn-ouro{background:var(--ouro-dim);border:1px solid var(--ouro);color:var(--ouro)}
+.btn-ouro:hover{background:var(--ouro);color:#000}
+.btn-danger{background:var(--danger-dim);border:1px solid var(--danger);color:var(--danger)}
+.btn-danger:hover{background:var(--danger);color:#fff}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-dim)}
+.btn-ghost:hover{border-color:var(--verde);color:var(--verde)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* FORMS */
+.form-row{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.form-group{display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px}
+.form-label{font-size:11px;font-family:var(--font-data);color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+.form-input,.form-select,.form-textarea{background:var(--bg-3);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--font-body);font-size:13px;padding:8px 10px}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--verde)}
+.form-select option{background:var(--bg-3)}
+.form-textarea{resize:vertical;min-height:80px;font-family:var(--font-data);font-size:12px}
+
+/* TASK ITEMS */
+.task-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;transition:border-color .15s}
+.task-item:hover{border-color:var(--border-2)}
+.task-item.alta{border-left:3px solid var(--danger)}
+.task-item.media{border-left:3px solid var(--warn)}
+.task-item.baixa{border-left:3px solid var(--text-muted)}
+.task-item.concluida{opacity:.5}
+.task-item.atrasada{background:rgba(204,51,51,.05)}
+.task-check{width:16px;height:16px;accent-color:var(--verde);flex-shrink:0;margin-top:2px;cursor:pointer}
+.task-body{flex:1;min-width:0}
+.task-titulo{font-weight:500;font-size:13px;color:var(--text);margin-bottom:2px}
+.task-meta{font-family:var(--font-data);font-size:10px;color:var(--text-muted);display:flex;gap:10px;flex-wrap:wrap}
+.task-actions{display:flex;gap:4px;flex-shrink:0}
+
+/* TAGS */
+.tag{display:inline-block;padding:2px 7px;border-radius:3px;font-family:var(--font-data);font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+.tag-alta{background:rgba(204,51,51,.2);color:#ff6666}
+.tag-media{background:rgba(204,136,0,.2);color:#ffaa33}
+.tag-baixa{background:rgba(74,106,74,.3);color:var(--text-dim)}
+.tag-verde{background:var(--verde-glow);color:var(--verde)}
+.tag-ouro{background:rgba(184,154,106,.15);color:var(--ouro)}
+.tag-danger{background:rgba(204,51,51,.2);color:#ff6666}
+
+/* FILTERS */
+.filter-bar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.filter-btn{padding:5px 12px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text-dim);font-family:var(--font-data);font-size:11px;cursor:pointer;transition:all .15s}
+.filter-btn.active,.filter-btn:hover{border-color:var(--verde);color:var(--verde);background:var(--verde-glow)}
+
+/* PARCEIRO */
+.parceiro-card{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:8px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start}
+.parceiro-card.inativo-alerta{border-left:3px solid var(--warn)}
+.parceiro-card.com-comissao{border-right:3px solid var(--ouro)}
+.parceiro-nome{font-weight:600;font-size:14px;color:var(--text)}
+.parceiro-empresa{font-size:12px;color:var(--text-dim);margin-bottom:6px}
+.parceiro-meta{font-family:var(--font-data);font-size:11px;color:var(--text-muted);display:flex;gap:12px;flex-wrap:wrap}
+
+/* OBRA */
+.obra-card{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:8px}
+.obra-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.obra-nome{font-family:var(--font-display);font-size:16px;letter-spacing:1px;color:var(--text)}
+.obra-cliente{font-size:12px;color:var(--text-dim);margin-top:2px}
+
+/* PROGRESS */
+.progress-wrap{background:var(--bg-4);border-radius:3px;height:6px;overflow:hidden;margin:8px 0}
+.progress-bar{height:100%;background:var(--verde);border-radius:3px;transition:width .3s}
+.progress-bar.warn{background:var(--warn)}
+.progress-bar.danger{background:var(--danger)}
+
+/* MSG */
+.msg-card{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:8px}
+.msg-text{font-family:var(--font-data);font-size:12px;color:var(--text);white-space:pre-wrap;line-height:1.6;margin-bottom:10px}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg-2);border:1px solid var(--border-2);border-radius:10px;padding:24px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto}
+.modal-title{font-family:var(--font-display);font-size:18px;letter-spacing:1px;color:var(--verde);margin-bottom:16px}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+
+/* SECTION */
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.section-title{font-family:var(--font-display);font-size:16px;letter-spacing:1.5px;color:var(--text-dim)}
+
+/* SCRIPT DO DIA */
+.script-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);align-items:flex-start}
+.script-hora{font-family:var(--font-data);font-size:11px;color:var(--verde);flex-shrink:0;width:44px;padding-top:2px}
+.script-acao{font-size:13px;color:var(--text)}
+.script-meta{font-family:var(--font-data);font-size:10px;color:var(--text-muted)}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:6px;font-family:var(--font-body);font-size:14px;animation:toastIn .2s ease;max-width:320px}
+.toast-info{background:var(--bg-3);border:1px solid var(--verde);color:var(--text)}
+.toast-success{background:var(--verde-dim);border:1px solid var(--verde);color:#fff}
+.toast-error{background:#2a0808;border:1px solid var(--danger);color:#ff6666}
+.toast-warn{background:#2a1800;border:1px solid var(--warn);color:#ffaa33}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* SPINNER */
+.spinner{width:14px;height:14px;border:2px solid var(--border-2);border-top-color:var(--verde);border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* IMPORT DROP */
+#import-drop{border:2px dashed var(--border-2);border-radius:8px;padding:24px;text-align:center;color:var(--text-muted);font-family:var(--font-data);font-size:12px;cursor:pointer;transition:all .15s;margin-bottom:12px}
+#import-drop:hover,#import-drop.drag-over{border-color:var(--verde);color:var(--verde);background:var(--verde-glow)}
+
+/* EMPTY */
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-muted);font-family:var(--font-data);font-size:12px}
+
+/* OBS BADGE */
+.obs-badge{font-family:var(--font-data);font-size:10px;color:var(--ouro);background:rgba(184,154,106,.1);border:1px solid var(--ouro-dim);border-radius:3px;padding:2px 6px}
+
+/* MOBILE */
+@media(max-width:600px){
+  .panel{padding:12px}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .form-row{flex-direction:column}
+  .form-group{min-width:unset}
+  .obra-header{flex-direction:column;gap:8px}
+  #app-header{padding:0 12px}
+  .tab-btn{padding:10px 14px;font-size:12px}
+  #dash-grid{grid-template-columns:1fr !important}
+}
+</style>
+</head>
+<body>
+
+<header id="app-header">
+  <div class="header-brand">DEKA <span>·</span> BRAIN</div>
+  <div class="header-info">
+    <div id="hdr-data">—</div>
+    <div id="hdr-hora">—</div>
+  </div>
+</header>
+
+<nav id="nav-tabs">
+  <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+  <button class="tab-btn" data-tab="tarefas">Tarefas <span class="tab-badge" id="badge-tarefas" style="display:none">0</span></button>
+  <button class="tab-btn" data-tab="parceiros">Parceiros <span class="tab-badge" id="badge-parceiros" style="display:none">0</span></button>
+  <button class="tab-btn" data-tab="obras">Obras</button>
+  <button class="tab-btn" data-tab="mensagens">Mensagens</button>
+</nav>
+
+<!-- ═══ DASHBOARD ═══ -->
+<div class="panel active" id="panel-dashboard">
+  <div class="kpi-grid">
+    <div class="kpi-box"><div class="kpi-label">Obras Ativas</div><div class="kpi-value" id="kpi-obras">—</div></div>
+    <div class="kpi-box"><div class="kpi-label">Tarefas Hoje</div><div class="kpi-value warn" id="kpi-tarefas">—</div></div>
+    <div class="kpi-box"><div class="kpi-label">Atrasadas</div><div class="kpi-value danger" id="kpi-atrasadas">—</div></div>
+    <div class="kpi-box"><div class="kpi-label">Parceiros Ativos</div><div class="kpi-value ouro" id="kpi-parceiros">—</div></div>
+  </div>
+
+  <div id="dash-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="card">
+      <div class="section-header">
+        <div class="card-title">AGENDA DO DIA</div>
+        <button class="btn btn-ghost btn-sm" onclick="salvarAgenda()">Salvar</button>
+      </div>
+      <textarea id="agenda-input" placeholder="08:00 — Reunião Joel&#10;09:30 — Visita Badida&#10;14:00 — Ligar Ana Carolina"></textarea>
+    </div>
+    <div class="card">
+      <div class="section-header">
+        <div class="card-title">JARVIS</div>
+        <button class="btn btn-verde btn-sm" id="btn-jarvis" onclick="gerarJarvis()">Gerar Briefing</button>
+      </div>
+      <div id="jarvis-out">Clique em "Gerar Briefing" para receber o plano do dia.</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:0">
+    <div class="section-header">
+      <div class="card-title">SCRIPT DO DIA</div>
+      <span style="font-family:var(--font-data);font-size:11px;color:var(--text-muted)">Alta → Baixa</span>
+    </div>
+    <div id="script-list"><div class="empty-state">Nenhuma tarefa para hoje.</div></div>
+  </div>
+
+  <div class="card" id="card-alertas" style="display:none;border-color:var(--warn)">
+    <div class="card-title" style="color:var(--warn)">ALERTAS</div>
+    <div id="alertas-list"></div>
+  </div>
+</div>
+
+<!-- ═══ TAREFAS ═══ -->
+<div class="panel" id="panel-tarefas">
+  <div class="section-header">
+    <div class="section-title">TAREFAS</div>
+    <button class="btn btn-verde btn-sm" onclick="abrirModalTarefa()">+ Nova</button>
+  </div>
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="filtrarTarefas('hoje',this)">Hoje</button>
+    <button class="filter-btn" onclick="filtrarTarefas('amanha',this)">Amanhã</button>
+    <button class="filter-btn" onclick="filtrarTarefas('pendentes',this)">Pendentes</button>
+    <button class="filter-btn" onclick="filtrarTarefas('atrasadas',this)">Atrasadas</button>
+    <button class="filter-btn" onclick="filtrarTarefas('concluidas',this)">Concluídas</button>
+    <button class="filter-btn" onclick="filtrarTarefas('todas',this)">Todas</button>
+  </div>
+  <div id="tarefas-list"><div class="empty-state">Nenhuma tarefa encontrada.</div></div>
+</div>
+
+<!-- ═══ PARCEIROS ═══ -->
+<div class="panel" id="panel-parceiros">
+  <div class="section-header">
+    <div class="section-title">PARCEIROS</div>
+    <button class="btn btn-verde btn-sm" onclick="abrirModalParceiro()">+ Novo</button>
+  </div>
+  <div id="parceiros-alertas"></div>
+  <div id="comissoes-pendentes"></div>
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="filtrarParceiros('todos',this)">Todos</button>
+    <button class="filter-btn" onclick="filtrarParceiros('ativo',this)">Ativos</button>
+    <button class="filter-btn" onclick="filtrarParceiros('potencial',this)">Potenciais</button>
+    <button class="filter-btn" onclick="filtrarParceiros('inativo',this)">Inativos</button>
+  </div>
+  <div id="parceiros-list"><div class="empty-state">Nenhum parceiro cadastrado.</div></div>
+</div>
+
+<!-- ═══ OBRAS ═══ -->
+<div class="panel" id="panel-obras">
+  <div class="section-header">
+    <div class="section-title">OBRAS</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="recarregarObras()">↺ Atualizar</button>
+      <button class="btn btn-ouro btn-sm" onclick="abrirModalImport()">+ Importar Obra</button>
+    </div>
+  </div>
+  <div id="obras-list"><div class="empty-state">Carregando obras...</div></div>
+</div>
+
+<!-- ═══ MENSAGENS ═══ -->
+<div class="panel" id="panel-mensagens">
+  <div class="section-header"><div class="section-title">MENSAGENS</div></div>
+  <div class="card">
+    <div class="card-title">GERAR MENSAGEM — AGT_WHATSAPP</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Destinatário</label>
+        <input class="form-input" id="msg-dest" placeholder="Nome do contato">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipo</label>
+        <select class="form-select" id="msg-tipo">
+          <option value="atualizacao">Atualização de Obra</option>
+          <option value="boletim">Boletim Semanal</option>
+          <option value="followup">Follow-up</option>
+          <option value="parceiro">Mensagem de Parceiro</option>
+          <option value="alerta">Alerta</option>
+          <option value="aviso">Aviso</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">Contexto / O que aconteceu</label>
+      <textarea class="form-textarea" id="msg-contexto" placeholder="Ex: Obra Badida avançou 15% esta semana, alvenaria concluída..."></textarea>
+    </div>
+    <button class="btn btn-verde" id="btn-gerar-msg" onclick="gerarMensagem()">Gerar Mensagem</button>
+  </div>
+  <div id="mensagens-list"></div>
+</div>
+
+<!-- ═══ MODAL: TAREFA ═══ -->
+<div class="modal-overlay" id="modal-tarefa">
+  <div class="modal">
+    <div class="modal-title" id="modal-tarefa-titulo">NOVA TAREFA</div>
+    <input type="hidden" id="t-edit-id">
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label class="form-label">Título *</label>
+        <input class="form-input" id="t-titulo" placeholder="Ligar Joel — aprovar medição S3">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contexto</label>
+        <input class="form-input" id="t-contexto" placeholder="Badida">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Data</label>
+        <input class="form-input" type="date" id="t-data">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tempo (min)</label>
+        <input class="form-input" type="number" id="t-tempo" placeholder="15" min="5" step="5">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Prioridade</label>
+        <select class="form-select" id="t-prioridade">
+          <option value="alta">Alta</option>
+          <option value="media" selected>Média</option>
+          <option value="baixa">Baixa</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Categoria</label>
+        <select class="form-select" id="t-categoria">
+          <option value="obra">Obra</option>
+          <option value="proposta">Proposta</option>
+          <option value="comunicacao">Comunicação</option>
+          <option value="administrativo">Administrativo</option>
+          <option value="prospeccao">Prospecção</option>
+          <option value="financeiro">Financeiro</option>
+          <option value="pessoal">Pessoal</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Recorrência</label>
+        <select class="form-select" id="t-recorrente">
+          <option value="null">Não recorrente</option>
+          <option value="diario">Diário</option>
+          <option value="semanal">Semanal</option>
+          <option value="mensal">Mensal</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">WhatsApp para</label>
+        <input class="form-input" id="t-wa-para" placeholder="Nome (opcional)">
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">Mensagem WhatsApp pronta</label>
+      <textarea class="form-textarea" id="t-wa-msg" placeholder="Mensagem pronta para enviar (opcional)" style="min-height:60px"></textarea>
+    </div>
+    <div class="form-group" style="margin-bottom:0">
+      <label class="form-label">Notas</label>
+      <textarea class="form-textarea" id="t-notas" placeholder="Observações" style="min-height:50px"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="fecharModal('modal-tarefa')">Cancelar</button>
+      <button class="btn btn-verde" onclick="salvarTarefa()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: PARCEIRO ═══ -->
+<div class="modal-overlay" id="modal-parceiro">
+  <div class="modal">
+    <div class="modal-title" id="modal-parceiro-titulo">NOVO PARCEIRO</div>
+    <input type="hidden" id="p-edit-id">
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label class="form-label">Nome *</label>
+        <input class="form-input" id="p-nome" placeholder="Ana Carolina Pereira">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Empresa</label>
+        <input class="form-input" id="p-empresa" placeholder="Studio AC Arquitetura">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Função</label>
+        <select class="form-select" id="p-funcao">
+          <option value="arquiteta">Arquiteta</option>
+          <option value="engenheiro">Engenheiro</option>
+          <option value="indicador">Indicador</option>
+          <option value="construtora">Construtora</option>
+          <option value="fornecedor_parceiro">Fornecedor Parceiro</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="p-status">
+          <option value="ativo">Ativo</option>
+          <option value="potencial">Potencial</option>
+          <option value="inativo">Inativo</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Contato</label>
+        <input class="form-input" id="p-contato" placeholder="(41) 9xxxx-xxxx">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" id="p-email" placeholder="ana@studio.com">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Instagram</label>
+        <input class="form-input" id="p-instagram" placeholder="@studioac">
+      </div>
+      <div class="form-group">
+        <label class="form-label">% Comissão</label>
+        <input class="form-input" type="number" id="p-pct" placeholder="5" min="0" max="30" step="0.5">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label class="form-label">Forma de Pagamento da Parceria</label>
+        <input class="form-input" id="p-forma-pgto" placeholder="PIX ao fechar contrato">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Última Interação</label>
+        <input class="form-input" type="date" id="p-ultima-interacao">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label class="form-label">Próxima Ação</label>
+        <input class="form-input" id="p-proxima-acao" placeholder="Ligar — mostrar portfólio">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Prazo</label>
+        <input class="form-input" type="date" id="p-prazo-acao">
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:0">
+      <label class="form-label">Notas</label>
+      <textarea class="form-textarea" id="p-notas" placeholder="Prefere WhatsApp. Foco em reformas corporativas." style="min-height:60px"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="fecharModal('modal-parceiro')">Cancelar</button>
+      <button class="btn btn-verde" onclick="salvarParceiro()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: IMPORTAR OBRA ═══ -->
+<div class="modal-overlay" id="modal-import">
+  <div class="modal">
+    <div class="modal-title">IMPORTAR OBRA FECHADA</div>
+    <p style="font-size:13px;color:var(--text-dim);margin-bottom:14px">Cole o JSON exportado pelo módulo Comercial ao fechar um lead.</p>
+    <div id="import-drop" onclick="document.getElementById('import-file').click()">
+      Clique para selecionar arquivo JSON<br><small>ou cole o JSON abaixo</small>
+    </div>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="lerArquivoImport(event)">
+    <div class="form-group" style="margin-bottom:12px">
+      <label class="form-label">JSON da Obra</label>
+      <textarea class="form-textarea" id="import-json" placeholder='{"obra_key":"...","nome_obra":"..."}' style="min-height:120px;font-size:11px"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="fecharModal('modal-import')">Cancelar</button>
+      <button class="btn btn-ouro" onclick="importarObra()">Importar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: OBS INTERNA ═══ -->
+<div class="modal-overlay" id="modal-obs">
+  <div class="modal">
+    <div class="modal-title">OBSERVAÇÃO INTERNA</div>
+    <input type="hidden" id="obs-obra-key">
+    <div class="form-group" style="margin-bottom:12px">
+      <label class="form-label">Obs. Interna (visível apenas no Brain)</label>
+      <textarea class="form-textarea" id="obs-texto" style="min-height:100px" placeholder="Anotações internas sobre esta obra..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="fecharModal('modal-obs')">Cancelar</button>
+      <button class="btn btn-verde" onclick="salvarObsInterna()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// DEKA_CORE — literal do CLAUDE.md
+// ═══════════════════════════════════════════════════════════
+
+function esc(str) {
+  return String(str ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toast(msg, tipo = 'info', dur = 3000) {
+  const t = document.createElement('div');
+  t.className = `toast toast-${tipo}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), dur);
+}
+
+const SB_URL = 'https://tdylutdfzgtcfyhynenk.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkeWx1dGRmemd0Y2Z5aHluZW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyODQxMjcsImV4cCI6MjA4ODg2MDEyN30.k44CAV8O8AGhq4lzy-Ms5CF6JsW2fgMqLEegKb4K-pg';
+
+async function sbFetch(endpoint, options = {}) {
+  const res = await fetch(`${SB_URL}/rest/v1/${endpoint}`, {
+    signal: AbortSignal.timeout(15000),
+    ...options,
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': `Bearer ${SB_KEY}`,
+      'Content-Type': 'application/json',
+      ...options.headers
+    }
+  });
+  if (!res.ok) throw new Error(`Supabase ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+
+const AI_URL   = 'https://anthropic-proxy.berti-b52.workers.dev/v1/messages';
+const AI_MODEL = 'claude-sonnet-4-20250514';
+
+async function aiFetch(systemText, userMsg, maxTokens = 1024) {
+  const res = await fetch(AI_URL, {
+    method: 'POST',
+    signal: AbortSignal.timeout(30000),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: AI_MODEL,
+      max_tokens: maxTokens,
+      system: [{ type: 'text', text: systemText, cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content: userMsg }]
+    })
+  });
+  if (!res.ok) throw new Error(`AI ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  return data.content?.[0]?.text ?? '';
+}
+
+async function aiStream(systemText, userMsg, onChunk, maxTokens = 2048) {
+  const res = await fetch(AI_URL, {
+    method: 'POST',
+    signal: AbortSignal.timeout(60000),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: AI_MODEL,
+      max_tokens: maxTokens,
+      stream: true,
+      system: [{ type: 'text', text: systemText, cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content: userMsg }]
+    })
+  });
+  if (!res.ok) throw new Error(`AI Stream ${res.status}`);
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    for (const line of dec.decode(value).split('\n')) {
+      if (!line.startsWith('data: ')) continue;
+      try {
+        const d = JSON.parse(line.slice(6));
+        if (d.type === 'content_block_delta' && d.delta?.text) onChunk(d.delta.text);
+      } catch {}
+    }
+  }
+}
+
+function parseAgentJSON(text) {
+  try {
+    return JSON.parse(text.replace(/```json|```/g, '').trim());
+  } catch(e) {
+    console.error('Agent JSON parse error:', text);
+    return null;
+  }
+}
+
+const fmtDate  = iso => { if (!iso) return '—'; const [y,m,d] = iso.split('-'); return `${d}/${m}/${y}`; };
+const fmtMoney = val => Number(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const slugify  = str => String(str).toLowerCase().normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const hoje     = () => new Date().toISOString().split('T')[0];
+
+function cacheSet(key, data) {
+  localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data }));
+}
+function cacheGet(key, ttlMs = 5 * 60 * 1000) {
+  try {
+    const raw = JSON.parse(localStorage.getItem(key) || '{}');
+    if (!raw.ts || Date.now() - raw.ts > ttlMs) return null;
+    return raw.data;
+  } catch { return null; }
+}
+
+function calcPctGeral(servicos) {
+  if (!servicos?.length) return 0;
+  const totalValor = servicos.reduce((s, v) => s + (Number(v.valor) || 0), 0);
+  if (totalValor === 0) {
+    return Math.round(servicos.reduce((s, v) => s + (Number(v.pct_real ?? v.pct_atual) || 0), 0) / servicos.length);
+  }
+  const ponderado = servicos.reduce((s, v) => s + (Number(v.pct_real ?? v.pct_atual) || 0) * (Number(v.valor) || 0), 0);
+  return Math.round(ponderado / totalValor);
+}
+
+// ═══════════════════════════════════════════════════════════
+// ESTADO
+// ═══════════════════════════════════════════════════════════
+
+const BRAIN_KEY = 'brain_v2_berti';
+const CACHE_KEY = 'brain_ctxs_cache';
+
+let brainState  = { agenda: '', mensagens: [] };
+let obras       = [];
+let tarefas     = [];
+let parceiros   = [];
+let filtroT     = 'hoje';
+let filtroP     = 'todos';
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+
+async function init() {
+  atualizarRelogio();
+  setInterval(atualizarRelogio, 1000);
+  carregarStateLocal();
+  setupTabs();
+  setupDragDrop();
+  await Promise.all([carregarTarefas(), carregarParceiros(), carregarObras()]);
+  renderDashboard();
+  renderTarefas();
+  renderParceiros();
+}
+
+function atualizarRelogio() {
+  const n = new Date();
+  const dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  document.getElementById('hdr-data').textContent =
+    `${dias[n.getDay()]}, ${n.getDate()} ${meses[n.getMonth()]} ${n.getFullYear()}`;
+  document.getElementById('hdr-hora').textContent = n.toTimeString().slice(0, 5);
+}
+
+function carregarStateLocal() {
+  try {
+    const s = JSON.parse(localStorage.getItem(BRAIN_KEY) || '{}');
+    brainState.agenda    = s.agenda    || '';
+    brainState.mensagens = s.mensagens || [];
+  } catch {}
+  document.getElementById('agenda-input').value = brainState.agenda;
+  renderMensagens();
+}
+
+function salvarStateLocal() {
+  localStorage.setItem(BRAIN_KEY, JSON.stringify(brainState));
+}
+
+// ═══════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════
+
+function setupTabs() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(`panel-${btn.dataset.tab}`).classList.add('active');
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// TAREFAS
+// ═══════════════════════════════════════════════════════════
+
+async function carregarTarefas() {
+  try {
+    const rows = await sbFetch('brain_data?tipo=eq.tarefa&status=eq.ativo&select=id,data');
+    tarefas = rows.map(r => ({ _id: r.id, ...r.data }));
+  } catch(e) {
+    console.error('Erro ao carregar tarefas:', e);
+  }
+}
+
+async function salvarTarefa() {
+  const id    = document.getElementById('t-edit-id').value;
+  const titulo = document.getElementById('t-titulo').value.trim();
+  if (!titulo) { toast('Título obrigatório', 'error'); return; }
+
+  const data = {
+    titulo,
+    contexto:      document.getElementById('t-contexto').value.trim(),
+    categoria:     document.getElementById('t-categoria').value,
+    data:          document.getElementById('t-data').value || hoje(),
+    tempo:         Number(document.getElementById('t-tempo').value) || 15,
+    prioridade:    document.getElementById('t-prioridade').value,
+    status:        'pendente',
+    recorrente:    document.getElementById('t-recorrente').value,
+    whatsapp_para: document.getElementById('t-wa-para').value.trim(),
+    whatsapp_msg:  document.getElementById('t-wa-msg').value.trim(),
+    notas:         document.getElementById('t-notas').value.trim(),
+    criada:        new Date().toISOString()
+  };
+
+  try {
+    if (id) {
+      await sbFetch(`brain_data?id=eq.${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ data, updated_at: new Date().toISOString() })
+      });
+      const idx = tarefas.findIndex(t => t._id === id);
+      if (idx >= 0) tarefas[idx] = { _id: id, ...data };
+    } else {
+      const rows = await sbFetch('brain_data', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify({ tipo: 'tarefa', data, status: 'ativo' })
+      });
+      tarefas.push({ _id: rows[0].id, ...data });
+    }
+    fecharModal('modal-tarefa');
+    renderTarefas();
+    renderDashboard();
+    toast('Tarefa salva!', 'success');
+  } catch(e) {
+    toast('Erro ao salvar tarefa', 'error');
+    console.error(e);
+  }
+}
+
+async function concluirTarefa(id) {
+  const t = tarefas.find(t => t._id === id);
+  if (!t) return;
+  t.status = 'concluida';
+  try {
+    const { _id, ...dataLimpa } = t;
+    await sbFetch(`brain_data?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ data: dataLimpa, updated_at: new Date().toISOString() })
+    });
+    renderTarefas();
+    renderDashboard();
+    toast('Concluída!', 'success');
+  } catch(e) {
+    t.status = 'pendente';
+    toast('Erro ao atualizar', 'error');
+  }
+}
+
+async function deletarTarefa(id) {
+  if (!confirm('Remover tarefa?')) return;
+  try {
+    await sbFetch(`brain_data?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
+    tarefas = tarefas.filter(t => t._id !== id);
+    renderTarefas();
+    renderDashboard();
+    toast('Removida', 'warn');
+  } catch(e) {
+    toast('Erro ao remover', 'error');
+  }
+}
+
+function filtrarTarefas(f, btn) {
+  filtroT = f;
+  document.querySelectorAll('#panel-tarefas .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTarefas();
+}
+
+function getTarefasFiltradas() {
+  const hj = hoje();
+  const am = new Date(); am.setDate(am.getDate() + 1);
+  const amStr = am.toISOString().split('T')[0];
+  const prio  = { alta: 0, media: 1, baixa: 2 };
+  return tarefas.filter(t => {
+    if (filtroT === 'hoje')      return t.data === hj  && t.status === 'pendente';
+    if (filtroT === 'amanha')    return t.data === amStr && t.status === 'pendente';
+    if (filtroT === 'pendentes') return t.status === 'pendente';
+    if (filtroT === 'atrasadas') return t.data < hj    && t.status === 'pendente';
+    if (filtroT === 'concluidas')return t.status === 'concluida';
+    return true;
+  }).sort((a, b) => (prio[a.prioridade] ?? 1) - (prio[b.prioridade] ?? 1));
+}
+
+function renderTarefas() {
+  const hj   = hoje();
+  const lista = document.getElementById('tarefas-list');
+  const f     = getTarefasFiltradas();
+
+  const atrs = tarefas.filter(t => t.data < hj && t.status === 'pendente').length;
+  const badge = document.getElementById('badge-tarefas');
+  if (atrs > 0) { badge.textContent = atrs; badge.style.display = ''; }
+  else badge.style.display = 'none';
+
+  if (!f.length) { lista.innerHTML = '<div class="empty-state">Nenhuma tarefa neste filtro.</div>'; return; }
+
+  lista.innerHTML = f.map(t => {
+    const atrasada  = t.data < hj && t.status === 'pendente';
+    const concluida = t.status === 'concluida';
+    const waBtn = t.whatsapp_para
+      ? `<a href="https://wa.me/?text=${encodeURIComponent(t.whatsapp_msg || '')}" target="_blank" class="btn btn-ghost btn-sm" title="WhatsApp">💬</a>`
+      : '';
+    return `<div class="task-item ${esc(t.prioridade)} ${concluida ? 'concluida' : ''} ${atrasada ? 'atrasada' : ''}">
+      <input type="checkbox" class="task-check" ${concluida ? 'checked' : ''} onchange="concluirTarefa('${esc(t._id)}')">
+      <div class="task-body">
+        <div class="task-titulo">${esc(t.titulo)}</div>
+        <div class="task-meta">
+          <span>${fmtDate(t.data)}</span>
+          ${t.contexto ? `<span>${esc(t.contexto)}</span>` : ''}
+          <span>${esc(t.categoria || '')}</span>
+          ${t.tempo ? `<span>~${t.tempo}min</span>` : ''}
+          ${atrasada ? '<span style="color:var(--danger)">ATRASADA</span>' : ''}
+        </div>
+      </div>
+      <div class="task-actions">
+        ${waBtn}
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalTarefa('${esc(t._id)}')">✎</button>
+        <button class="btn btn-danger btn-sm" onclick="deletarTarefa('${esc(t._id)}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function abrirModalTarefa(id) {
+  const campos = ['t-edit-id','t-titulo','t-contexto','t-data','t-tempo','t-wa-para','t-wa-msg','t-notas'];
+  campos.forEach(c => { document.getElementById(c).value = ''; });
+  document.getElementById('t-prioridade').value = 'media';
+  document.getElementById('t-categoria').value  = 'obra';
+  document.getElementById('t-recorrente').value = 'null';
+
+  if (id) {
+    const t = tarefas.find(t => t._id === id);
+    if (!t) return;
+    document.getElementById('modal-tarefa-titulo').textContent = 'EDITAR TAREFA';
+    document.getElementById('t-edit-id').value    = t._id;
+    document.getElementById('t-titulo').value     = t.titulo      || '';
+    document.getElementById('t-contexto').value   = t.contexto    || '';
+    document.getElementById('t-data').value       = t.data        || '';
+    document.getElementById('t-tempo').value      = t.tempo       || '';
+    document.getElementById('t-prioridade').value = t.prioridade  || 'media';
+    document.getElementById('t-categoria').value  = t.categoria   || 'obra';
+    document.getElementById('t-recorrente').value = t.recorrente  || 'null';
+    document.getElementById('t-wa-para').value    = t.whatsapp_para || '';
+    document.getElementById('t-wa-msg').value     = t.whatsapp_msg  || '';
+    document.getElementById('t-notas').value      = t.notas        || '';
+  } else {
+    document.getElementById('modal-tarefa-titulo').textContent = 'NOVA TAREFA';
+    document.getElementById('t-data').value = hoje();
+  }
+  document.getElementById('modal-tarefa').classList.add('open');
+}
+
+// ═══════════════════════════════════════════════════════════
+// PARCEIROS
+// ═══════════════════════════════════════════════════════════
+
+async function carregarParceiros() {
+  try {
+    const rows = await sbFetch('brain_data?tipo=eq.parceiro&status=eq.ativo&select=id,data');
+    parceiros = rows.map(r => ({ _id: r.id, ...r.data }));
+  } catch(e) {
+    console.error('Erro ao carregar parceiros:', e);
+  }
+}
+
+async function salvarParceiro() {
+  const id   = document.getElementById('p-edit-id').value;
+  const nome = document.getElementById('p-nome').value.trim();
+  if (!nome) { toast('Nome obrigatório', 'error'); return; }
+
+  const existing = id ? parceiros.find(p => p._id === id) : null;
+
+  const data = {
+    nome,
+    empresa:                   document.getElementById('p-empresa').value.trim(),
+    funcao:                    document.getElementById('p-funcao').value,
+    status:                    document.getElementById('p-status').value,
+    contato:                   document.getElementById('p-contato').value.trim(),
+    email:                     document.getElementById('p-email').value.trim(),
+    instagram:                 document.getElementById('p-instagram').value.trim(),
+    percentual_parceria:       Number(document.getElementById('p-pct').value) || 0,
+    forma_pagamento_parceria:  document.getElementById('p-forma-pgto').value.trim(),
+    ultima_interacao:          document.getElementById('p-ultima-interacao').value || hoje(),
+    proxima_acao:              document.getElementById('p-proxima-acao').value.trim(),
+    prazo_proxima_acao:        document.getElementById('p-prazo-acao').value,
+    notas:                     document.getElementById('p-notas').value.trim(),
+    projetos_trazidos:         existing?.projetos_trazidos  || [],
+    valor_total_gerado:        existing?.valor_total_gerado || 0,
+    comissao_total_paga:       existing?.comissao_total_paga || 0,
+    comissao_pendente:         existing?.comissao_pendente  || 0,
+    criado_em:                 existing?.criado_em          || hoje()
+  };
+
+  try {
+    if (id) {
+      await sbFetch(`brain_data?id=eq.${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ data, updated_at: new Date().toISOString() })
+      });
+      const idx = parceiros.findIndex(p => p._id === id);
+      if (idx >= 0) parceiros[idx] = { _id: id, ...data };
+    } else {
+      const rows = await sbFetch('brain_data', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify({ tipo: 'parceiro', data, status: 'ativo' })
+      });
+      parceiros.push({ _id: rows[0].id, ...data });
+    }
+    fecharModal('modal-parceiro');
+    renderParceiros();
+    renderDashboard();
+    toast('Parceiro salvo!', 'success');
+  } catch(e) {
+    toast('Erro ao salvar parceiro', 'error');
+    console.error(e);
+  }
+}
+
+async function confirmarPagamentoComissao(id) {
+  const p = parceiros.find(p => p._id === id);
+  if (!p || !p.comissao_pendente) return;
+  if (!confirm(`Confirmar pagamento de ${fmtMoney(p.comissao_pendente)} para ${p.nome}?`)) return;
+  p.comissao_total_paga += p.comissao_pendente;
+  p.comissao_pendente    = 0;
+  try {
+    const { _id, ...dataLimpa } = p;
+    await sbFetch(`brain_data?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ data: dataLimpa, updated_at: new Date().toISOString() })
+    });
+    renderParceiros();
+    renderDashboard();
+    toast('Comissão quitada!', 'success');
+  } catch(e) {
+    toast('Erro ao salvar', 'error');
+  }
+}
+
+async function atualizarUltimaInteracao(id) {
+  const p = parceiros.find(p => p._id === id);
+  if (!p) return;
+  p.ultima_interacao = hoje();
+  try {
+    const { _id, ...dataLimpa } = p;
+    await sbFetch(`brain_data?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ data: dataLimpa, updated_at: new Date().toISOString() })
+    });
+    renderParceiros();
+    toast('Interação registrada', 'success');
+  } catch(e) {
+    toast('Erro ao salvar', 'error');
+  }
+}
+
+function diasSemInteracao(iso) {
+  if (!iso) return 999;
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+}
+
+function filtrarParceiros(f, btn) {
+  filtroP = f;
+  document.querySelectorAll('#panel-parceiros .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderParceiros();
+}
+
+function renderParceiros() {
+  const inativos    = parceiros.filter(p => diasSemInteracao(p.ultima_interacao) >= 15 && p.status === 'ativo');
+  const comPendente = parceiros.filter(p => p.comissao_pendente > 0);
+
+  const badge = document.getElementById('badge-parceiros');
+  const total = inativos.length + comPendente.length;
+  if (total > 0) { badge.textContent = total; badge.style.display = ''; }
+  else badge.style.display = 'none';
+
+  // Alertas inatividade
+  const alertasEl = document.getElementById('parceiros-alertas');
+  if (inativos.length) {
+    alertasEl.innerHTML = `<div class="card" style="border-color:var(--warn);background:var(--warn-dim)">
+      <div class="card-title" style="color:var(--warn)">PARCEIROS ESFRIANDO — SEM CONTATO HÁ 15+ DIAS</div>
+      ${inativos.map(p => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+        <div>
+          <span style="font-weight:600;color:var(--text)">${esc(p.nome)}</span>
+          <span style="font-family:var(--font-data);font-size:10px;color:var(--warn);margin-left:8px">${diasSemInteracao(p.ultima_interacao)}d sem contato</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="prepararMsgParceiro('${esc(p._id)}')">💬 Msg</button>
+          <button class="btn btn-ghost btn-sm" onclick="atualizarUltimaInteracao('${esc(p._id)}')">✓ Falei</button>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  } else {
+    alertasEl.innerHTML = '';
+  }
+
+  // Comissões pendentes
+  const comissoesEl = document.getElementById('comissoes-pendentes');
+  if (comPendente.length) {
+    const totalC = comPendente.reduce((s, p) => s + p.comissao_pendente, 0);
+    comissoesEl.innerHTML = `<div class="card" style="border-color:var(--ouro)">
+      <div class="card-title" style="color:var(--ouro)">COMISSÕES A PAGAR — ${esc(fmtMoney(totalC))}</div>
+      ${comPendente.map(p => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+        <div>
+          <span style="font-weight:600;color:var(--text)">${esc(p.nome)}</span>
+          <span style="font-family:var(--font-data);font-size:12px;color:var(--ouro);margin-left:8px">${esc(fmtMoney(p.comissao_pendente))}</span>
+        </div>
+        <button class="btn btn-ouro btn-sm" onclick="confirmarPagamentoComissao('${esc(p._id)}')">Confirmar Pgto</button>
+      </div>`).join('')}
+    </div>`;
+  } else {
+    comissoesEl.innerHTML = '';
+  }
+
+  // Lista
+  const lista     = document.getElementById('parceiros-list');
+  const filtrados = filtroP === 'todos' ? parceiros : parceiros.filter(p => p.status === filtroP);
+
+  if (!filtrados.length) { lista.innerHTML = '<div class="empty-state">Nenhum parceiro neste filtro.</div>'; return; }
+
+  lista.innerHTML = filtrados.map(p => {
+    const dias      = diasSemInteracao(p.ultima_interacao);
+    const inativo   = dias >= 15 && p.status === 'ativo';
+    const temComiss = p.comissao_pendente > 0;
+    return `<div class="parceiro-card ${inativo ? 'inativo-alerta' : ''} ${temComiss ? 'com-comissao' : ''}">
+      <div>
+        <div class="parceiro-nome">${esc(p.nome)}</div>
+        <div class="parceiro-empresa">${esc(p.empresa || '')}${p.funcao ? ` · ${esc(p.funcao)}` : ''}</div>
+        <div class="parceiro-meta">
+          ${p.contato ? `<span>📱 ${esc(p.contato)}</span>` : ''}
+          ${p.ultima_interacao ? `<span>Últ: ${fmtDate(p.ultima_interacao)} (${dias}d)</span>` : ''}
+          ${p.percentual_parceria ? `<span>${p.percentual_parceria}% comissão</span>` : ''}
+          ${p.valor_total_gerado ? `<span>Gerou: ${esc(fmtMoney(p.valor_total_gerado))}</span>` : ''}
+          ${temComiss ? `<span style="color:var(--ouro)">Pendente: ${esc(fmtMoney(p.comissao_pendente))}</span>` : ''}
+        </div>
+        ${p.proxima_acao ? `<div style="margin-top:6px;font-size:12px;color:var(--text-dim)">→ ${esc(p.proxima_acao)}${p.prazo_proxima_acao ? ` · ${fmtDate(p.prazo_proxima_acao)}` : ''}</div>` : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+        <span class="tag ${p.status === 'ativo' ? 'tag-verde' : p.status === 'potencial' ? 'tag-ouro' : 'tag-baixa'}">${esc(p.status)}</span>
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalParceiro('${esc(p._id)}')">✎</button>
+        <button class="btn btn-ghost btn-sm" onclick="prepararMsgParceiro('${esc(p._id)}')">💬</button>
+        ${temComiss ? `<button class="btn btn-ouro btn-sm" onclick="confirmarPagamentoComissao('${esc(p._id)}')">Pgto</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function abrirModalParceiro(id) {
+  ['p-edit-id','p-nome','p-empresa','p-contato','p-email','p-instagram',
+   'p-pct','p-forma-pgto','p-ultima-interacao','p-proxima-acao','p-prazo-acao','p-notas']
+    .forEach(c => { document.getElementById(c).value = ''; });
+  document.getElementById('p-funcao').value = 'outro';
+  document.getElementById('p-status').value = 'ativo';
+
+  if (id) {
+    const p = parceiros.find(p => p._id === id);
+    if (!p) return;
+    document.getElementById('modal-parceiro-titulo').textContent = 'EDITAR PARCEIRO';
+    document.getElementById('p-edit-id').value              = p._id;
+    document.getElementById('p-nome').value                 = p.nome || '';
+    document.getElementById('p-empresa').value              = p.empresa || '';
+    document.getElementById('p-funcao').value               = p.funcao || 'outro';
+    document.getElementById('p-status').value               = p.status || 'ativo';
+    document.getElementById('p-contato').value              = p.contato || '';
+    document.getElementById('p-email').value                = p.email || '';
+    document.getElementById('p-instagram').value            = p.instagram || '';
+    document.getElementById('p-pct').value                  = p.percentual_parceria || '';
+    document.getElementById('p-forma-pgto').value           = p.forma_pagamento_parceria || '';
+    document.getElementById('p-ultima-interacao').value     = p.ultima_interacao || '';
+    document.getElementById('p-proxima-acao').value         = p.proxima_acao || '';
+    document.getElementById('p-prazo-acao').value           = p.prazo_proxima_acao || '';
+    document.getElementById('p-notas').value                = p.notas || '';
+  } else {
+    document.getElementById('modal-parceiro-titulo').textContent = 'NOVO PARCEIRO';
+    document.getElementById('p-ultima-interacao').value = hoje();
+  }
+  document.getElementById('modal-parceiro').classList.add('open');
+}
+
+// ═══════════════════════════════════════════════════════════
+// OBRAS — cockpit_obras READ ONLY (exceto obs_interna)
+// ═══════════════════════════════════════════════════════════
+
+async function carregarObras() {
+  const cached = cacheGet(CACHE_KEY);
+  if (cached) { obras = cached; renderObras(); return; }
+  try {
+    const rows = await sbFetch('cockpit_obras?select=obra_key,data,updated_at&order=updated_at.desc');
+    obras = rows.map(r => ({ obra_key: r.obra_key, updated_at: r.updated_at, ...r.data }));
+    cacheSet(CACHE_KEY, obras);
+    renderObras();
+    renderDashboard();
+  } catch(e) {
+    console.error('Erro ao carregar obras:', e);
+    document.getElementById('obras-list').innerHTML =
+      '<div class="empty-state" style="color:var(--danger)">Erro ao carregar obras. Verifique a conexão.</div>';
+  }
+}
+
+async function recarregarObras() {
+  localStorage.removeItem(CACHE_KEY);
+  document.getElementById('obras-list').innerHTML = '<div class="empty-state">Carregando...</div>';
+  await carregarObras();
+  renderDashboard();
+  toast('Obras atualizadas', 'success');
+}
+
+function calcSemana(periodoIni) {
+  if (!periodoIni) return 1;
+  return Math.max(1, Math.floor((Date.now() - new Date(periodoIni).getTime()) / (7 * 86400000)) + 1);
+}
+
+function renderObras() {
+  const lista = document.getElementById('obras-list');
+  if (!obras.length) {
+    lista.innerHTML = '<div class="empty-state">Nenhuma obra. Importe via botão "Importar Obra".</div>';
+    return;
+  }
+  lista.innerHTML = obras.map(o => {
+    const cfg        = o.config || {};
+    const nomeObra   = cfg.obra || o.nome_obra || o.obra_key || '—';
+    const cliente    = cfg.cliente?.nome || o.cliente?.nome || '—';
+    const pct        = o.pct_geral || calcPctGeral(o.servicos || []);
+    const valor      = cfg.valor_contrato || o.valor_contrato || 0;
+    const semana     = calcSemana(cfg.periodo_ini || o.periodo_ini);
+    const periodoFim = cfg.periodo_fim || o.periodo_fim;
+    const obsInterna = cfg.obs_interna || '';
+    const pendencias = (o.pendencias || []).filter(p => p.status === 'ABERTO').length;
+    const barClass   = pct >= 80 ? '' : pct >= 50 ? 'warn' : 'danger';
+
+    return `<div class="obra-card">
+      <div class="obra-header">
+        <div>
+          <div class="obra-nome">${esc(nomeObra)}</div>
+          <div class="obra-cliente">${esc(cliente)}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <span class="tag tag-verde">S${semana}</span>
+          ${obsInterna ? '<span class="obs-badge">OBS</span>' : ''}
+          ${pendencias > 0 ? `<span class="tag tag-danger">${pendencias} pend.</span>` : ''}
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-family:var(--font-data);font-size:11px;color:var(--text-muted);margin-bottom:4px">
+        <span>${esc(fmtMoney(valor))}</span>
+        <span style="color:var(--${barClass === 'danger' ? 'danger' : barClass === 'warn' ? 'warn' : 'verde'})">${pct}%</span>
+      </div>
+      <div class="progress-wrap"><div class="progress-bar ${barClass}" style="width:${pct}%"></div></div>
+      <div style="font-family:var(--font-data);font-size:10px;color:var(--text-muted);margin-top:4px">Prazo: ${fmtDate(periodoFim)}</div>
+      ${obsInterna ? `<div style="margin-top:8px;padding:6px 8px;background:rgba(184,154,106,.08);border-left:2px solid var(--ouro);font-size:12px;color:var(--ouro)">${esc(obsInterna)}</div>` : ''}
+      <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn btn-verde btn-sm" onclick="window.open('index.html?obra_key=${esc(o.obra_key)}','_blank')">Abrir Cockpit</button>
+        <button class="btn btn-ghost btn-sm" onclick="window.open('relatorios.html?obra_key=${esc(o.obra_key)}&semana=${semana}','_blank')">Relatório</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalObs('${esc(o.obra_key)}')">Obs. Interna</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function abrirModalObs(obraKey) {
+  const obra = obras.find(o => o.obra_key === obraKey);
+  document.getElementById('obs-obra-key').value = obraKey;
+  document.getElementById('obs-texto').value    = obra?.config?.obs_interna || '';
+  document.getElementById('modal-obs').classList.add('open');
+}
+
+async function salvarObsInterna() {
+  const obraKey = document.getElementById('obs-obra-key').value;
+  const texto   = document.getElementById('obs-texto').value.trim();
+  if (!obraKey) return;
+
+  const obra = obras.find(o => o.obra_key === obraKey);
+  if (!obra) return;
+
+  // Clonar data sem obra_key e updated_at
+  const { obra_key, updated_at, ...dataParaSalvar } = { ...obra };
+  dataParaSalvar.config = dataParaSalvar.config || {};
+  dataParaSalvar.config.obs_interna       = texto;
+  dataParaSalvar.config.obs_interna_ts    = new Date().toISOString();
+  dataParaSalvar.config.obs_interna_autor = 'Evandro';
+
+  try {
+    await sbFetch(`cockpit_obras?obra_key=eq.${encodeURIComponent(obraKey)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ data: dataParaSalvar, updated_at: new Date().toISOString() })
+    });
+    const idx = obras.findIndex(o => o.obra_key === obraKey);
+    if (idx >= 0) {
+      obras[idx].config = obras[idx].config || {};
+      obras[idx].config.obs_interna = texto;
+    }
+    localStorage.removeItem(CACHE_KEY);
+    fecharModal('modal-obs');
+    renderObras();
+    toast('Observação salva!', 'success');
+  } catch(e) {
+    toast('Erro ao salvar obs.', 'error');
+    console.error(e);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// IMPORTAR OBRA
+// ═══════════════════════════════════════════════════════════
+
+function abrirModalImport() {
+  document.getElementById('import-json').value = '';
+  document.getElementById('modal-import').classList.add('open');
+}
+
+function setupDragDrop() {
+  const drop = document.getElementById('import-drop');
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); drop.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) lerArquivoImport({ target: { files: [file] } });
+  });
+}
+
+function lerArquivoImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => { document.getElementById('import-json').value = e.target.result; };
+  reader.readAsText(file);
+}
+
+async function importarObra() {
+  const raw = document.getElementById('import-json').value.trim();
+  if (!raw) { toast('Cole o JSON da obra', 'error'); return; }
+
+  const json = parseAgentJSON(raw);
+  if (!json || !json.obra_key) { toast('JSON inválido ou sem obra_key', 'error'); return; }
+
+  // Calcular comissão de parceiro se houver origem_lead_id
+  if (json.origem_lead_id) {
+    try {
+      const leads = await sbFetch(`brain_comercial?id=eq.${encodeURIComponent(json.origem_lead_id)}&select=id,data`);
+      if (leads.length && leads[0].data?.parceiro_id) {
+        const p = parceiros.find(p => p._id === leads[0].data.parceiro_id);
+        if (p && p.percentual_parceria && json.valor_contrato) {
+          const comissao = json.valor_contrato * (p.percentual_parceria / 100);
+          p.comissao_pendente   = (p.comissao_pendente   || 0) + comissao;
+          p.valor_total_gerado  = (p.valor_total_gerado  || 0) + json.valor_contrato;
+          p.projetos_trazidos   = [...(p.projetos_trazidos || []), json.obra_key];
+          const { _id, ...dataLimpa } = p;
+          await sbFetch(`brain_data?id=eq.${encodeURIComponent(p._id)}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ data: dataLimpa, updated_at: new Date().toISOString() })
+          });
+          toast(`Comissão de ${fmtMoney(comissao)} registrada para ${p.nome}`, 'info', 5000);
+        }
+      }
+    } catch(e) { console.warn('Não foi possível vincular parceiro:', e); }
+  }
+
+  const obraState = {
+    config: {
+      obra:           json.nome_obra || json.obra_key,
+      cliente:        json.cliente || {},
+      endereco:       json.endereco || '',
+      periodo_ini:    json.periodo_ini || '',
+      periodo_fim:    json.periodo_fim || '',
+      valor_contrato: json.valor_contrato || 0,
+      semana:         1,
+      obs_interna:    '',
+      obs_interna_ts: null,
+      obs_interna_autor: ''
+    },
+    servicos:         (json.servicos || []).map(s => ({ ...s, pct_atual: 0, pct_real: 0, status_atual: 'AGUARDANDO' })),
+    equipes:          json.equipes || [],
+    pendencias:       [],
+    materiais:        [],
+    pagamentos:       [],
+    fotos:            [],
+    snapshots:        {},
+    diario:           {},
+    diario_historico: {},
+    notas:            [],
+    pct_geral:        0
+  };
+
+  try {
+    await sbFetch('cockpit_obras', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({ obra_key: json.obra_key, data: obraState, updated_at: new Date().toISOString() })
+    });
+    fecharModal('modal-import');
+    localStorage.removeItem(CACHE_KEY);
+    await carregarObras();
+    toast(`Obra "${esc(json.nome_obra || json.obra_key)}" importada!`, 'success', 5000);
+  } catch(e) {
+    toast('Erro ao criar obra', 'error');
+    console.error(e);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// AGT_JARVIS — STREAMING
+// ═══════════════════════════════════════════════════════════
+
+const SYS_JARVIS = `Você é o JARVIS — agente de briefing e planejamento da Berti Construtora.
+Gestor: Evandro Luiz Duarte · Curitiba/PR · TDAH.
+
+Seu briefing deve ser direto, concreto, sequencial. Nunca mais que 3 blocos.
+Nunca enrolação. Nunca elogio. Nunca "ótima pergunta".
+
+Ao receber dados de obras, agenda e tarefas, gere exatamente:
+
+1. SITUAÇÃO (3 linhas máx): o que está crítico agora
+2. PLANO DO DIA (lista sequencial): ☐ HH:MM · [ação] · [cliente] · ~Xmin · [prioridade]
+3. ALERTAS (só os que precisam de ação hoje): máx 3 itens
+
+Se não há nada crítico, diga isso em uma linha.
+Tom: direto como um sócio experiente, não como assistente.`;
+
+async function gerarJarvis() {
+  const btn = document.getElementById('btn-jarvis');
+  const out  = document.getElementById('jarvis-out');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Gerando...';
+  out.className = 'loading';
+  out.textContent = '';
+
+  const hj             = hoje();
+  const tarefasHoje    = tarefas.filter(t => t.data === hj && t.status === 'pendente')
+    .sort((a, b) => ({ alta: 0, media: 1, baixa: 2 }[a.prioridade] ?? 1) - ({ alta: 0, media: 1, baixa: 2 }[b.prioridade] ?? 1));
+  const tarefasAtras   = tarefas.filter(t => t.data < hj && t.status === 'pendente');
+  const parcsAlerta    = parceiros.filter(p => diasSemInteracao(p.ultima_interacao) >= 15 && p.status === 'ativo');
+  const obrasAtivas    = obras.filter(o => (o.pct_geral || 0) < 100);
+
+  const userMsg = `DATA: ${hj}
+
+AGENDA DO DIA:
+${brainState.agenda || '(agenda vazia)'}
+
+TAREFAS DE HOJE (${tarefasHoje.length}):
+${tarefasHoje.map(t => `- [${(t.prioridade || 'media').toUpperCase()}] ${t.titulo} · ${t.contexto || ''} · ~${t.tempo || 15}min`).join('\n') || '(nenhuma)'}
+
+TAREFAS ATRASADAS (${tarefasAtras.length}):
+${tarefasAtras.map(t => `- ${t.titulo} · venceu ${fmtDate(t.data)}`).join('\n') || '(nenhuma)'}
+
+OBRAS ATIVAS (${obrasAtivas.length}):
+${obrasAtivas.map(o => {
+  const cfg = o.config || {};
+  return `- ${cfg.obra || o.nome_obra || o.obra_key} · ${o.pct_geral || 0}% · S${calcSemana(cfg.periodo_ini || o.periodo_ini)} · prazo ${fmtDate(cfg.periodo_fim || o.periodo_fim)}`;
+}).join('\n') || '(nenhuma)'}
+
+PARCEIROS SEM CONTATO HÁ 15+ DIAS:
+${parcsAlerta.map(p => `- ${p.nome} · ${diasSemInteracao(p.ultima_interacao)}d`).join('\n') || '(nenhum)'}`;
+
+  try {
+    out.className = '';
+    await aiStream(SYS_JARVIS, userMsg, chunk => { out.textContent += chunk; }, 2048);
+  } catch(e) {
+    out.className = '';
+    out.textContent = `Erro ao gerar briefing: ${e.message}`;
+    toast('Erro no JARVIS', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Gerar Briefing';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// AGT_WHATSAPP — JSON estruturado
+// ═══════════════════════════════════════════════════════════
+
+const SYS_WHATSAPP = `Você é o agente de comunicação da Berti Construtora.
+Gere mensagens WhatsApp profissionais e próximas ao mesmo tempo.
+
+RESPONDA APENAS COM JSON VÁLIDO. Sem texto antes ou depois. Sem markdown.
+
+Schema obrigatório:
+{
+  "mensagem": "texto completo pronto para enviar",
+  "tipo": "atualizacao|alerta|boletim|aviso|followup|parceiro",
+  "destinatario": "nome",
+  "urgencia": "alta|media|baixa"
+}
+
+Regras:
+- Tom: profissional mas próximo
+- Máx 5 linhas para atualizações rotineiras
+- Boletim semanal: estruturado com emojis para facilitar leitura rápida
+- Nunca inventar dados não fornecidos
+- Nunca prometer prazos não confirmados
+- Para parceiros: tom mais leve e colaborativo`;
+
+async function gerarMensagem() {
+  const btn      = document.getElementById('btn-gerar-msg');
+  const contexto = document.getElementById('msg-contexto').value.trim();
+  if (!contexto) { toast('Descreva o contexto da mensagem', 'error'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Gerando...';
+
+  const userMsg = `Destinatário: ${document.getElementById('msg-dest').value.trim() || 'cliente'}
+Tipo: ${document.getElementById('msg-tipo').value}
+Contexto: ${contexto}
+Data: ${hoje()}`;
+
+  try {
+    const raw  = await aiFetch(SYS_WHATSAPP, userMsg, 512);
+    const json = parseAgentJSON(raw);
+    if (!json || !json.mensagem) throw new Error('JSON inválido do agente');
+
+    const msg = { id: Date.now().toString(), ...json, criada: new Date().toISOString() };
+    brainState.mensagens.unshift(msg);
+    if (brainState.mensagens.length > 50) brainState.mensagens = brainState.mensagens.slice(0, 50);
+    salvarStateLocal();
+    renderMensagens();
+    document.getElementById('msg-contexto').value = '';
+    toast('Mensagem gerada!', 'success');
+  } catch(e) {
+    toast('Erro ao gerar mensagem', 'error');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Gerar Mensagem';
+  }
+}
+
+function prepararMsgParceiro(id) {
+  const p = parceiros.find(p => p._id === id);
+  if (!p) return;
+  // Navegar para aba mensagens
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('[data-tab="mensagens"]').classList.add('active');
+  document.getElementById('panel-mensagens').classList.add('active');
+
+  document.getElementById('msg-dest').value   = p.nome;
+  document.getElementById('msg-tipo').value   = 'parceiro';
+  const dias = diasSemInteracao(p.ultima_interacao);
+  document.getElementById('msg-contexto').value =
+    `Parceiro: ${p.nome}${p.empresa ? ` (${p.empresa})` : ''}. Função: ${p.funcao || ''}. Sem contato há ${dias} dias. Última interação: ${fmtDate(p.ultima_interacao)}. Próxima ação: ${p.proxima_acao || ''}. Notas: ${p.notas || ''}`;
+}
+
+function renderMensagens() {
+  const lista = document.getElementById('mensagens-list');
+  if (!brainState.mensagens.length) {
+    lista.innerHTML = '<div class="empty-state">Nenhuma mensagem gerada ainda.</div>';
+    return;
+  }
+  lista.innerHTML = brainState.mensagens.map(m => {
+    const urgColor = m.urgencia === 'alta' ? 'var(--danger)' : m.urgencia === 'media' ? 'var(--warn)' : 'var(--text-muted)';
+    return `<div class="msg-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div>
+          <span style="font-weight:600;color:var(--text)">${esc(m.destinatario || '—')}</span>
+          <span class="tag tag-verde" style="margin-left:8px">${esc(m.tipo || '')}</span>
+          <span style="font-family:var(--font-data);font-size:10px;color:${urgColor};margin-left:6px">${esc(m.urgencia || '')}</span>
+        </div>
+        <span style="font-family:var(--font-data);font-size:10px;color:var(--text-muted)">${fmtDate(m.criada?.split('T')[0])}</span>
+      </div>
+      <div class="msg-text">${esc(m.mensagem)}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-verde btn-sm" onclick="copiarMsg('${esc(m.id)}')">Copiar</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirWhatsApp('${esc(m.id)}')">📱 Abrir WhatsApp</button>
+        <button class="btn btn-danger btn-sm" onclick="removerMsg('${esc(m.id)}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function copiarMsg(id) {
+  const m = brainState.mensagens.find(m => m.id === id);
+  if (!m) return;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(m.mensagem).then(() => toast('Copiado!', 'success'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = m.mensagem;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    toast('Copiado!', 'success');
+  }
+}
+
+function abrirWhatsApp(id) {
+  const m = brainState.mensagens.find(m => m.id === id);
+  if (m) window.open(`https://wa.me/?text=${encodeURIComponent(m.mensagem)}`, '_blank');
+}
+
+function removerMsg(id) {
+  brainState.mensagens = brainState.mensagens.filter(m => m.id !== id);
+  salvarStateLocal();
+  renderMensagens();
+}
+
+// ═══════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════
+
+function renderDashboard() {
+  const hj          = hoje();
+  const tarefasHoje = tarefas.filter(t => t.data === hj && t.status === 'pendente');
+  const tarefasAtrs = tarefas.filter(t => t.data < hj && t.status === 'pendente');
+  const obrasAtivas = obras.filter(o => (o.pct_geral || 0) < 100);
+  const parcsAtivos = parceiros.filter(p => p.status === 'ativo');
+
+  document.getElementById('kpi-obras').textContent     = obrasAtivas.length;
+  document.getElementById('kpi-tarefas').textContent   = tarefasHoje.length;
+  document.getElementById('kpi-atrasadas').textContent = tarefasAtrs.length;
+  document.getElementById('kpi-parceiros').textContent = parcsAtivos.length;
+
+  // Script do dia
+  const scriptEl   = document.getElementById('script-list');
+  const agendaLines = (brainState.agenda || '').split('\n').filter(l => l.trim());
+  const tarefasOrd  = [...tarefasHoje].sort((a, b) =>
+    ({ alta: 0, media: 1, baixa: 2 }[a.prioridade] ?? 1) - ({ alta: 0, media: 1, baixa: 2 }[b.prioridade] ?? 1));
+
+  if (!agendaLines.length && !tarefasOrd.length) {
+    scriptEl.innerHTML = '<div class="empty-state">Nenhuma tarefa ou agenda para hoje.</div>';
+  } else {
+    scriptEl.innerHTML = [
+      ...agendaLines.map(l => {
+        const m = l.match(/^(\d{1,2}:\d{2})\s*[—\-]?\s*(.*)/);
+        return `<div class="script-item">
+          <div class="script-hora">${esc(m?.[1] || '—')}</div>
+          <div><div class="script-acao">${esc(m?.[2] || l)}</div><div class="script-meta">agenda</div></div>
+        </div>`;
+      }),
+      ...tarefasOrd.map(t => `<div class="script-item">
+        <div class="script-hora" style="color:var(--ouro)">tarefa</div>
+        <div>
+          <div class="script-acao">${esc(t.titulo)}</div>
+          <div class="script-meta">${esc(t.contexto || '')}${t.contexto ? ' · ' : ''}~${t.tempo || 15}min · <span class="tag tag-${esc(t.prioridade)}">${esc(t.prioridade)}</span></div>
+        </div>
+      </div>`)
+    ].join('');
+  }
+
+  // Alertas
+  const alertas = [];
+  if (tarefasAtrs.length)
+    alertas.push(`${tarefasAtrs.length} tarefa(s) atrasada(s) — atenção imediata`);
+  const inativos = parceiros.filter(p => diasSemInteracao(p.ultima_interacao) >= 15 && p.status === 'ativo');
+  if (inativos.length)
+    alertas.push(`${inativos.length} parceiro(s) sem contato há 15+ dias`);
+  const totalComissao = parceiros.reduce((s, p) => s + (p.comissao_pendente || 0), 0);
+  if (totalComissao > 0)
+    alertas.push(`Comissões a pagar: ${fmtMoney(totalComissao)}`);
+
+  const alertasCard = document.getElementById('card-alertas');
+  if (alertas.length) {
+    alertasCard.style.display = '';
+    document.getElementById('alertas-list').innerHTML = alertas.map(a =>
+      `<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--warn)">⚠ ${esc(a)}</div>`
+    ).join('');
+  } else {
+    alertasCard.style.display = 'none';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// AGENDA
+// ═══════════════════════════════════════════════════════════
+
+function salvarAgenda() {
+  brainState.agenda = document.getElementById('agenda-input').value;
+  salvarStateLocal();
+  renderDashboard();
+  toast('Agenda salva', 'success');
+}
+
+let agendaTimer;
+document.getElementById('agenda-input').addEventListener('input', () => {
+  clearTimeout(agendaTimer);
+  agendaTimer = setTimeout(salvarAgenda, 1500);
+});
+
+// ═══════════════════════════════════════════════════════════
+// MODAIS
+// ═══════════════════════════════════════════════════════════
+
+function fecharModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape')
+    document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+});
+
+// ═══════════════════════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════════════════════
+
+init();
+</script>
+</body>
+</html>
