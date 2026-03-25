@@ -4,23 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#f4f6f4">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a2e1a">
 <title>DEKA · Relatórios — Berti Construtora</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Jost:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Syne:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --verde:      #2E9650;
   --verde-dim:  #1a5c30;
-  --verde-glow: rgba(46,150,80,0.09);
-  --ouro:       #8B6914;
-  --ouro-dim:   #fdf5e6;
-  --bg:         #f4f6f4;
+  --verde-glow: rgba(46,150,80,0.08);
+  --ouro:       #B89A6A;
+  --ouro-dim:   #7a6445;
+  --bg:         #f0f2f0;
   --bg-2:       #ffffff;
-  --bg-3:       #f0f3f0;
-  --bg-4:       #e8ece8;
-  --border:     #d0dcd0;
-  --border-2:   #bccbbc;
+  --bg-3:       #f5f7f5;
+  --bg-4:       #eaecea;
+  --border:     #d4dcd4;
+  --border-2:   #c0cec0;
   --text:       #1c2b1c;
   --text-dim:   #3a5a3a;
   --text-muted: #6a8a6a;
@@ -28,6 +28,7 @@
   --danger-dim: #fde8e8;
   --warn:       #b87700;
   --warn-dim:   #fff3de;
+  --hdr:        #1a2e1a;
   --font-display: 'Bebas Neue', sans-serif;
   --font-body:    'Jost', sans-serif;
   --font-data:    'JetBrains Mono', monospace;
@@ -35,216 +36,257 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;min-height:100vh;overflow-x:hidden}
 
-#app-header{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:52px;background:var(--bg-2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
-.header-brand{font-family:var(--font-display);font-size:22px;letter-spacing:2px;color:var(--verde)}
-.header-brand span{color:var(--ouro)}
-.header-info{font-family:var(--font-data);font-size:11px;color:var(--text-dim);text-align:right}
-.header-info strong{color:var(--ouro);display:block;font-size:12px}
+/* ─── TOP BAR ──────────────────────────────────────────────────────────────── */
+#top-bar{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:42px;background:var(--hdr);border-bottom:1px solid rgba(255,255,255,0.07);position:sticky;top:0;z-index:200}
+.top-brand{font-family:var(--font-display);font-size:15px;letter-spacing:3px;color:rgba(255,255,255,0.6)}
+.top-brand span{color:var(--verde)}
+.top-actions{display:flex;gap:5px}
+.action-btn{display:inline-flex;align-items:center;gap:4px;padding:5px 11px;border-radius:3px;border:1px solid rgba(255,255,255,0.18);background:transparent;color:rgba(255,255,255,0.75);font-family:var(--font-body);font-size:11px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap}
+.action-btn:hover{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.35);color:#fff}
+.action-btn.wa{color:#25D366;border-color:rgba(37,211,102,0.4)}.action-btn.wa:hover{background:rgba(37,211,102,0.1)}
+.action-btn.pdf{color:var(--ouro);border-color:rgba(184,154,106,0.4)}.action-btn.pdf:hover{background:rgba(184,154,106,0.1)}
+.action-btn:disabled{opacity:.3;cursor:not-allowed;pointer-events:none}
 
-#nav-tabs{display:flex;background:var(--bg-2);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+/* ─── HERO HEADER ───────────────────────────────────────────────────────────── */
+#obra-hero{background:var(--hdr);padding:20px 24px 18px;border-bottom:3px solid var(--verde);position:sticky;top:42px;z-index:190}
+#hero-brand-label{font-family:var(--font-data);font-size:9px;letter-spacing:3.5px;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-bottom:5px}
+#hero-obra-nome{font-family:var(--font-display);font-size:38px;letter-spacing:2px;color:#fff;line-height:1;text-transform:uppercase}
+#hero-obra-nome.empty{font-size:20px;color:rgba(255,255,255,0.25);letter-spacing:1px}
+#hero-sub{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.hero-pill{font-family:var(--font-data);font-size:10px;color:rgba(255,255,255,0.45);border:1px solid rgba(255,255,255,0.12);border-radius:2px;padding:2px 9px}
+.hero-pill.verde{color:#4ecf80;border-color:rgba(78,207,128,0.35)}
+.hero-pill.ouro{color:var(--ouro);border-color:rgba(184,154,106,0.35)}
+#hero-pct-bar{height:2px;background:rgba(255,255,255,0.07);margin-top:12px;border-radius:1px;overflow:hidden}
+#hero-pct-fill{height:100%;background:var(--verde);border-radius:1px;transition:width .6s ease}
+
+/* ─── TABS ──────────────────────────────────────────────────────────────────── */
+#nav-tabs{display:flex;background:#fff;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;position:sticky;top:152px;z-index:180}
 #nav-tabs::-webkit-scrollbar{display:none}
-.tab-btn{flex:none;padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-dim);font-family:var(--font-body);font-size:12px;font-weight:500;letter-spacing:.5px;cursor:pointer;white-space:nowrap;transition:all .15s}
+.tab-btn{flex:none;padding:12px 18px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);font-family:var(--font-body);font-size:12px;font-weight:500;letter-spacing:.3px;cursor:pointer;white-space:nowrap;transition:all .15s}
 .tab-btn:hover{color:var(--text)}
-.tab-btn.active{color:var(--verde);border-bottom-color:var(--verde)}
+.tab-btn.active{color:var(--hdr);border-bottom-color:var(--verde);font-weight:600}
 
-.panel{display:none;padding:20px;max-width:900px;margin:0 auto}
+/* ─── PANELS ────────────────────────────────────────────────────────────────── */
+.panel{display:none;padding:24px 20px;max-width:980px;margin:0 auto}
 .panel.active{display:block}
 
-.card{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px}
-.card-title{font-family:var(--font-display);font-size:14px;letter-spacing:1px;color:var(--text-dim);margin-bottom:12px}
+/* ─── CARD ──────────────────────────────────────────────────────────────────── */
+.card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:20px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
+.card-title{font-family:var(--font-display);font-size:12px;letter-spacing:2px;color:var(--text-muted);margin-bottom:14px;text-transform:uppercase}
 
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:5px;border:none;cursor:pointer;font-family:var(--font-body);font-size:13px;font-weight:500;transition:all .15s}
-.btn-verde{background:var(--verde-glow);border:1px solid var(--verde);color:var(--verde-dim)}
-.btn-verde:hover{background:var(--verde);color:#fff}
-.btn-ouro{background:var(--ouro-dim);border:1px solid var(--ouro);color:var(--ouro)}
-.btn-ouro:hover{background:var(--ouro);color:#000}
-.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-dim)}
-.btn-ghost:hover{border-color:var(--verde);color:var(--verde)}
-.btn-danger{background:var(--danger-dim);border:1px solid var(--danger);color:var(--danger)}
-.btn-sm{padding:5px 10px;font-size:12px}
-.btn:disabled{opacity:.5;cursor:not-allowed}
+/* ─── KPI (dark green cards) ────────────────────────────────────────────────── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.kpi-box{background:var(--hdr);border-radius:5px;padding:14px 16px;box-shadow:0 2px 10px rgba(26,46,26,0.18)}
+.kpi-label{font-size:9px;font-family:var(--font-data);color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px}
+.kpi-value{font-family:var(--font-display);font-size:26px;color:var(--verde);letter-spacing:1px;line-height:1}
+.kpi-value.ouro{color:var(--ouro)}
+.kpi-value.danger{color:#ff7070}
+.kpi-value.sm{font-size:17px}
+.kpi-sub{font-size:10px;color:rgba(255,255,255,0.28);font-family:var(--font-data);margin-top:2px}
 
+/* ─── OBRA OPTIONS ──────────────────────────────────────────────────────────── */
+.obra-option{background:#fff;border:1px solid var(--border);border-radius:5px;padding:12px 16px;cursor:pointer;margin-bottom:6px;transition:all .15s;display:flex;align-items:center;gap:12px}
+.obra-option:hover{border-color:var(--verde-dim);background:var(--verde-glow);transform:translateX(2px)}
+.obra-option.selected{border-color:var(--verde);border-left:3px solid var(--verde);background:rgba(46,150,80,0.05)}
+.obra-option-info{flex:1;min-width:0}
+.obra-option-nome{font-weight:600;font-size:14px;color:var(--text);margin-bottom:2px}
+.obra-option-sub{font-size:11px;font-family:var(--font-data);color:var(--text-muted)}
+.obra-option-pct{font-family:var(--font-display);font-size:24px;color:var(--verde);min-width:52px;text-align:right}
+
+/* ─── FORMS ─────────────────────────────────────────────────────────────────── */
 .form-row{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 .form-group{display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px}
-.form-label{font-size:11px;font-family:var(--font-data);color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
-.form-input,.form-select{background:var(--bg-3);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--font-body);font-size:13px;padding:8px 10px}
-.form-input:focus,.form-select:focus{outline:none;border-color:var(--verde)}
-.form-select option{background:var(--bg-3)}
+.form-label{font-size:10px;font-family:var(--font-data);color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px}
+.form-input,.form-select{background:#fff;border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font-body);font-size:13px;padding:8px 10px}
+.form-input:focus,.form-select:focus{outline:none;border-color:var(--verde);box-shadow:0 0 0 2px rgba(46,150,80,0.1)}
+.form-select option{background:#fff}
 
-/* SELETOR */
-.selector-card{background:var(--bg-2);border:1px solid var(--border-2);border-radius:8px;padding:20px;margin-bottom:20px}
-.selector-grid{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end}
-@media(max-width:600px){.selector-grid{grid-template-columns:1fr}}
+/* ─── BUTTONS ────────────────────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:4px;border:none;cursor:pointer;font-family:var(--font-body);font-size:13px;font-weight:500;transition:all .15s}
+.btn-verde{background:var(--hdr);color:#fff;box-shadow:0 1px 4px rgba(26,46,26,0.2)}
+.btn-verde:hover{background:#0f1f0f;box-shadow:0 2px 8px rgba(26,46,26,0.3)}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-dim)}
+.btn-ghost:hover{border-color:var(--verde-dim);color:var(--verde-dim)}
+.btn-ouro{background:transparent;border:1px solid rgba(184,154,106,0.5);color:var(--ouro-dim)}
+.btn-ouro:hover{background:var(--ouro);color:#000;border-color:var(--ouro)}
+.btn-sm{padding:6px 12px;font-size:11px}
+.btn:disabled{opacity:.35;cursor:not-allowed}
 
-/* RELATÓRIO OUTPUT */
-#rel-output{background:var(--bg-2);border:1px solid var(--border-2);border-radius:8px;padding:24px;min-height:200px;font-family:var(--font-body);font-size:14px;line-height:1.7;color:var(--text);white-space:pre-wrap}
-#rel-output.loading{color:var(--text-dim);animation:pulse 1.5s infinite}
-#rel-output.empty{color:var(--text-muted);font-family:var(--font-data);font-size:12px;text-align:center;padding:60px 20px}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+/* ─── SECTION HEADER ─────────────────────────────────────────────────────────── */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.section-title{font-family:var(--font-display);font-size:17px;letter-spacing:1.5px;color:var(--hdr)}
 
-/* TIPO SELECTOR */
-.tipo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:20px}
-.tipo-card{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:14px;cursor:pointer;transition:all .15s;text-align:center}
-.tipo-card:hover{border-color:var(--verde-dim)}
-.tipo-card.selected{border-color:var(--verde);background:var(--verde-glow)}
-.tipo-card-icon{font-size:24px;margin-bottom:6px}
-.tipo-card-name{font-family:var(--font-display);font-size:12px;letter-spacing:1px;color:var(--text-dim)}
-.tipo-card.selected .tipo-card-name{color:var(--verde)}
-.tipo-card-desc{font-size:11px;color:var(--text-muted);margin-top:2px}
+/* ─── RELATÓRIO OUTPUT ───────────────────────────────────────────────────────── */
+.rel-wrap{background:#fff;border:1px solid var(--border);border-radius:6px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
+.rel-toolbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--hdr);border-bottom:none}
+.rel-toolbar-label{font-family:var(--font-data);font-size:9px;letter-spacing:2px;color:rgba(255,255,255,0.4);text-transform:uppercase}
+.rel-toolbar-status{font-size:10px;font-family:var(--font-data);color:rgba(255,255,255,0.5)}
+.rel-output{padding:28px 32px;min-height:260px;font-family:var(--font-body);font-size:13.5px;line-height:1.75;color:var(--text)}
+.rel-output.empty{color:var(--text-muted);text-align:center;padding:64px 32px;font-size:13px;font-family:var(--font-data)}
+.rel-output.loading{animation:pulse 1.5s infinite;color:var(--text-dim)}
 
-/* OBRAS LIST */
-.obra-option{background:var(--bg-3);border:1px solid var(--border);border-radius:5px;padding:10px 14px;cursor:pointer;margin-bottom:6px;transition:all .15s}
-.obra-option:hover{border-color:var(--verde-dim)}
-.obra-option.selected{border-color:var(--verde);background:var(--verde-glow)}
-.obra-option-nome{font-weight:500}
-.obra-option-sub{font-size:11px;font-family:var(--font-data);color:var(--text-dim);margin-top:2px}
+/* rendered report elements */
+.rel-section{margin-bottom:22px}
+.rel-section-head{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);padding-bottom:7px;margin-bottom:10px}
+.rel-section-num{background:var(--hdr);color:#fff;font-family:var(--font-data);font-size:9px;padding:3px 7px;border-radius:2px;flex-shrink:0}
+.rel-section-title{font-family:var(--font-display);font-size:13px;letter-spacing:2px;color:var(--hdr);text-transform:uppercase}
+.rel-item{padding:6px 0;border-bottom:1px solid #f2f2f2;display:flex;gap:8px;align-items:baseline;font-size:13px}
+.rel-item:last-child{border-bottom:none}
+.rel-item-num{font-family:var(--font-data);font-size:10px;color:var(--text-muted);min-width:20px;flex-shrink:0}
+.rel-item-body{flex:1;line-height:1.55}
+.tag{display:inline-block;font-size:9px;font-family:var(--font-data);padding:1px 6px;border-radius:2px;margin-left:6px;vertical-align:middle;font-weight:500}
+.tag-ok{background:#c8e8d4;color:#0f4a28}
+.tag-and{background:#dde8ff;color:#2a4aaa}
+.tag-pend{background:#fff3de;color:#b87700}
+.tag-alta{background:#fde8e8;color:#cc3333}
+.rel-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;font-size:12.5px}
+.rel-meta-row{padding:4px 0;border-bottom:1px solid #f5f5f5}
+.rel-meta-label{color:var(--text-muted);font-size:11px;font-family:var(--font-data);display:inline}
+.rel-para{margin-bottom:8px;font-size:13px;line-height:1.65}
 
-/* PREVIEW FULLSCREEN */
-#preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:2000;display:none;flex-direction:column}
-#preview-header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--bg-2);border-bottom:1px solid var(--border);flex-shrink:0}
-#preview-body{flex:1;overflow-y:auto;padding:40px;max-width:800px;margin:0 auto;width:100%}
-#preview-content{background:#fff;color:#111;padding:40px;border-radius:4px;font-family:'Jost',sans-serif;font-size:14px;line-height:1.7;white-space:pre-wrap}
+/* ─── MEDIÇÃO TABLE ──────────────────────────────────────────────────────────── */
+.med-table{width:100%;border-collapse:collapse;font-size:13px}
+.med-table thead th{background:var(--hdr);color:rgba(255,255,255,0.7);font-family:var(--font-data);font-size:9px;padding:9px 11px;text-align:left;letter-spacing:.5px;white-space:nowrap}
+.med-table tbody td{padding:9px 11px;border-bottom:1px solid var(--border)}
+.med-table tbody tr:nth-child(even) td{background:#f8faf8}
+.med-table tbody tr:hover td{background:var(--verde-glow)}
+.med-table tfoot td{background:#f0f3f0;font-family:var(--font-data);font-weight:700;font-size:12px;padding:10px 11px;color:var(--text)}
 
-/* MEDICAO TABLE */
-.med-table{width:100%;border-collapse:collapse}
-.med-table th{background:var(--bg-3);color:var(--text-muted);font-family:var(--font-data);font-size:11px;padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
-.med-table td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:13px}
-.med-table tr:last-child td{font-weight:600;color:var(--verde);border-bottom:none}
+/* ─── PROGRESS ───────────────────────────────────────────────────────────────── */
+.progress-bar{background:var(--bg-4);border-radius:3px;height:5px;overflow:hidden;margin-top:4px}
+.progress-fill{height:100%;border-radius:3px;background:var(--verde)}
 
-/* KPI */
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
-.kpi-box{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:12px 14px}
-.kpi-label{font-size:10px;font-family:var(--font-data);color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
-.kpi-value{font-family:var(--font-display);font-size:24px;color:var(--verde);letter-spacing:1px}
-.kpi-value.ouro{color:var(--ouro)}
-
-/* SECTION HEADER */
-.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px}
-.section-title{font-family:var(--font-display);font-size:16px;letter-spacing:1px;color:var(--text-dim)}
-
-/* TOAST */
-.toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:6px;font-family:var(--font-body);font-size:14px;animation:toastIn .2s ease;max-width:320px}
-.toast-info{background:#fff;border:1px solid var(--verde);color:var(--text);box-shadow:0 2px 12px rgba(0,0,0,0.12)}
-.toast-success{background:#e4f2eb;border:1px solid var(--verde);color:var(--verde-dim);box-shadow:0 2px 12px rgba(0,0,0,0.12)}
-.toast-error{background:#fde8e8;border:1px solid var(--danger);color:var(--danger);box-shadow:0 2px 12px rgba(0,0,0,0.12)}
-.toast-warn{background:#fff3de;border:1px solid var(--warn);color:var(--warn);box-shadow:0 2px 12px rgba(0,0,0,0.12)}
+/* ─── TOAST ──────────────────────────────────────────────────────────────────── */
+.toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:5px;font-family:var(--font-body);font-size:14px;animation:toastIn .2s ease;max-width:320px;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+.toast-info{background:#fff;border:1px solid var(--verde);color:var(--text)}
+.toast-success{background:#e4f2eb;border:1px solid var(--verde);color:var(--verde-dim)}
+.toast-error{background:#fde8e8;border:1px solid var(--danger);color:var(--danger)}
+.toast-warn{background:#fff3de;border:1px solid var(--warn);color:var(--warn)}
 @keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
-.empty-state{text-align:center;padding:40px 20px;color:var(--text-muted);font-family:var(--font-data);font-size:12px}
-.progress-bar{background:var(--bg-4);border-radius:4px;height:5px;overflow:hidden;margin-top:4px}
-.progress-fill{height:100%;border-radius:4px;background:var(--verde)}
+.empty-state{text-align:center;padding:48px 20px;color:var(--text-muted);font-family:var(--font-data);font-size:12px}
 </style>
 </head>
 <body>
 
-<div id="app-header">
-  <div class="header-brand">DEKA <span>·</span> RELATÓRIOS</div>
-  <div class="header-info">
-    <strong id="h-obra-nome">Nenhuma obra</strong>
-    <span id="h-semana-info">—</span>
+<!-- ═══════════════════ TOP BAR ═══════════════════════════════════════════════ -->
+<div id="top-bar">
+  <div class="top-brand">DEKA <span>·</span> RELATÓRIOS</div>
+  <div class="top-actions">
+    <button class="action-btn" id="btn-top-copy" onclick="copiarAtivo()" disabled>📋 Copiar</button>
+    <button class="action-btn wa" id="btn-top-wa" onclick="enviarWA()" disabled>WA</button>
+    <button class="action-btn pdf" id="btn-top-pdf" onclick="pdfAtivo()" disabled>↓ PDF</button>
   </div>
 </div>
 
-<div id="nav-tabs">
-  <button class="tab-btn active" onclick="showTab('seletor')">Seletor</button>
-  <button class="tab-btn" onclick="showTab('semanal')">Semanal Cliente</button>
-  <button class="tab-btn" onclick="showTab('interno')">Interno</button>
-  <button class="tab-btn" onclick="showTab('medicao')">Boletim Medição</button>
-  <button class="tab-btn" onclick="showTab('gantt')">Gantt</button>
+<!-- ═══════════════════ HERO HEADER ══════════════════════════════════════════ -->
+<div id="obra-hero">
+  <div id="hero-brand-label">Berti Construtora</div>
+  <div id="hero-obra-nome" class="empty">Nenhuma obra selecionada</div>
+  <div id="hero-sub">
+    <span class="hero-pill verde" id="hero-semana">S—</span>
+    <span class="hero-pill" id="hero-cliente">—</span>
+    <span class="hero-pill" id="hero-periodo">—</span>
+    <span class="hero-pill ouro" id="hero-pct">—%</span>
+  </div>
+  <div id="hero-pct-bar"><div id="hero-pct-fill" style="width:0%"></div></div>
 </div>
 
-<!-- ═══════════════════════ ABA 1 — SELETOR ═══════════════════════════════════ -->
+<!-- ═══════════════════ TABS ══════════════════════════════════════════════════ -->
+<div id="nav-tabs">
+  <button class="tab-btn active" onclick="showTab('seletor',this)">Seletor</button>
+  <button class="tab-btn" onclick="showTab('semanal',this)">Semanal Cliente</button>
+  <button class="tab-btn" onclick="showTab('interno',this)">Interno</button>
+  <button class="tab-btn" onclick="showTab('medicao',this)">Boletim Medição</button>
+  <button class="tab-btn" onclick="showTab('gantt',this)">Gantt</button>
+</div>
+
+<!-- ═══════════════════ ABA 1 — SELETOR ══════════════════════════════════════ -->
 <div id="panel-seletor" class="panel active">
   <div class="card">
-    <div class="card-title">SELECIONAR OBRA E SEMANA</div>
-    <div id="obras-loading" style="font-size:12px;color:var(--text-dim);font-family:var(--font-data)">Carregando obras...</div>
+    <div class="card-title">Selecionar Obra e Semana</div>
+    <div id="obras-loading" style="font-size:12px;color:var(--text-muted);font-family:var(--font-data);padding:6px 0">Carregando obras...</div>
     <div id="obras-list" style="display:none"></div>
-    <div style="display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap">
-      <div class="form-group" style="max-width:200px">
-        <label class="form-label">Semana</label>
+    <div style="display:flex;gap:10px;margin-top:14px;align-items:flex-end;flex-wrap:wrap">
+      <div class="form-group" style="max-width:230px">
+        <label class="form-label">Semana de Referência</label>
         <select class="form-select" id="seletor-semana">
           <option value="atual">Semana Atual</option>
         </select>
       </div>
-      <div style="margin-top:16px">
-        <button class="btn btn-verde" onclick="confirmarSelecao()">Carregar Dados →</button>
-      </div>
+      <button class="btn btn-verde" onclick="confirmarSelecao()">Carregar Dados →</button>
     </div>
   </div>
 
-  <div id="kpi-obra-sel" class="kpi-grid" style="display:none"></div>
+  <div class="kpi-grid" id="kpi-obra-sel" style="display:none"></div>
 
-  <div class="card" id="card-resumo-obra" style="display:none">
-    <div class="card-title">RESUMO DA OBRA SELECIONADA</div>
+  <div id="card-resumo-obra" class="card" style="display:none">
+    <div class="card-title">Resumo da Obra</div>
     <div id="resumo-obra-body"></div>
   </div>
 </div>
 
-<!-- ═══════════════════════ ABA 2 — SEMANAL CLIENTE ═══════════════════════════ -->
+<!-- ═══════════════════ ABA 2 — SEMANAL CLIENTE ═══════════════════════════════ -->
 <div id="panel-semanal" class="panel">
   <div class="section-header">
-    <div class="section-title">RELATÓRIO SEMANAL — CLIENTE</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <div class="section-title">Relatório Semanal — Cliente</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn btn-verde" id="btn-gerar-semanal" onclick="gerarRelatorioSemanal()">Gerar Relatório</button>
-      <button class="btn btn-ghost btn-sm" onclick="abrirPreview('semanal')" id="btn-prev-semanal" disabled>Visualizar</button>
       <button class="btn btn-ghost btn-sm" onclick="copiarTexto('semanal')" id="btn-copy-semanal" disabled>Copiar</button>
-      <button class="btn btn-ouro btn-sm" onclick="imprimirPDF('semanal')" id="btn-pdf-semanal" disabled>PDF</button>
+      <button class="btn btn-ouro btn-sm" onclick="imprimirPDF('semanal')" id="btn-pdf-semanal" disabled>↓ PDF</button>
     </div>
   </div>
-  <div id="rel-semanal-output" class="rel-output" style="background:var(--bg-2);border:1px solid var(--border-2);border-radius:8px;padding:24px;min-height:200px;font-family:var(--font-body);font-size:14px;line-height:1.7;color:var(--text-muted);white-space:pre-wrap">
-    Selecione uma obra e semana na aba Seletor, depois clique em Gerar Relatório.
+  <div class="rel-wrap">
+    <div class="rel-toolbar">
+      <span class="rel-toolbar-label">AGT · RELATORIO CLIENTE</span>
+      <span class="rel-toolbar-status" id="rel-semanal-status">aguardando</span>
+    </div>
+    <div id="rel-semanal-output" class="rel-output empty">
+      Selecione uma obra no Seletor e clique em Gerar Relatório.
+    </div>
   </div>
 </div>
 
-<!-- ═══════════════════════ ABA 3 — INTERNO ═══════════════════════════════════ -->
+<!-- ═══════════════════ ABA 3 — INTERNO ══════════════════════════════════════ -->
 <div id="panel-interno" class="panel">
   <div class="section-header">
-    <div class="section-title">RELATÓRIO INTERNO</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <div class="section-title">Relatório Interno</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn btn-verde" id="btn-gerar-interno" onclick="gerarRelatorioInterno()">Gerar Relatório</button>
-      <button class="btn btn-ghost btn-sm" onclick="abrirPreview('interno')" id="btn-prev-interno" disabled>Visualizar</button>
       <button class="btn btn-ghost btn-sm" onclick="copiarTexto('interno')" id="btn-copy-interno" disabled>Copiar</button>
     </div>
   </div>
-  <div id="rel-interno-output" class="rel-output" style="background:var(--bg-2);border:1px solid var(--border-2);border-radius:8px;padding:24px;min-height:200px;font-family:var(--font-body);font-size:14px;line-height:1.7;color:var(--text-muted);white-space:pre-wrap">
-    Selecione uma obra e semana na aba Seletor, depois clique em Gerar Relatório.
+  <div class="rel-wrap">
+    <div class="rel-toolbar">
+      <span class="rel-toolbar-label">AGT · RELATORIO INTERNO</span>
+      <span class="rel-toolbar-status" id="rel-interno-status">aguardando</span>
+    </div>
+    <div id="rel-interno-output" class="rel-output empty">
+      Selecione uma obra no Seletor e clique em Gerar Relatório.
+    </div>
   </div>
 </div>
 
-<!-- ═══════════════════════ ABA 4 — BOLETIM MEDIÇÃO ═══════════════════════════ -->
+<!-- ═══════════════════ ABA 4 — BOLETIM MEDIÇÃO ═══════════════════════════════ -->
 <div id="panel-medicao" class="panel">
   <div class="section-header">
-    <div class="section-title">BOLETIM DE MEDIÇÃO</div>
-    <div style="display:flex;gap:8px">
+    <div class="section-title">Boletim de Medição</div>
+    <div style="display:flex;gap:6px">
       <button class="btn btn-ghost btn-sm" onclick="copiarTexto('medicao')" id="btn-copy-med" disabled>Copiar</button>
-      <button class="btn btn-ouro btn-sm" onclick="imprimirPDF('medicao')" id="btn-pdf-med" disabled>PDF</button>
+      <button class="btn btn-ouro btn-sm" onclick="imprimirPDF('medicao')" id="btn-pdf-med" disabled>↓ PDF</button>
     </div>
   </div>
   <div id="medicao-output"></div>
 </div>
 
-<!-- ═══════════════════════ ABA 5 — GANTT ═════════════════════════════════════ -->
+<!-- ═══════════════════ ABA 5 — GANTT ════════════════════════════════════════ -->
 <div id="panel-gantt" class="panel">
   <div class="section-header">
-    <div class="section-title">CRONOGRAMA / GANTT</div>
-    <button class="btn btn-ouro btn-sm" onclick="imprimirPDF('gantt')">Exportar PDF</button>
+    <div class="section-title">Cronograma / Gantt</div>
+    <button class="btn btn-ouro btn-sm" onclick="imprimirPDF('gantt')">↓ Exportar PDF</button>
   </div>
   <div id="gantt-output"></div>
-</div>
-
-<!-- ═══════════════════════ PREVIEW FULLSCREEN ════════════════════════════════ -->
-<div id="preview-overlay">
-  <div id="preview-header">
-    <div style="font-family:var(--font-display);font-size:16px;letter-spacing:1px;color:var(--verde)" id="preview-title">Relatório</div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-verde btn-sm" onclick="copiarTextoPreview()">Copiar</button>
-      <button class="btn btn-ouro btn-sm" onclick="window.print()">Imprimir / PDF</button>
-      <button class="btn btn-ghost btn-sm" onclick="fecharPreview()">Fechar ✕</button>
-    </div>
-  </div>
-  <div id="preview-body">
-    <div id="preview-content"></div>
-  </div>
 </div>
 
 <script>
@@ -301,33 +343,6 @@ async function aiFetch(systemText, userMsg, maxTokens = 1024) {
   return data.content?.[0]?.text ?? '';
 }
 
-async function aiStream(systemText, userMsg, onChunk, maxTokens = 2048) {
-  const res = await fetch(AI_URL, {
-    method: 'POST',
-    signal: AbortSignal.timeout(60000),
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: AI_MODEL, max_tokens: maxTokens, stream: true,
-      system: [{ type: 'text', text: systemText, cache_control: { type: 'ephemeral' } }],
-      messages: [{ role: 'user', content: userMsg }]
-    })
-  });
-  if (!res.ok) throw new Error(`AI Stream ${res.status}`);
-  const reader = res.body.getReader();
-  const dec = new TextDecoder();
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    for (const line of dec.decode(value).split('\n')) {
-      if (!line.startsWith('data: ')) continue;
-      try {
-        const d = JSON.parse(line.slice(6));
-        if (d.type === 'content_block_delta' && d.delta?.text) onChunk(d.delta.text);
-      } catch {}
-    }
-  }
-}
-
 function parseAgentJSON(text) {
   try { return JSON.parse(text.replace(/```json|```/g,'').trim()); }
   catch(e) { console.error('Agent JSON parse error:', text); return null; }
@@ -339,9 +354,7 @@ const slugify  = str => String(str).toLowerCase().normalize('NFD')
   .replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 const hoje     = () => new Date().toISOString().split('T')[0];
 
-function cacheSet(key, data) {
-  localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data }));
-}
+function cacheSet(key, data) { localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data })); }
 function cacheGet(key, ttlMs = 5 * 60 * 1000) {
   try {
     const raw = JSON.parse(localStorage.getItem(key) || '{}');
@@ -353,19 +366,10 @@ function cacheGet(key, ttlMs = 5 * 60 * 1000) {
 function calcPctGeral(servicos) {
   if (!servicos?.length) return 0;
   const totalValor = servicos.reduce((s, v) => s + (Number(v.valor) || 0), 0);
-  if (totalValor === 0) {
+  if (totalValor === 0)
     return Math.round(servicos.reduce((s, v) => s + (Number(v.pct_atual) || 0), 0) / servicos.length);
-  }
-  const ponderado = servicos.reduce((s, v) => s + (Number(v.pct_atual) || 0) * (Number(v.valor) || 0), 0);
-  return Math.round(ponderado / totalValor);
+  return Math.round(servicos.reduce((s, v) => s + (Number(v.pct_atual)||0)*(Number(v.valor)||0), 0) / totalValor);
 }
-
-// ─── STATE ────────────────────────────────────────────────────────────────────
-let obraAtual = null;      // state completo da obra
-let obraKeyAtual = '';
-let semanaAtual = 1;
-let obras = [];            // lista de obras [{obra_key, data}]
-let relTextos = { semanal: '', interno: '' };
 
 // ─── SYSTEM PROMPTS ───────────────────────────────────────────────────────────
 const SYS_RELATORIO = `Você é o redator técnico de relatórios de obra da Berti Construtora.
@@ -383,11 +387,20 @@ REGRAS ABSOLUTAS — sem exceção:
 - Vocabulário permitido: "executado", "concluído", "pendente", "previsto", "registrado", "em andamento", "aguardando", "solicitado"
 
 ESTRUTURA OBRIGATÓRIA — nesta ordem exata:
-1. CABEÇALHO: obra, cliente, semana de referência, período, data de emissão
-2. SERVIÇOS EXECUTADOS: lista numerada — descrição do serviço · percentual anterior → percentual atual · status
-3. AVANÇO GERAL DA OBRA: X% → Y% (+Z pontos percentuais na semana)
-4. PENDÊNCIAS ABERTAS: lista numerada com tipo (decisão/material/aprovação) e urgência
-5. PREVISÃO PRÓXIMA SEMANA: serviços planejados com estimativa de avanço`;
+CABEÇALHO
+(dados: obra, cliente, semana, período, emissão)
+
+SERVIÇOS EXECUTADOS
+(lista numerada: descrição · % anterior → % atual · status)
+
+AVANÇO GERAL DA OBRA
+(X% → Y% · +Z pontos percentuais)
+
+PENDÊNCIAS ABERTAS
+(lista numerada: descrição · tipo · urgência)
+
+PREVISÃO PRÓXIMA SEMANA
+(serviços planejados com estimativa)`;
 
 const SYS_RELATORIO_INTERNO = `Você é o redator de relatórios internos de gestão de obra da Berti Construtora.
 Empresa: Berti Construtora LTDA · CNPJ 59.622.624/0001-93
@@ -399,12 +412,31 @@ REGRAS ABSOLUTAS:
 - Vocabulário: "registrado", "executado", "previsto", "real", "desvio", "risco", "recomendado"
 
 ESTRUTURA OBRIGATÓRIA — nesta ordem exata:
-1. CABEÇALHO: obra, semana, período, % geral anterior → atual
-2. PERFORMANCE POR SERVIÇO: tabela — serviço · % previsto S(n) · % real S(n) · desvio · status
-3. ANÁLISE DE DESVIOS: serviços com desvio > 10pp — causa provável e impacto no prazo
-4. ANÁLISE FINANCEIRA: medição apurada na semana, pagamentos realizados, saldo a pagar
-5. RISCOS IDENTIFICADOS: lista — risco · probabilidade · impacto · ação recomendada
-6. PRÓXIMA SEMANA: serviços planejados, equipes alocadas, decisões pendentes com prazo`;
+CABEÇALHO
+(obra, semana, período, % geral anterior → atual)
+
+PERFORMANCE POR SERVIÇO
+(lista: serviço · % previsto · % real · desvio · status)
+
+ANÁLISE DE DESVIOS
+(serviços com desvio >10pp: causa e impacto no prazo)
+
+ANÁLISE FINANCEIRA
+(medição apurada, pagamentos realizados, saldo a pagar)
+
+RISCOS IDENTIFICADOS
+(risco · probabilidade · impacto · ação recomendada)
+
+PRÓXIMA SEMANA
+(serviços planejados, equipes alocadas, decisões pendentes com prazo)`;
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let obraAtual    = null;
+let obraKeyAtual = '';
+let semanaAtual  = 1;
+let obras        = [];
+let relTextos    = { semanal: '', interno: '', medicao: '' };
+let painelAtivo  = 'seletor';
 
 // ─── SEMANA HELPERS ───────────────────────────────────────────────────────────
 function calcSemanaAtual(periodoIni) {
@@ -421,6 +453,20 @@ function getPeriodoSemana(periodoIni, semana) {
   return `${sIni.toLocaleDateString('pt-BR')} a ${sFim.toLocaleDateString('pt-BR')}`;
 }
 
+// ─── HERO HEADER ──────────────────────────────────────────────────────────────
+function atualizarHero() {
+  if (!obraAtual) return;
+  const c = obraAtual.config || {};
+  const pct = calcPctGeral(obraAtual.servicos || []);
+  document.getElementById('hero-obra-nome').textContent = (c.obra || obraKeyAtual).toUpperCase();
+  document.getElementById('hero-obra-nome').classList.remove('empty');
+  document.getElementById('hero-semana').textContent = `S${semanaAtual}`;
+  document.getElementById('hero-cliente').textContent = c.cliente || '—';
+  document.getElementById('hero-periodo').textContent = `${fmtDate(c.periodo_ini)} → ${fmtDate(c.periodo_fim)}`;
+  document.getElementById('hero-pct').textContent = `${pct}%`;
+  document.getElementById('hero-pct-fill').style.width = Math.min(100, pct) + '%';
+}
+
 // ─── CARREGAR OBRAS ───────────────────────────────────────────────────────────
 async function carregarObras() {
   document.getElementById('obras-loading').style.display = 'block';
@@ -431,17 +477,14 @@ async function carregarObras() {
     obras = rows || [];
     renderObrasList();
   } catch(e) {
-    // Fallback: obras do localStorage
     obras = Object.keys(localStorage)
       .filter(k => k.startsWith('cockpit_'))
       .map(k => {
-        try {
-          const d = JSON.parse(localStorage.getItem(k));
-          return { obra_key: k.replace('cockpit_',''), data: d };
-        } catch { return null; }
+        try { const d = JSON.parse(localStorage.getItem(k)); return { obra_key: k.replace('cockpit_',''), data: d }; }
+        catch { return null; }
       }).filter(Boolean);
     renderObrasList();
-    if (!obras.length) toast('Nenhuma obra encontrada. Verifique a conexão.', 'warn');
+    if (!obras.length) toast('Sem conexão — nenhuma obra encontrada.', 'warn');
   }
 }
 
@@ -451,7 +494,7 @@ function renderObrasList() {
   el.style.display = 'block';
 
   if (!obras.length) {
-    el.innerHTML = `<div class="empty-state"><div style="font-size:32px;margin-bottom:8px;opacity:.4">🏗️</div>Nenhuma obra encontrada</div>`;
+    el.innerHTML = `<div class="empty-state">Nenhuma obra encontrada</div>`;
     return;
   }
 
@@ -460,12 +503,14 @@ function renderObrasList() {
     const pct = calcPctGeral(o.data?.servicos || []);
     return `
     <div class="obra-option" id="opt-${esc(o.obra_key)}" onclick="selecionarObra('${esc(o.obra_key)}')">
-      <div class="obra-option-nome">${esc(cfg.obra || o.obra_key)}</div>
-      <div class="obra-option-sub">${esc(cfg.cliente||'—')} · ${fmtDate(cfg.periodo_ini)} → ${fmtDate(cfg.periodo_fim)} · ${pct}%</div>
+      <div class="obra-option-info">
+        <div class="obra-option-nome">${esc(cfg.obra || o.obra_key)}</div>
+        <div class="obra-option-sub">${esc(cfg.cliente||'—')} · ${fmtDate(cfg.periodo_ini)} → ${fmtDate(cfg.periodo_fim)}</div>
+      </div>
+      <div class="obra-option-pct">${pct}%</div>
     </div>`;
   }).join('');
 
-  // Se veio por URL params, selecionar automaticamente
   const params = new URLSearchParams(window.location.search);
   const keyParam = params.get('obra_key');
   if (keyParam) selecionarObra(keyParam);
@@ -482,22 +527,17 @@ function selecionarObra(key) {
   obraKeyAtual = key;
   obraAtual = obra.data;
 
-  // Popular seletor de semanas
   const sel = document.getElementById('seletor-semana');
   sel.innerHTML = '<option value="atual">Semana Atual</option>';
-  const snaps = Object.keys(obraAtual?.snapshots || {}).sort((a,b) => {
-    return parseInt(b.replace('S','')) - parseInt(a.replace('S',''));
-  });
+  const snaps = Object.keys(obraAtual?.snapshots || {}).sort((a,b) => parseInt(b.replace('S','')) - parseInt(a.replace('S','')));
   snaps.forEach(k => {
     const num = k.replace('S','');
-    const periodo = getPeriodoSemana(obraAtual?.config?.periodo_ini, num);
     const opt = document.createElement('option');
     opt.value = num;
-    opt.textContent = `Semana ${k} — ${periodo}`;
+    opt.textContent = `Semana ${k} — ${getPeriodoSemana(obraAtual?.config?.periodo_ini, num)}`;
     sel.appendChild(opt);
   });
 
-  // Verificar se URL tem semana
   const params = new URLSearchParams(window.location.search);
   const semParam = params.get('semana');
   if (semParam) sel.value = semParam;
@@ -509,104 +549,267 @@ function confirmarSelecao() {
   if (!obraAtual) { toast('Selecione uma obra primeiro', 'warn'); return; }
 
   const selVal = document.getElementById('seletor-semana').value;
-  if (selVal === 'atual') {
-    semanaAtual = calcSemanaAtual(obraAtual.config?.periodo_ini);
-  } else {
-    semanaAtual = parseInt(selVal);
-  }
+  semanaAtual = selVal === 'atual' ? calcSemanaAtual(obraAtual.config?.periodo_ini) : parseInt(selVal);
 
-  // Atualizar header
-  document.getElementById('h-obra-nome').textContent = obraAtual.config?.obra || obraKeyAtual;
-  document.getElementById('h-semana-info').textContent = `S${semanaAtual} · ${getPeriodoSemana(obraAtual.config?.periodo_ini, semanaAtual)}`;
-
-  // Mostrar KPIs
+  atualizarHero();
   renderKpisObra();
   renderResumoObra();
-
-  // Renderizar medição e gantt automaticamente
   renderMedicao();
   renderGantt();
-
   toast(`Obra carregada — Semana S${semanaAtual}`, 'success');
 }
 
 // ─── KPIs ─────────────────────────────────────────────────────────────────────
 function renderKpisObra() {
-  const snap = semanaAtual > 1 ? obraAtual?.snapshots?.[`S${semanaAtual}`] : null;
+  const snap = obraAtual?.snapshots?.[`S${semanaAtual}`];
   const servicos = snap?.servicos || obraAtual?.servicos || [];
   const pct = calcPctGeral(servicos);
   const c = obraAtual?.config || {};
-  const valorMedido = servicos.reduce((s, v) => s + (Number(v.valor)||0) * (Number(v.pct_atual)||0) / 100, 0);
+  const valorMedido = servicos.reduce((s, v) => s + (Number(v.valor)||0)*(Number(v.pct_atual)||0)/100, 0);
   const pendAbertas = (obraAtual?.pendencias || []).filter(p => p.status === 'ABERTO').length;
+  const pctSemAnt = calcPctGeral(obraAtual?.snapshots?.[`S${semanaAtual-1}`]?.servicos || []);
+  const delta = pct - pctSemAnt;
 
   document.getElementById('kpi-obra-sel').style.display = 'grid';
   document.getElementById('kpi-obra-sel').innerHTML = `
     <div class="kpi-box">
       <div class="kpi-label">Progresso S${semanaAtual}</div>
       <div class="kpi-value">${pct}%</div>
+      <div class="kpi-sub">+${delta}pp esta semana</div>
     </div>
     <div class="kpi-box">
       <div class="kpi-label">Valor Medido</div>
-      <div class="kpi-value ouro" style="font-size:17px">${fmtMoney(valorMedido)}</div>
+      <div class="kpi-value ouro sm">${fmtMoney(valorMedido)}</div>
+      <div class="kpi-sub">acumulado até S${semanaAtual}</div>
     </div>
     <div class="kpi-box">
-      <div class="kpi-label">Contrato</div>
-      <div class="kpi-value ouro" style="font-size:17px">${fmtMoney(c.valor_contrato)}</div>
+      <div class="kpi-label">Contrato Total</div>
+      <div class="kpi-value ouro sm">${fmtMoney(c.valor_contrato)}</div>
+      <div class="kpi-sub">${esc(c.cliente||'—')}</div>
     </div>
     <div class="kpi-box">
-      <div class="kpi-label">Pendências</div>
-      <div class="kpi-value ${pendAbertas > 0 ? 'danger' : ''}" style="color:${pendAbertas>0?'var(--danger)':'var(--verde)'}">${pendAbertas}</div>
+      <div class="kpi-label">Pendências Abertas</div>
+      <div class="kpi-value ${pendAbertas > 0 ? 'danger' : ''}">${pendAbertas}</div>
+      <div class="kpi-sub">itens aguardando</div>
     </div>`;
 }
 
 function renderResumoObra() {
   const c = obraAtual?.config || {};
+  const servicos = obraAtual?.servicos || [];
+  const concluidos = servicos.filter(s => (s.pct_atual||0) >= 100).length;
   document.getElementById('card-resumo-obra').style.display = 'block';
   document.getElementById('resumo-obra-body').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px">
-      <div><span style="color:var(--text-muted)">Obra:</span> ${esc(c.obra||'—')}</div>
-      <div><span style="color:var(--text-muted)">Cliente:</span> ${esc(c.cliente||'—')}</div>
-      <div><span style="color:var(--text-muted)">Endereço:</span> ${esc(c.endereco||'—')}</div>
-      <div><span style="color:var(--text-muted)">Período:</span> ${fmtDate(c.periodo_ini)} → ${fmtDate(c.periodo_fim)}</div>
-      <div><span style="color:var(--text-muted)">Semana selecionada:</span> <strong style="color:var(--verde)">S${semanaAtual}</strong></div>
-      <div><span style="color:var(--text-muted)">Snapshots disponíveis:</span> ${Object.keys(obraAtual?.snapshots||{}).join(', ')||'—'}</div>
+    <div class="rel-meta-grid">
+      <div class="rel-meta-row"><span class="rel-meta-label">Obra </span>${esc(c.obra||'—')}</div>
+      <div class="rel-meta-row"><span class="rel-meta-label">Cliente </span>${esc(c.cliente||'—')}</div>
+      <div class="rel-meta-row"><span class="rel-meta-label">Endereço </span>${esc(c.endereco||'—')}</div>
+      <div class="rel-meta-row"><span class="rel-meta-label">Período </span>${fmtDate(c.periodo_ini)} → ${fmtDate(c.periodo_fim)}</div>
+      <div class="rel-meta-row"><span class="rel-meta-label">Semana </span><strong style="color:var(--hdr)">S${semanaAtual}</strong> · ${getPeriodoSemana(c.periodo_ini, semanaAtual)}</div>
+      <div class="rel-meta-row"><span class="rel-meta-label">Serviços </span>${servicos.length} total · ${concluidos} concluídos</div>
+      <div class="rel-meta-row"><span class="rel-meta-label">Snapshots </span>${Object.keys(obraAtual?.snapshots||{}).join(', ')||'—'}</div>
     </div>`;
 }
 
-// ─── MONTAR CONTEXTO PARA AGENTE ─────────────────────────────────────────────
+// ─── RENDERIZAR TEXTO DO AGENTE COMO HTML ────────────────────────────────────
+function textoParaHTML(txt) {
+  if (!txt) return '';
+  const lines = txt.split('\n');
+  let html = '';
+  let inSection = false;
+  let sectionNum = 0;
+  let itemIdx = 0;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    // Detecta cabeçalho de seção: linha em CAPS ou CAPS com pontuação, curta
+    const isSectionHead = /^[A-ZÁÉÍÓÚÀÂÃÕÊÔ\s\d\/\.\-–:]{3,}$/.test(line)
+      && line.length < 65 && line === line.toUpperCase() && !/^\d+\./.test(line);
+
+    if (isSectionHead) {
+      if (inSection) html += '</div>';
+      sectionNum++;
+      itemIdx = 0;
+      html += `<div class="rel-section">
+        <div class="rel-section-head">
+          <span class="rel-section-num">${String(sectionNum).padStart(2,'0')}</span>
+          <span class="rel-section-title">${esc(line)}</span>
+        </div>`;
+      inSection = true;
+    } else if (/^(\d+\.|[-·•])\s/.test(line)) {
+      itemIdx++;
+      const content = line.replace(/^(\d+\.|[-·•])\s+/, '');
+      let tags = '';
+      if (/conclu[íi]d[ao]|100%/i.test(content)) tags += '<span class="tag tag-ok">CONCLUÍDO</span>';
+      else if (/em andamento/i.test(content)) tags += '<span class="tag tag-and">EM ANDAMENTO</span>';
+      if (/pendente|aguardando/i.test(content) && !tags) tags += '<span class="tag tag-pend">PENDENTE</span>';
+      if (/\balta\b/i.test(content)) tags += '<span class="tag tag-alta">ALTA</span>';
+      html += `<div class="rel-item">
+        <span class="rel-item-num">${itemIdx}.</span>
+        <span class="rel-item-body">${esc(content)}${tags}</span>
+      </div>`;
+    } else {
+      // Linha de dado (ex: "Obra: X" ou parágrafo)
+      if (inSection) {
+        if (/^[\w\s]+:/.test(line) && line.indexOf(':') < 25) {
+          const [k, ...rest] = line.split(':');
+          html += `<div style="padding:4px 0;font-size:13px;border-bottom:1px solid #f5f5f5">
+            <span style="color:var(--text-muted);font-family:var(--font-data);font-size:10px;letter-spacing:.5px;margin-right:6px">${esc(k.trim())}</span>${esc(rest.join(':').trim())}
+          </div>`;
+        } else {
+          html += `<p class="rel-para">${esc(line)}</p>`;
+        }
+      } else {
+        html += `<p style="margin-bottom:8px;font-size:13px">${esc(line)}</p>`;
+      }
+    }
+  }
+
+  if (inSection) html += '</div>';
+  return html || `<p style="white-space:pre-wrap;color:var(--text)">${esc(txt)}</p>`;
+}
+
+function textoParaPDF(txt) {
+  // Versão mais simples para PDF — pre-wrap estilizado
+  const lines = txt.split('\n');
+  let html = '';
+  let sectionNum = 0;
+  let inSection = false;
+  let itemIdx = 0;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) { html += '<div style="height:6px"></div>'; continue; }
+
+    const isSectionHead = /^[A-ZÁÉÍÓÚÀÂÃÕÊÔ\s\d\/\.\-–:]{3,}$/.test(line)
+      && line.length < 65 && line === line.toUpperCase() && !/^\d+\./.test(line);
+
+    if (isSectionHead) {
+      if (inSection) html += '</div>';
+      sectionNum++;
+      itemIdx = 0;
+      html += `<div style="margin-bottom:18px">
+        <div style="display:flex;align-items:center;gap:8px;border-bottom:1px solid #e0e0e0;padding-bottom:7px;margin-bottom:10px">
+          <span style="background:#1a2e1a;color:#fff;font-family:'JetBrains Mono',monospace;font-size:9px;padding:3px 7px;border-radius:2px">${String(sectionNum).padStart(2,'0')}</span>
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;color:#1a2e1a">${esc(line)}</span>
+        </div>`;
+      inSection = true;
+    } else if (/^(\d+\.|[-·•])\s/.test(line)) {
+      itemIdx++;
+      const content = line.replace(/^(\d+\.|[-·•])\s+/, '');
+      html += `<div style="padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:12px;display:flex;gap:8px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#aaa;min-width:18px">${itemIdx}.</span>
+        <span>${esc(content)}</span>
+      </div>`;
+    } else if (/^[\w\s]+:/.test(line) && line.indexOf(':') < 25) {
+      const [k, ...rest] = line.split(':');
+      html += `<div style="padding:3px 0;font-size:12px;border-bottom:1px solid #f5f5f5">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#aaa;margin-right:6px;letter-spacing:.5px">${esc(k.trim())}</span>${esc(rest.join(':').trim())}
+      </div>`;
+    } else {
+      html += `<p style="font-size:12px;margin:5px 0;line-height:1.65">${esc(line)}</p>`;
+    }
+  }
+
+  if (inSection) html += '</div>';
+  return html || `<pre style="font-size:12px;white-space:pre-wrap;font-family:Georgia,serif;line-height:1.7">${esc(txt)}</pre>`;
+}
+
+// ─── GERAR RELATÓRIOS ─────────────────────────────────────────────────────────
+async function gerarRelatorioSemanal() {
+  if (!obraAtual) { toast('Selecione uma obra primeiro', 'warn'); return; }
+
+  const el = document.getElementById('rel-semanal-output');
+  const btn = document.getElementById('btn-gerar-semanal');
+  const stat = document.getElementById('rel-semanal-status');
+  btn.disabled = true; btn.textContent = 'Gerando...';
+  el.className = 'rel-output loading';
+  el.innerHTML = '<div style="text-align:center;padding:40px;font-family:var(--font-data);font-size:12px;color:var(--text-muted)">Aguardando agente...</div>';
+  stat.textContent = 'gerando';
+  relTextos.semanal = '';
+
+  try {
+    const ctx = montarContextoSemana();
+    const userMsg = `Gere o RELATÓRIO SEMANAL DO CLIENTE para a Semana S${semanaAtual}.\n\nDados da obra:\n${ctx}`;
+    const resposta = await aiFetch(SYS_RELATORIO, userMsg, 3000);
+    relTextos.semanal = resposta;
+    el.className = 'rel-output';
+    el.innerHTML = textoParaHTML(resposta);
+    stat.textContent = `gerado · ${new Date().toLocaleTimeString('pt-BR')}`;
+    ['btn-copy-semanal','btn-pdf-semanal'].forEach(id => { const b = document.getElementById(id); if(b) b.disabled = false; });
+    ['btn-top-copy','btn-top-pdf'].forEach(id => { const b = document.getElementById(id); if(b) b.disabled = false; });
+    toast('Relatório gerado', 'success');
+  } catch(e) {
+    el.className = 'rel-output';
+    el.innerHTML = `<div style="color:var(--danger);font-family:var(--font-data);font-size:12px;padding:20px">Erro: ${esc(e.message)}</div>`;
+    stat.textContent = 'erro';
+    toast('Erro ao gerar relatório', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Gerar Relatório';
+  }
+}
+
+async function gerarRelatorioInterno() {
+  if (!obraAtual) { toast('Selecione uma obra primeiro', 'warn'); return; }
+
+  const el = document.getElementById('rel-interno-output');
+  const btn = document.getElementById('btn-gerar-interno');
+  const stat = document.getElementById('rel-interno-status');
+  btn.disabled = true; btn.textContent = 'Gerando...';
+  el.className = 'rel-output loading';
+  el.innerHTML = '<div style="text-align:center;padding:40px;font-family:var(--font-data);font-size:12px;color:var(--text-muted)">Aguardando agente...</div>';
+  stat.textContent = 'gerando';
+  relTextos.interno = '';
+
+  try {
+    const ctx = montarContextoInterno();
+    const userMsg = `Gere o RELATÓRIO INTERNO para a Semana S${semanaAtual}.\n\nDados:\n${ctx}`;
+    const resposta = await aiFetch(SYS_RELATORIO_INTERNO, userMsg, 3000);
+    relTextos.interno = resposta;
+    el.className = 'rel-output';
+    el.innerHTML = textoParaHTML(resposta);
+    stat.textContent = `gerado · ${new Date().toLocaleTimeString('pt-BR')}`;
+    ['btn-copy-interno'].forEach(id => { const b = document.getElementById(id); if(b) b.disabled = false; });
+    toast('Relatório interno gerado', 'success');
+  } catch(e) {
+    el.className = 'rel-output';
+    el.innerHTML = `<div style="color:var(--danger);font-family:var(--font-data);font-size:12px;padding:20px">Erro: ${esc(e.message)}</div>`;
+    stat.textContent = 'erro';
+    toast('Erro ao gerar relatório', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Gerar Relatório';
+  }
+}
+
+// ─── CONTEXTOS ────────────────────────────────────────────────────────────────
 function montarContextoSemana() {
   if (!obraAtual) return '';
   const c = obraAtual.config || {};
-  const snapKey = `S${semanaAtual}`;
-  const snap = obraAtual?.snapshots?.[snapKey];
+  const snap = obraAtual?.snapshots?.[`S${semanaAtual}`];
   const snapAnt = obraAtual?.snapshots?.[`S${semanaAtual - 1}`];
   const servicos = snap?.servicos || obraAtual?.servicos || [];
   const servAnt = snapAnt?.servicos || [];
-
   const pctIni = calcPctGeral(servAnt);
   const pctFim = calcPctGeral(servicos);
   const periodo = getPeriodoSemana(c.periodo_ini, semanaAtual);
-  const valorMedido = servicos.reduce((s, v) => s + (Number(v.valor)||0) * (Number(v.pct_atual)||0) / 100, 0);
-  const valorAnt = servAnt.reduce((s, v) => s + (Number(v.valor)||0) * (Number(v.pct_atual)||0) / 100, 0);
+  const valorMedido = servicos.reduce((s, v) => s + (Number(v.valor)||0)*(Number(v.pct_atual)||0)/100, 0);
+  const valorAnt = servAnt.reduce((s, v) => s + (Number(v.valor)||0)*(Number(v.pct_atual)||0)/100, 0);
   const medicaoSemana = Math.max(0, valorMedido - valorAnt);
-
   const servsExecutados = servicos.filter(s => (s.pct_atual||0) > (servAnt.find(x=>x.cod===s.cod)?.pct_atual||0));
-  const servsConcluidos = servicos.filter(s => s.pct_atual >= 100 || s.status_atual === 'CONCLUÍDO');
   const pendsAbertas = (obraAtual?.pendencias||[]).filter(p => p.status === 'ABERTO');
   const diario = snap?.diario || obraAtual?.diario || {};
 
-  return `OBRA: ${c.obra || ''}
-CLIENTE: ${c.cliente || ''}
-CNPJ CLIENTE: ${c.cnpj_cliente || '—'}
-ENDEREÇO: ${c.endereco || ''}
+  return `OBRA: ${c.obra||''}
+CLIENTE: ${c.cliente||''}
+ENDEREÇO: ${c.endereco||''}
 PERÍODO DA OBRA: ${fmtDate(c.periodo_ini)} a ${fmtDate(c.periodo_fim)}
 SEMANA: ${semanaAtual} (${periodo})
 VALOR DO CONTRATO: ${fmtMoney(c.valor_contrato)}
-
 PROGRESSO INÍCIO DA SEMANA: ${pctIni}%
 PROGRESSO FINAL DA SEMANA: ${pctFim}%
-DELTA: +${pctFim - pctIni}%
-
+DELTA: +${pctFim - pctIni}pp
 MEDIÇÃO DA SEMANA: ${fmtMoney(medicaoSemana)}
 VALOR MEDIDO ACUMULADO: ${fmtMoney(valorMedido)}
 
@@ -614,7 +817,7 @@ SERVIÇOS EXECUTADOS NESTA SEMANA:
 ${servsExecutados.map(s => `- ${s.descricao}: ${servAnt.find(x=>x.cod===s.cod)?.pct_atual||0}% → ${s.pct_atual}%`).join('\n') || '— nenhum'}
 
 SERVIÇOS CONCLUÍDOS:
-${servsConcluidos.map(s => `- ${s.descricao}`).join('\n') || '— nenhum'}
+${servicos.filter(s => s.pct_atual >= 100 || s.status_atual === 'CONCLUÍDO').map(s => `- ${s.descricao}`).join('\n') || '— nenhum'}
 
 PENDÊNCIAS ABERTAS:
 ${pendsAbertas.map(p => `- [${p.urgencia?.toUpperCase()}] ${p.titulo} (${p.tipo})`).join('\n') || '— nenhuma'}
@@ -631,110 +834,29 @@ function montarContextoInterno() {
   const servicos = obraAtual?.snapshots?.[`S${semanaAtual}`]?.servicos || obraAtual?.servicos || [];
   const snapAnt = obraAtual?.snapshots?.[`S${semanaAtual - 1}`]?.servicos || [];
   const pagamentos = obraAtual?.pagamentos || [];
-  const pagSemana = pagamentos.filter(p => {
-    if (!p.data) return false;
-    const snap = obraAtual?.snapshots?.[`S${semanaAtual}`];
-    return snap ? p.data >= (snap?.diario ? Object.keys(snap.diario)[0] || '' : '') : true;
-  });
   const totalPago = pagamentos.filter(p=>p.status==='pago').reduce((s,p)=>s+(Number(p.valor)||0),0);
   const totalPend = pagamentos.filter(p=>p.status==='pendente').reduce((s,p)=>s+(Number(p.valor)||0),0);
-
   const servsComDelta = servicos.map(s => {
     const ant = snapAnt.find(x => x.cod === s.cod);
     const prevSemana = s.pct_previsto_semana?.[`S${semanaAtual}`] ?? null;
-    return {
-      ...s,
-      pct_ant: ant?.pct_atual ?? 0,
-      pct_previsto: prevSemana,
-      delta: (s.pct_atual||0) - (ant?.pct_atual||0)
-    };
+    return { ...s, pct_ant: ant?.pct_atual ?? 0, pct_previsto: prevSemana, delta: (s.pct_atual||0)-(ant?.pct_atual||0) };
   });
-
   const atrasados = servsComDelta.filter(s => s.pct_previsto !== null && s.pct_atual < s.pct_previsto);
-  const adiantados = servsComDelta.filter(s => s.pct_previsto !== null && s.pct_atual > s.pct_previsto);
 
   return `${base}
 
 ANÁLISE DE PERFORMANCE POR SERVIÇO:
-${servsComDelta.map(s => `- ${s.cod||''} ${s.descricao}: ${s.pct_ant}% → ${s.pct_atual}% (Δ+${s.delta}%)${s.pct_previsto !== null ? ` | Previsto: ${s.pct_previsto}%${s.pct_atual < s.pct_previsto ? ' ⚠ ABAIXO' : s.pct_atual > s.pct_previsto ? ' ✓ ACIMA' : ''}` : ''}`).join('\n')}
+${servsComDelta.map(s => `- ${s.cod||''} ${s.descricao}: ${s.pct_ant}% → ${s.pct_atual}% (Δ+${s.delta}%)${s.pct_previsto !== null ? ` | Previsto: ${s.pct_previsto}%${s.pct_atual < s.pct_previsto ? ' ⚠ ABAIXO' : ' ✓'}` : ''}`).join('\n')}
 
-SERVIÇOS ABAIXO DO PREVISTO: ${atrasados.length ? atrasados.map(s=>s.descricao).join(', ') : 'nenhum'}
-SERVIÇOS ACIMA DO PREVISTO:  ${adiantados.length ? adiantados.map(s=>s.descricao).join(', ') : 'nenhum'}
+ABAIXO DO PREVISTO: ${atrasados.length ? atrasados.map(s=>s.descricao).join(', ') : 'nenhum'}
 
 FINANCEIRO:
 Total pago: ${fmtMoney(totalPago)}
 Total pendente: ${fmtMoney(totalPend)}
-Pagamentos: ${pagamentos.length} registros`;
+Registros: ${pagamentos.length}`;
 }
 
-// ─── GERAR RELATÓRIOS ─────────────────────────────────────────────────────────
-async function gerarRelatorioSemanal() {
-  if (!obraAtual) { toast('Selecione uma obra primeiro', 'warn'); return; }
-
-  const el = document.getElementById('rel-semanal-output');
-  const btn = document.getElementById('btn-gerar-semanal');
-  btn.disabled = true;
-  btn.textContent = 'Gerando...';
-  el.style.color = 'var(--text-dim)';
-  el.textContent = 'Aguardando agente...';
-  relTextos.semanal = '';
-
-  try {
-    const ctx = montarContextoSemana();
-    const userMsg = `Gere o RELATÓRIO SEMANAL DO CLIENTE para a Semana S${semanaAtual}.\n\nDados da obra:\n${ctx}`;
-    const resposta = await aiFetch(SYS_RELATORIO, userMsg, 3000);
-    relTextos.semanal = resposta;
-    el.style.color = 'var(--text)';
-    el.textContent = resposta;
-    ['btn-prev-semanal','btn-copy-semanal','btn-pdf-semanal'].forEach(id => {
-      const b = document.getElementById(id);
-      if (b) b.disabled = false;
-    });
-    toast('Relatório gerado', 'success');
-  } catch(e) {
-    el.style.color = 'var(--danger)';
-    el.textContent = 'Erro: ' + e.message;
-    toast('Erro ao gerar relatório', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Gerar Relatório';
-  }
-}
-
-async function gerarRelatorioInterno() {
-  if (!obraAtual) { toast('Selecione uma obra primeiro', 'warn'); return; }
-
-  const el = document.getElementById('rel-interno-output');
-  const btn = document.getElementById('btn-gerar-interno');
-  btn.disabled = true;
-  btn.textContent = 'Gerando...';
-  el.style.color = 'var(--text-dim)';
-  el.textContent = 'Aguardando agente...';
-  relTextos.interno = '';
-
-  try {
-    const ctx = montarContextoInterno();
-    const userMsg = `Gere o RELATÓRIO INTERNO para a Semana S${semanaAtual}.\n\nDados:\n${ctx}`;
-    const resposta = await aiFetch(SYS_RELATORIO_INTERNO, userMsg, 3000);
-    relTextos.interno = resposta;
-    el.style.color = 'var(--text)';
-    el.textContent = resposta;
-    ['btn-prev-interno','btn-copy-interno'].forEach(id => {
-      const b = document.getElementById(id);
-      if (b) b.disabled = false;
-    });
-    toast('Relatório interno gerado', 'success');
-  } catch(e) {
-    el.style.color = 'var(--danger)';
-    el.textContent = 'Erro: ' + e.message;
-    toast('Erro ao gerar relatório', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Gerar Relatório';
-  }
-}
-
-// ─── BOLETIM DE MEDIÇÃO ───────────────────────────────────────────────────────
+// ─── BOLETIM MEDIÇÃO ──────────────────────────────────────────────────────────
 function renderMedicao() {
   if (!obraAtual) return;
   const c = obraAtual.config || {};
@@ -753,30 +875,36 @@ function renderMedicao() {
     return { s, pctAnt, valSemana, valTotal };
   }).filter(r => r.valSemana > 0);
 
-  const totalSemana = rows.reduce((s, r) => s + r.valSemana, 0);
+  const totalSemana    = rows.reduce((s, r) => s + r.valSemana, 0);
   const totalAcumulado = servicos.reduce((s, v) => s + (Number(v.valor)||0)*(Number(v.pct_atual)||0)/100, 0);
-
+  const totalContrato  = Number(c.valor_contrato) || 0;
   const el = document.getElementById('medicao-output');
+
   if (!rows.length) {
-    el.innerHTML = `<div class="empty-state"><div style="font-size:32px;margin-bottom:8px;opacity:.4">📊</div>Nenhuma execução registrada nesta semana</div>`;
+    el.innerHTML = `<div class="empty-state">Nenhuma execução medida nesta semana</div>`;
     document.getElementById('btn-copy-med').disabled = true;
     document.getElementById('btn-pdf-med').disabled = true;
     return;
   }
 
+  relTextos.medicao = `BOLETIM DE MEDIÇÃO — S${semanaAtual}\n${c.obra||''} · ${c.cliente||''}\n\n` +
+    rows.map(r => `${r.s.descricao}: ${r.pctAnt}% → ${r.s.pct_atual}% · ${fmtMoney(r.valSemana)}`).join('\n') +
+    `\n\nTOTAL: ${fmtMoney(totalSemana)}\nAcumulado: ${fmtMoney(totalAcumulado)}\nContrato: ${fmtMoney(totalContrato)}`;
+
   document.getElementById('btn-copy-med').disabled = false;
   document.getElementById('btn-pdf-med').disabled = false;
+  document.getElementById('btn-top-pdf').disabled = false;
 
   el.innerHTML = `
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="background:var(--hdr);padding:16px 20px;display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px">
         <div>
-          <div style="font-family:var(--font-display);font-size:18px;letter-spacing:1px;color:var(--text)">${esc(c.obra||'')}</div>
-          <div style="font-size:12px;color:var(--text-dim);font-family:var(--font-data)">Semana S${semanaAtual} · ${esc(periodo)}</div>
+          <div style="font-family:var(--font-display);font-size:22px;letter-spacing:2px;color:#fff">${esc(c.obra||'')}</div>
+          <div style="font-family:var(--font-data);font-size:10px;color:rgba(255,255,255,0.45);margin-top:3px">Semana S${semanaAtual} · ${esc(periodo)}</div>
         </div>
         <div style="text-align:right">
-          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-data)">Berti Construtora LTDA</div>
-          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-data)">CNPJ 59.622.624/0001-93</div>
+          <div style="font-family:var(--font-data);font-size:10px;color:rgba(255,255,255,0.45)">Berti Construtora LTDA</div>
+          <div style="font-family:var(--font-data);font-size:10px;color:rgba(255,255,255,0.35)">CNPJ 59.622.624/0001-93</div>
         </div>
       </div>
       <table class="med-table" id="med-tabela">
@@ -785,29 +913,31 @@ function renderMedicao() {
             <th>Serviço</th>
             <th>% Ant.</th>
             <th>% Atual</th>
-            <th>Valor Contratado</th>
+            <th>Valor Contrato</th>
             <th>Medição Semana</th>
           </tr>
         </thead>
         <tbody>
           ${rows.map(r => `
-            <tr>
-              <td>${esc(r.s.descricao||r.s.cod||'')}</td>
-              <td style="font-family:var(--font-data);font-size:12px">${r.pctAnt}%</td>
-              <td style="font-family:var(--font-data);font-size:12px;color:var(--verde)">${r.s.pct_atual||0}%</td>
-              <td style="font-family:var(--font-data);font-size:12px;color:var(--ouro)">${fmtMoney(r.s.valor)}</td>
-              <td style="font-family:var(--font-data);font-size:13px;font-weight:600;color:var(--ouro)">${fmtMoney(r.valSemana)}</td>
-            </tr>`).join('')}
+          <tr>
+            <td>${esc(r.s.descricao||r.s.cod||'')}</td>
+            <td style="font-family:var(--font-data);font-size:11px;color:var(--text-muted)">${r.pctAnt}%</td>
+            <td style="font-family:var(--font-data);font-size:11px;color:var(--verde);font-weight:600">${r.s.pct_atual||0}%</td>
+            <td style="font-family:var(--font-data);font-size:11px;color:var(--text-muted)">${fmtMoney(r.s.valor)}</td>
+            <td style="font-family:var(--font-data);font-size:12px;font-weight:700;color:var(--hdr)">${fmtMoney(r.valSemana)}</td>
+          </tr>`).join('')}
+        </tbody>
+        <tfoot>
           <tr>
             <td colspan="4">TOTAL MEDIÇÃO S${semanaAtual}</td>
-            <td style="font-size:15px;font-family:var(--font-data)">${fmtMoney(totalSemana)}</td>
+            <td style="color:var(--verde)">${fmtMoney(totalSemana)}</td>
           </tr>
-        </tbody>
+        </tfoot>
       </table>
-      <div style="display:flex;justify-content:space-between;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--text-dim)">
-        <span>Acumulado até S${semanaAtual}: <strong style="color:var(--verde)">${fmtMoney(totalAcumulado)}</strong></span>
-        <span>Contrato total: <strong style="color:var(--ouro)">${fmtMoney(c.valor_contrato)}</strong></span>
-        <span>Saldo: <strong style="color:var(--text)">${fmtMoney((Number(c.valor_contrato)||0) - totalAcumulado)}</strong></span>
+      <div style="padding:14px 20px;display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:var(--text-muted);border-top:1px solid var(--border);background:#fafcfa">
+        <span>Acumulado até S${semanaAtual}: <strong style="color:var(--hdr)">${fmtMoney(totalAcumulado)}</strong></span>
+        <span>Contrato: <strong style="color:var(--ouro-dim)">${fmtMoney(totalContrato)}</strong></span>
+        <span>Saldo: <strong style="color:var(--text)">${fmtMoney(totalContrato - totalAcumulado)}</strong></span>
       </div>
     </div>`;
 }
@@ -816,124 +946,165 @@ function renderMedicao() {
 function renderGantt() {
   if (!obraAtual) return;
   const crono = obraAtual?.cronograma || [];
-  const semanaMax = Math.max(8, ...crono.map(c => c.semana_prevista_fim || 1), semanaAtual + 2);
-
   const el = document.getElementById('gantt-output');
+
   if (!crono.length) {
-    el.innerHTML = `<div class="empty-state"><div style="font-size:32px;margin-bottom:8px;opacity:.4">📅</div>Cronograma não configurado</div>`;
+    el.innerHTML = `<div class="empty-state">Cronograma não configurado</div>`;
     return;
   }
 
+  const semanaMax = Math.max(8, ...crono.map(c => c.semana_prevista_fim || 1), semanaAtual + 2);
   const semanas = Array.from({length: semanaMax}, (_, i) => i + 1);
 
   el.innerHTML = `
-    <div style="overflow-x:auto">
+    <div style="overflow-x:auto;background:#fff;border:1px solid var(--border);border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.04)">
       <table style="border-collapse:collapse;min-width:600px;width:100%">
         <thead>
           <tr>
-            <th style="background:var(--bg-3);color:var(--text-muted);font-family:var(--font-data);font-size:11px;padding:8px;text-align:left;border-bottom:1px solid var(--border);min-width:200px">Serviço</th>
+            <th style="background:var(--hdr);color:rgba(255,255,255,0.6);font-family:var(--font-data);font-size:10px;padding:10px 12px;text-align:left;min-width:220px;letter-spacing:.5px">SERVIÇO</th>
             ${semanas.map(s => `
-              <th style="background:${s===semanaAtual?'var(--verde-dim)':'var(--bg-3)'};color:${s===semanaAtual?'var(--verde)':'var(--text-muted)'};font-family:var(--font-data);font-size:10px;padding:6px 4px;text-align:center;border-bottom:1px solid var(--border);min-width:40px">S${s}</th>
+            <th style="background:${s===semanaAtual?'var(--verde)':'var(--hdr)'};color:${s===semanaAtual?'#fff':'rgba(255,255,255,0.5)'};font-family:var(--font-data);font-size:9px;padding:7px 4px;text-align:center;min-width:38px;letter-spacing:.5px">S${s}</th>
             `).join('')}
           </tr>
         </thead>
         <tbody>
-          ${crono.map(item => {
+          ${crono.map((item, idx) => {
             const pctReal = item.pct_real || 0;
+            const isEven = idx % 2 === 0;
             return `
-            <tr>
-              <td style="padding:8px;border-bottom:1px solid var(--border);font-size:12px">
-                <div style="font-weight:500">${esc(item.descricao||'')}</div>
-                <div style="font-family:var(--font-data);font-size:10px;color:var(--text-muted)">${esc(item.equipe_ref||'')} ${pctReal}%</div>
+            <tr style="${isEven ? '' : 'background:#f8faf8'}">
+              <td style="padding:9px 12px;border-bottom:1px solid var(--border);font-size:12px">
+                <div style="font-weight:500;color:var(--text)">${esc(item.descricao||'')}</div>
+                <div style="font-family:var(--font-data);font-size:10px;color:var(--text-muted);margin-top:1px">${esc(item.equipe_ref||'')}${pctReal ? ` · ${pctReal}%` : ''}</div>
               </td>
               ${semanas.map(s => {
                 const isSemana = s >= item.semana_prevista_ini && s <= item.semana_prevista_fim;
                 const isReal   = s <= semanaAtual && isSemana;
                 const pctPrev  = item.pct_previsto_semana?.[`S${s}`] ?? null;
-                let bg = 'transparent';
-                let txt = '';
+                let bg = 'transparent'; let txt = '';
                 if (isSemana) {
                   if (isReal) {
-                    bg = pctReal >= 100 ? 'rgba(46,150,80,.5)' : 'rgba(46,150,80,.25)';
-                    txt = `<span style="font-size:9px;font-family:var(--font-data);color:var(--verde)">${pctReal}%</span>`;
+                    bg = pctReal >= 100 ? '#c8e8d4' : '#ddeee4';
+                    txt = `<span style="font-size:9px;font-family:var(--font-data);color:#1a5c30">${pctReal}%</span>`;
                   } else {
-                    bg = 'rgba(74,106,74,.2)';
-                    txt = pctPrev !== null ? `<span style="font-size:9px;font-family:var(--font-data);color:var(--text-muted)">${pctPrev}%</span>` : '';
+                    bg = '#eaedea';
+                    txt = pctPrev !== null ? `<span style="font-size:9px;font-family:var(--font-data);color:#aaa">${pctPrev}%</span>` : '';
                   }
                 }
-                return `<td style="background:${bg};padding:4px;text-align:center;border-bottom:1px solid var(--border);border-left:1px solid var(--border)">${txt}</td>`;
+                return `<td style="background:${bg};padding:4px 2px;text-align:center;border-bottom:1px solid var(--border);border-left:1px solid var(--border)">${txt}</td>`;
               }).join('')}
             </tr>`;
           }).join('')}
         </tbody>
       </table>
     </div>
-    <div style="display:flex;gap:16px;margin-top:12px;font-size:11px;color:var(--text-muted);font-family:var(--font-data);flex-wrap:wrap">
-      <span><span style="display:inline-block;width:12px;height:12px;background:rgba(46,150,80,.25);margin-right:4px;vertical-align:middle"></span>Executado</span>
-      <span><span style="display:inline-block;width:12px;height:12px;background:rgba(46,150,80,.5);margin-right:4px;vertical-align:middle"></span>Concluído</span>
-      <span><span style="display:inline-block;width:12px;height:12px;background:rgba(74,106,74,.2);margin-right:4px;vertical-align:middle"></span>Planejado</span>
-      <span style="border:1px solid var(--verde);padding:1px 6px;border-radius:2px;color:var(--verde)">S${semanaAtual} = semana atual</span>
+    <div style="display:flex;gap:14px;margin-top:10px;font-size:11px;color:var(--text-muted);font-family:var(--font-data);flex-wrap:wrap;align-items:center">
+      <span><span style="display:inline-block;width:12px;height:12px;background:#ddeee4;border-radius:2px;margin-right:4px;vertical-align:middle"></span>Executado</span>
+      <span><span style="display:inline-block;width:12px;height:12px;background:#c8e8d4;border-radius:2px;margin-right:4px;vertical-align:middle"></span>Concluído</span>
+      <span><span style="display:inline-block;width:12px;height:12px;background:#eaedea;border-radius:2px;margin-right:4px;vertical-align:middle"></span>Planejado</span>
+      <span style="background:var(--verde);color:#fff;padding:1px 8px;border-radius:2px">S${semanaAtual} = semana atual</span>
     </div>`;
 }
 
-// ─── PREVIEW FULLSCREEN ───────────────────────────────────────────────────────
-function abrirPreview(tipo) {
-  const txt = relTextos[tipo] || '';
-  if (!txt) { toast('Gere o relatório primeiro', 'warn'); return; }
-  const titulos = { semanal:'Relatório Semanal — Cliente', interno:'Relatório Interno' };
-  document.getElementById('preview-title').textContent = titulos[tipo] || 'Relatório';
-  document.getElementById('preview-content').textContent = txt;
-  document.getElementById('preview-overlay').style.display = 'flex';
+// ─── PDF — TEMPLATE BERTI ─────────────────────────────────────────────────────
+function abrirPreviewHTML(html, titulo) {
+  const c = obraAtual?.config || {};
+  const dataEmissao = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'long', year:'numeric'});
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head>
+    <meta charset="UTF-8">
+    <title>${esc(titulo)} — Berti Construtora</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Jost:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#fff;color:#111;font-family:'Jost',sans-serif;font-size:13px;line-height:1.65;min-height:100vh}
+    .pdf-header{padding:28px 40px 22px;border-bottom:3px solid #1a2e1a;display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:start}
+    .pdf-logo{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:4px;color:#1a2e1a;line-height:1}
+    .pdf-logo-sub{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:3px;color:#aaa;margin-top:1px;text-transform:uppercase}
+    .pdf-right{text-align:right}
+    .pdf-tipo{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:4px;color:#888;text-transform:uppercase;margin-bottom:10px}
+    .pdf-meta{display:grid;grid-template-columns:1fr 1fr;gap:5px 20px}
+    .pdf-meta-item{text-align:left}
+    .pdf-meta-label{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1.5px;color:#bbb;text-transform:uppercase;display:block;margin-bottom:1px}
+    .pdf-meta-val{font-size:12px;font-weight:600;color:#111}
+    .pdf-body{padding:28px 40px 20px}
+    .pdf-footer{padding:12px 40px;border-top:1px solid #eee;display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:8px;color:#bbb;letter-spacing:.5px;position:fixed;bottom:0;left:0;right:0;background:#fff}
+    @media print{
+      @page{margin:0;size:A4}
+      body{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+      .pdf-footer{position:fixed;bottom:0}
+    }
+    </style>
+  </head><body>
+  <div class="pdf-header">
+    <div>
+      <div class="pdf-logo">BERTI.</div>
+      <div class="pdf-logo-sub">Construtora</div>
+    </div>
+    <div class="pdf-right">
+      <div class="pdf-tipo">R E L A T Ó R I O · ${esc(titulo.toUpperCase())}</div>
+      <div class="pdf-meta">
+        <div class="pdf-meta-item"><span class="pdf-meta-label">Obra</span><span class="pdf-meta-val">${esc(c.obra||'—')}</span></div>
+        <div class="pdf-meta-item"><span class="pdf-meta-label">Cliente</span><span class="pdf-meta-val">${esc(c.cliente||'—')}</span></div>
+        <div class="pdf-meta-item"><span class="pdf-meta-label">Semana de Referência</span><span class="pdf-meta-val">S${semanaAtual} · ${esc(getPeriodoSemana(c.periodo_ini, semanaAtual))}</span></div>
+        <div class="pdf-meta-item"><span class="pdf-meta-label">Data de Emissão</span><span class="pdf-meta-val">${esc(dataEmissao)}</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="pdf-body">${html}</div>
+  <div class="pdf-footer">
+    <span>Berti Construtora LTDA · CNPJ 59.622.624/0001-93 · (41) 9183-6651</span>
+    <span>${esc(c.obra||'')} — SEMANA S${semanaAtual}</span>
+    <span>${esc(dataEmissao)}</span>
+  </div>
+  <script>setTimeout(()=>window.print(),900);<\/script>
+  </body></html>`);
+  w.document.close();
 }
 
-function fecharPreview() {
-  document.getElementById('preview-overlay').style.display = 'none';
-}
-
-function copiarTextoPreview() {
-  const txt = document.getElementById('preview-content').textContent;
-  navigator.clipboard.writeText(txt).then(() => toast('Copiado!', 'success'));
+function imprimirPDF(tipo) {
+  if (tipo === 'semanal') {
+    if (!relTextos.semanal) { toast('Gere o relatório primeiro', 'warn'); return; }
+    abrirPreviewHTML(textoParaPDF(relTextos.semanal), 'Semanal Cliente');
+  } else if (tipo === 'interno') {
+    if (!relTextos.interno) { toast('Gere o relatório interno primeiro', 'warn'); return; }
+    abrirPreviewHTML(textoParaPDF(relTextos.interno), 'Interno');
+  } else if (tipo === 'medicao') {
+    const med = document.getElementById('medicao-output');
+    if (!med?.innerHTML?.trim()) { toast('Carregue os dados primeiro', 'warn'); return; }
+    abrirPreviewHTML(med.innerHTML, 'Boletim de Medição');
+  } else if (tipo === 'gantt') {
+    const gantt = document.getElementById('gantt-output');
+    if (!gantt?.innerHTML?.trim()) { toast('Carregue os dados primeiro', 'warn'); return; }
+    abrirPreviewHTML(gantt.innerHTML, 'Cronograma Gantt');
+  }
 }
 
 function copiarTexto(tipo) {
   const txt = relTextos[tipo] || '';
-  if (!txt) { toast('Gere o relatório primeiro', 'warn'); return; }
-  navigator.clipboard.writeText(txt).then(() => toast('Copiado para a área de transferência', 'success'));
+  if (!txt && tipo !== 'medicao') { toast('Gere o relatório primeiro', 'warn'); return; }
+  const copyTxt = tipo === 'medicao' ? relTextos.medicao : txt;
+  navigator.clipboard.writeText(copyTxt||'').then(() => toast('Copiado!', 'success'));
 }
 
-function imprimirPDF(tipo) {
-  if (tipo === 'medicao') {
-    const med = document.getElementById('medicao-output');
-    if (!med?.innerHTML) { toast('Carregue os dados primeiro', 'warn'); return; }
-    abrirPreviewHTML(med.innerHTML, 'Boletim de Medição');
-  } else if (tipo === 'gantt') {
-    const gantt = document.getElementById('gantt-output');
-    if (!gantt?.innerHTML) { toast('Carregue os dados primeiro', 'warn'); return; }
-    abrirPreviewHTML(gantt.innerHTML, 'Cronograma Gantt');
-  } else {
-    const txt = relTextos[tipo] || '';
-    if (!txt) { toast('Gere o relatório primeiro', 'warn'); return; }
-    abrirPreviewHTML(`<pre style="white-space:pre-wrap;font-family:Georgia,serif;line-height:1.8">${esc(txt)}</pre>`, tipo);
-  }
-}
-
-function abrirPreviewHTML(html, titulo) {
-  const w = window.open('', '_blank');
-  w.document.write(`<!DOCTYPE html><html><head>
-    <meta charset="UTF-8">
-    <title>${titulo} — Berti Construtora</title>
-    <style>body{font-family:'Jost',sans-serif;font-size:14px;line-height:1.7;padding:40px;max-width:800px;margin:0 auto;color:#111}
-    @media print{@page{margin:2cm}}</style>
-  </head><body>${html}<script>window.print();<\/script></body></html>`);
-  w.document.close();
+// ─── TOP BAR ACTIONS ──────────────────────────────────────────────────────────
+function copiarAtivo() { copiarTexto(painelAtivo === 'semanal' ? 'semanal' : painelAtivo === 'interno' ? 'interno' : 'medicao'); }
+function pdfAtivo()    { imprimirPDF(painelAtivo); }
+function enviarWA() {
+  const txt = relTextos.semanal || relTextos.medicao || '';
+  if (!txt) { toast('Gere um relatório primeiro', 'warn'); return; }
+  const resumo = txt.substring(0, 300).replace(/\n+/g,' ');
+  const msg = encodeURIComponent(`*${obraAtual?.config?.obra||''}* — Semana S${semanaAtual}\n\n${resumo}...\n\n_Berti Construtora_`);
+  window.open(`https://wa.me/?text=${msg}`, '_blank');
 }
 
 // ─── TABS ─────────────────────────────────────────────────────────────────────
-function showTab(name) {
+function showTab(name, btn) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(`panel-${name}`).classList.add('active');
-  event.currentTarget.classList.add('active');
+  if (btn) btn.classList.add('active');
+  painelAtivo = name;
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
