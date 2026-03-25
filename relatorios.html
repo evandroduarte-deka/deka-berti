@@ -166,6 +166,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 .empty-state{text-align:center;padding:48px 20px;color:var(--text-muted);font-family:var(--font-data);font-size:12px}
+
+/* ─── CARDS DE MODELO ────────────────────────────────────────────────────────── */
+.modelo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px;padding:14px 0 12px}
+.modelo-card{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:13px 15px;cursor:pointer;transition:border .15s,background .15s;display:flex;flex-direction:column;gap:4px;user-select:none}
+.modelo-card:hover{border-color:var(--verde);background:var(--verde-glow)}
+.modelo-card.selected{border-color:var(--verde);background:var(--verde-glow);box-shadow:0 0 0 1px var(--verde)}
+.modelo-card-icon{font-size:18px;line-height:1;margin-bottom:2px}
+.modelo-card-name{font-family:var(--font-display);font-size:13px;letter-spacing:1px;color:var(--text)}
+.modelo-card.selected .modelo-card-name{color:var(--verde)}
+.modelo-card-desc{font-family:var(--font-data);font-size:10px;color:var(--text-muted);letter-spacing:.3px;line-height:1.4}
 </style>
 </head>
 <body>
@@ -232,9 +242,25 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
   <div class="section-header">
     <div class="section-title">Relatório Semanal — Cliente</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn btn-verde" id="btn-gerar-semanal" onclick="gerarRelatorioSemanal()">Gerar Relatório</button>
       <button class="btn btn-ghost btn-sm" onclick="copiarTexto('semanal')" id="btn-copy-semanal" disabled>Copiar</button>
       <button class="btn btn-ouro btn-sm" onclick="imprimirPDF('semanal')" id="btn-pdf-semanal" disabled>↓ PDF</button>
+    </div>
+  </div>
+  <div class="modelo-grid">
+    <div class="modelo-card" data-aba="semanal" data-modelo="padrao" onclick="selecionarModelo('semanal','padrao')">
+      <div class="modelo-card-icon">📋</div>
+      <div class="modelo-card-name">Padrão Berti</div>
+      <div class="modelo-card-desc">Cabeçalho + KPI + resumo + serviços + fotos</div>
+    </div>
+    <div class="modelo-card" data-aba="semanal" data-modelo="compacto" onclick="selecionarModelo('semanal','compacto')">
+      <div class="modelo-card-icon">📄</div>
+      <div class="modelo-card-name">Compacto</div>
+      <div class="modelo-card-desc">Resumo + tabela de serviços, sem fotos</div>
+    </div>
+    <div class="modelo-card" data-aba="semanal" data-modelo="executivo" onclick="selecionarModelo('semanal','executivo')">
+      <div class="modelo-card-icon">⚡</div>
+      <div class="modelo-card-name">Executivo</div>
+      <div class="modelo-card-desc">Só KPIs + narrativa, 1 página</div>
     </div>
   </div>
   <div class="rel-wrap">
@@ -253,8 +279,19 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
   <div class="section-header">
     <div class="section-title">Relatório Interno</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn btn-verde" id="btn-gerar-interno" onclick="gerarRelatorioInterno()">Gerar Relatório</button>
       <button class="btn btn-ghost btn-sm" onclick="copiarTexto('interno')" id="btn-copy-interno" disabled>Copiar</button>
+    </div>
+  </div>
+  <div class="modelo-grid">
+    <div class="modelo-card" data-aba="interno" data-modelo="completo" onclick="selecionarModelo('interno','completo')">
+      <div class="modelo-card-icon">📊</div>
+      <div class="modelo-card-name">Completo</div>
+      <div class="modelo-card-desc">4 seções com análise IA de desvios e riscos</div>
+    </div>
+    <div class="modelo-card" data-aba="interno" data-modelo="flash" onclick="selecionarModelo('interno','flash')">
+      <div class="modelo-card-icon">⚡</div>
+      <div class="modelo-card-name">Flash</div>
+      <div class="modelo-card-desc">Só performance + próxima semana, sem IA</div>
     </div>
   </div>
   <div class="rel-wrap">
@@ -277,6 +314,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
       <button class="btn btn-ouro btn-sm" onclick="imprimirPDF('medicao')" id="btn-pdf-med" disabled>↓ PDF</button>
     </div>
   </div>
+  <div class="modelo-grid">
+    <div class="modelo-card" data-aba="medicao" data-modelo="aceite" onclick="selecionarModelo('medicao','aceite')">
+      <div class="modelo-card-icon">✅</div>
+      <div class="modelo-card-name">Com Aceite Digital</div>
+      <div class="modelo-card-desc">Boletim completo com campo de aprovação</div>
+    </div>
+    <div class="modelo-card" data-aba="medicao" data-modelo="simples" onclick="selecionarModelo('medicao','simples')">
+      <div class="modelo-card-icon">📑</div>
+      <div class="modelo-card-name">Simples</div>
+      <div class="modelo-card-desc">Tabela de serviços medidos + valor total</div>
+    </div>
+  </div>
   <div id="medicao-output"></div>
 </div>
 
@@ -286,10 +335,51 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
     <div class="section-title">Cronograma / Gantt</div>
     <button class="btn btn-ouro btn-sm" onclick="imprimirPDF('gantt')">↓ Exportar PDF</button>
   </div>
+  <div class="modelo-grid">
+    <div class="modelo-card" data-aba="gantt" data-modelo="2semanas" onclick="selecionarModelo('gantt','2semanas')">
+      <div class="modelo-card-icon">📅</div>
+      <div class="modelo-card-name">Próximas 2 Semanas</div>
+      <div class="modelo-card-desc">Semana atual e as próximas 2</div>
+    </div>
+    <div class="modelo-card" data-aba="gantt" data-modelo="mes" onclick="selecionarModelo('gantt','mes')">
+      <div class="modelo-card-icon">🗓</div>
+      <div class="modelo-card-name">Este Mês</div>
+      <div class="modelo-card-desc">4 semanas a partir da semana atual</div>
+    </div>
+    <div class="modelo-card" data-aba="gantt" data-modelo="completo" onclick="selecionarModelo('gantt','completo')">
+      <div class="modelo-card-icon">📊</div>
+      <div class="modelo-card-name">Período Completo</div>
+      <div class="modelo-card-desc">Todas as semanas da obra</div>
+    </div>
+  </div>
   <div id="gantt-output"></div>
 </div>
 
 <script>
+// ─── SELEÇÃO DE MODELO ────────────────────────────────────────────────────────
+const _modeloDefaults = { semanal: 'padrao', interno: 'completo', medicao: 'aceite', gantt: '2semanas' };
+const modeloSelecionado = Object.assign({}, _modeloDefaults, JSON.parse(localStorage.getItem('rel_modelos') || '{}'));
+
+function selecionarModelo(aba, id) {
+  modeloSelecionado[aba] = id;
+  localStorage.setItem('rel_modelos', JSON.stringify(modeloSelecionado));
+  document.querySelectorAll(`[data-aba="${aba}"]`).forEach(c => {
+    c.classList.toggle('selected', c.dataset.modelo === id);
+  });
+  if (aba === 'semanal')  gerarRelatorioSemanal();
+  else if (aba === 'interno')  gerarRelatorioInterno();
+  else if (aba === 'medicao')  renderMedicao();
+  else if (aba === 'gantt')    renderGantt();
+}
+
+function initModeloCards() {
+  Object.keys(modeloSelecionado).forEach(aba => {
+    document.querySelectorAll(`[data-aba="${aba}"]`).forEach(c => {
+      c.classList.toggle('selected', c.dataset.modelo === modeloSelecionado[aba]);
+    });
+  });
+}
+
 // ─── DEKA_CORE ────────────────────────────────────────────────────────────────
 function esc(str) {
   return String(str ?? '')
@@ -550,6 +640,7 @@ function confirmarSelecao() {
   renderResumoObra();
   renderMedicao();
   renderGantt();
+  initModeloCards();
   toast(`Obra carregada — Semana S${semanaAtual}`, 'success');
 }
 
@@ -735,7 +826,7 @@ async function gerarRelatorioSemanal() {
   const el  = document.getElementById('rel-semanal-output');
   const btn = document.getElementById('btn-gerar-semanal');
   const stat = document.getElementById('rel-semanal-status');
-  btn.disabled = true; btn.textContent = 'Gerando...';
+  if (btn) { btn.disabled = true; btn.textContent = 'Gerando...'; }
   el.className = 'rel-output loading';
   el.innerHTML = '<div style="text-align:center;padding:40px;font-family:var(--font-data);font-size:12px;color:var(--text-muted)">Gerando relatório...</div>';
   stat.textContent = 'gerando';
@@ -861,33 +952,64 @@ async function gerarRelatorioSemanal() {
       </div>`;
     }
 
-    const html = `<div style="background:#fff;font-family:'Jost',sans-serif;font-size:13px;color:#111;max-width:820px;margin:0 auto;padding:0">
+    const modelo = modeloSelecionado.semanal || 'padrao';
 
-      <!-- CABEÇALHO -->
-      <div style="border-bottom:3px solid #1a2e1a;padding-bottom:20px;margin-bottom:20px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
-          <div>
-            <div style="font-family:var(--font-display);font-size:34px;letter-spacing:4px;color:#1a2e1a;line-height:1">BERTI.</div>
-            <div style="font-family:var(--font-data);font-size:8px;letter-spacing:3px;color:#9ca3af;margin-top:2px">CONSTRUTORA</div>
+    // ── Bloco cabeçalho — igual para Padrão e Compacto, simplificado para Executivo ──
+    const cabecalhoHTML = modelo === 'executivo'
+      ? `<div style="border-bottom:3px solid #1a2e1a;padding-bottom:16px;margin-bottom:20px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+            <div>
+              <div style="font-family:var(--font-display);font-size:34px;letter-spacing:4px;color:#1a2e1a;line-height:1">BERTI.</div>
+              <div style="font-family:var(--font-data);font-size:8px;letter-spacing:3px;color:#9ca3af;margin-top:2px">CONSTRUTORA</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-family:var(--font-data);font-size:8px;letter-spacing:2px;color:#9ca3af;text-transform:uppercase;margin-bottom:4px">Executivo — Semana S${semanaAtual}</div>
+              <div style="font-size:11px;color:#6b7280">${esc(c.cliente||'—')} · Emissão: ${esc(dataEmissao)}</div>
+            </div>
           </div>
-          <div style="text-align:right">
-            <div style="font-family:var(--font-data);font-size:8px;letter-spacing:2px;color:#9ca3af;text-transform:uppercase;margin-bottom:4px">Relatório de Acompanhamento de Obra</div>
-            <div style="font-size:11px;color:#6b7280">Emissão: ${esc(dataEmissao)} · Rev. A</div>
+          <div style="font-family:var(--font-display);font-size:22px;letter-spacing:2px;color:#1a2e1a">${esc((c.obra||'').toUpperCase())}</div>
+        </div>`
+      : `<div style="border-bottom:3px solid #1a2e1a;padding-bottom:20px;margin-bottom:20px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+            <div>
+              <div style="font-family:var(--font-display);font-size:34px;letter-spacing:4px;color:#1a2e1a;line-height:1">BERTI.</div>
+              <div style="font-family:var(--font-data);font-size:8px;letter-spacing:3px;color:#9ca3af;margin-top:2px">CONSTRUTORA</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-family:var(--font-data);font-size:8px;letter-spacing:2px;color:#9ca3af;text-transform:uppercase;margin-bottom:4px">Relatório de Acompanhamento de Obra</div>
+              <div style="font-size:11px;color:#6b7280">Emissão: ${esc(dataEmissao)} · Rev. A</div>
+            </div>
           </div>
-        </div>
-        <div style="font-family:var(--font-display);font-size:24px;letter-spacing:2px;color:#1a2e1a;margin-bottom:3px">${esc((c.obra||'').toUpperCase())}</div>
-        <div style="font-size:11px;color:#6b7280;margin-bottom:16px">${esc(c.endereco_obra||c.endereco||c.local||'—')}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 28px">
-          ${metaCell('Contratante', esc(c.cliente||'—'))}
-          ${metaCell('Semana de Referência', `S${semanaAtual} · ${esc(periodo)}`)}
-          ${metaCell('Período da Obra', `${fmtDate(c.periodo_ini)} a ${fmtDate(c.periodo_fim)}`)}
-          ${metaCell('Contratada', 'Berti Construtora LTDA')}
-          ${metaCell('Valor do Contrato', fmtMoney(c.valor_contrato))}
-          ${metaCell('Valor Pago', fmtMoney(totalPago))}
-          ${metaCell('Saldo em Aberto', fmtMoney(saldo))}
-          ${metaCell('Próx. Medição', esc(c.prox_medicao ? fmtDate(c.prox_medicao) : '—'))}
-        </div>
-      </div>
+          <div style="font-family:var(--font-display);font-size:24px;letter-spacing:2px;color:#1a2e1a;margin-bottom:3px">${esc((c.obra||'').toUpperCase())}</div>
+          <div style="font-size:11px;color:#6b7280;margin-bottom:16px">${esc(c.endereco_obra||c.endereco||c.local||'—')}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 28px">
+            ${metaCell('Contratante', esc(c.cliente||'—'))}
+            ${metaCell('Semana de Referência', `S${semanaAtual} · ${esc(periodo)}`)}
+            ${metaCell('Período da Obra', `${fmtDate(c.periodo_ini)} a ${fmtDate(c.periodo_fim)}`)}
+            ${metaCell('Contratada', 'Berti Construtora LTDA')}
+            ${metaCell('Valor do Contrato', fmtMoney(c.valor_contrato))}
+            ${metaCell('Valor Pago', fmtMoney(totalPago))}
+            ${metaCell('Saldo em Aberto', fmtMoney(saldo))}
+            ${metaCell('Próx. Medição', esc(c.prox_medicao ? fmtDate(c.prox_medicao) : '—'))}
+          </div>
+        </div>`;
+
+    // ── Tabela de serviços (Padrão + Compacto) ────────────────────────────────
+    const sec02HTML = `<div style="margin-bottom:28px">
+        ${secHead('02', 'Serviços Executados')}
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr style="background:#1a2e1a">
+            <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.7);text-align:left;font-weight:500">SERVIÇO</th>
+            <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.7);text-align:left;font-weight:500">LOCAL</th>
+            <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.7);text-align:left;font-weight:500">STATUS</th>
+            <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.7);text-align:left;font-weight:500;min-width:140px">PROGRESSO</th>
+          </tr></thead>
+          <tbody>${tabelaRows}</tbody>
+        </table>
+      </div>`;
+
+    const html = `<div style="background:#fff;font-family:'Jost',sans-serif;font-size:13px;color:#111;max-width:820px;margin:0 auto;padding:0">
+      ${cabecalhoHTML}
 
       <!-- KPI STRIP -->
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px">
@@ -903,25 +1025,13 @@ async function gerarRelatorioSemanal() {
         <p style="font-size:13px;line-height:1.75;color:#374151">${esc(narrativa)}</p>
       </div>
 
-      <!-- SEÇÃO 02 — SERVIÇOS EXECUTADOS (dados) -->
-      <div style="margin-bottom:28px">
-        ${secHead('02', 'Serviços Executados')}
-        <table style="width:100%;border-collapse:collapse">
-          <thead><tr style="background:#1a2e1a">
-            <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.7);text-align:left;font-weight:500">SERVIÇO</th>
-            <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.7);text-align:left;font-weight:500">LOCAL</th>
-            <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.7);text-align:left;font-weight:500">STATUS</th>
-            <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.7);text-align:left;font-weight:500;min-width:140px">PROGRESSO</th>
-          </tr></thead>
-          <tbody>${tabelaRows}</tbody>
-        </table>
-      </div>
+      ${modelo !== 'executivo' ? sec02HTML : ''}
 
-      <!-- SEÇÃO 03 — REGISTRO FOTOGRÁFICO (dados) -->
+      ${modelo === 'padrao' ? `<!-- SEÇÃO 03 — REGISTRO FOTOGRÁFICO -->
       <div style="margin-bottom:40px">
         ${secHead('03', 'Registro Fotográfico')}
         ${fotosHTML}
-      </div>
+      </div>` : ''}
 
       <!-- RODAPÉ -->
       <div style="border-top:1px solid #e5e7eb;padding-top:10px;display:flex;justify-content:space-between;font-family:var(--font-data);font-size:8px;color:#9ca3af;letter-spacing:.5px">
@@ -944,7 +1054,7 @@ async function gerarRelatorioSemanal() {
     stat.textContent = 'erro';
     toast('Erro ao gerar relatório', 'error');
   } finally {
-    btn.disabled = false; btn.textContent = 'Gerar Relatório';
+    if (btn) { btn.disabled = false; btn.textContent = 'Gerar Relatório'; }
   }
 }
 
@@ -954,7 +1064,7 @@ async function gerarRelatorioInterno() {
   const el = document.getElementById('rel-interno-output');
   const btn = document.getElementById('btn-gerar-interno');
   const stat = document.getElementById('rel-interno-status');
-  btn.disabled = true; btn.textContent = 'Gerando...';
+  if (btn) { btn.disabled = true; btn.textContent = 'Gerando...'; }
   el.className = 'rel-output loading';
   el.innerHTML = '<div style="text-align:center;padding:40px;font-family:var(--font-data);font-size:12px;color:var(--text-muted)">Aguardando agente...</div>';
   stat.textContent = 'gerando';
@@ -995,6 +1105,58 @@ async function gerarRelatorioInterno() {
     const servsProxSemana = servicos.filter(s =>
       (s.semana_prevista_ini <= semanaAtual + 1) && (s.semana_prevista_fim >= semanaAtual + 1) && (s.pct_atual||0) < 100
     );
+
+    const modeloInt = modeloSelecionado.interno || 'completo';
+
+    // ── FLASH: sem IA — só performance + próxima semana ─────────────────────
+    if (modeloInt === 'flash') {
+      function secHF(num, titulo) {
+        return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="font-family:var(--font-data);font-size:8px;letter-spacing:2px;color:#9ca3af">${num}</div>
+          <div style="height:1px;flex:1;background:#e5e7eb"></div>
+          <div style="font-family:var(--font-display);font-size:14px;letter-spacing:2px;color:#1a2e1a">${titulo.toUpperCase()}</div>
+          <div style="height:1px;flex:1;background:#e5e7eb"></div>
+        </div>`;
+      }
+      const flashPerfRows = servsComDelta.filter(s => s.delta > 0 || s.pct_atual > 0).map(s => {
+        const badge = s.abaixo
+          ? `<span style="background:#fee2e2;color:#dc2626;border-radius:3px;padding:1px 5px;font-size:9px;font-family:var(--font-data)">ABAIXO</span>`
+          : s.delta > 0
+            ? `<span style="background:#dcfce7;color:#16a34a;border-radius:3px;padding:1px 5px;font-size:9px;font-family:var(--font-data)">+${s.delta}%</span>`
+            : `<span style="background:#f3f4f6;color:#6b7280;border-radius:3px;padding:1px 5px;font-size:9px;font-family:var(--font-data)">—</span>`;
+        return `<tr style="border-bottom:1px solid #f3f4f6">
+          <td style="padding:6px 8px;font-size:11px;color:#111">${esc(s.cod||'')} ${esc(s.descricao||'')}</td>
+          <td style="padding:6px 8px;font-size:11px;color:#6b7280;text-align:center">${s.pct_ant}%</td>
+          <td style="padding:6px 8px;font-size:11px;font-weight:600;text-align:center">${s.pct_atual||0}%</td>
+          <td style="padding:6px 8px;text-align:center">${badge}</td>
+        </tr>`;
+      }).join('') || `<tr><td colspan="4" style="padding:10px 8px;text-align:center;color:#9ca3af;font-size:11px">Sem dados</td></tr>`;
+      const flashProxRows = servsProxSemana.length
+        ? servsProxSemana.map(s => `<li style="font-size:11px;color:#374151;padding:3px 0">${esc(s.descricao)} <span style="color:#9ca3af">(${s.pct_atual||0}%)</span></li>`).join('')
+        : `<li style="font-size:11px;color:#9ca3af;padding:3px 0">Sem serviços planejados para S${semanaAtual+1}</li>`;
+      const flashHTML = `<div style="background:#fff;font-family:'Jost',sans-serif;font-size:13px;color:#111;max-width:820px;margin:0 auto;padding:0">
+        <div style="border-bottom:2px solid #1a2e1a;padding-bottom:12px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center">
+          <div><div style="font-family:var(--font-display);font-size:28px;letter-spacing:4px;color:#1a2e1a">BERTI.</div><div style="font-family:var(--font-data);font-size:8px;letter-spacing:3px;color:#9ca3af">FLASH INTERNO · S${semanaAtual}</div></div>
+          <div style="text-align:right"><div style="font-size:12px;font-weight:600;color:#111">${esc((c.obra||'').toUpperCase())}</div><div style="font-size:11px;color:#6b7280">${dataEmissao} · ${esc(c.cliente||'—')}</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;text-align:center;border-top:3px solid #1a2e1a"><div style="font-family:var(--font-display);font-size:24px;color:#1a2e1a">${pctAtual}%</div><div style="font-family:var(--font-data);font-size:8px;color:#9ca3af;text-transform:uppercase;margin-top:4px">Progresso</div></div>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;text-align:center;border-top:3px solid ${delta>=0?'#16a34a':'#dc2626'}"><div style="font-family:var(--font-display);font-size:24px;color:${delta>=0?'#16a34a':'#dc2626'}">${delta>=0?'+':''}${delta}pp</div><div style="font-family:var(--font-data);font-size:8px;color:#9ca3af;text-transform:uppercase;margin-top:4px">Delta Semana</div></div>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;text-align:center;border-top:3px solid ${pendsAbertas>0?'#dc2626':'#16a34a'}"><div style="font-family:var(--font-display);font-size:24px;color:${pendsAbertas>0?'#dc2626':'#16a34a'}">${pendsAbertas}</div><div style="font-family:var(--font-data);font-size:8px;color:#9ca3af;text-transform:uppercase;margin-top:4px">Pendências</div></div>
+        </div>
+        <div style="margin-bottom:20px">${secHF('01','Performance')}<table style="width:100%;border-collapse:collapse"><thead><tr style="background:#1a2e1a"><th style="padding:7px 8px;font-family:var(--font-data);font-size:9px;color:rgba(255,255,255,0.7);text-align:left;font-weight:500">SERVIÇO</th><th style="padding:7px 8px;font-family:var(--font-data);font-size:9px;color:rgba(255,255,255,0.7);text-align:center;font-weight:500">ANT</th><th style="padding:7px 8px;font-family:var(--font-data);font-size:9px;color:rgba(255,255,255,0.7);text-align:center;font-weight:500">ATUAL</th><th style="padding:7px 8px;font-family:var(--font-data);font-size:9px;color:rgba(255,255,255,0.7);text-align:center;font-weight:500">Δ</th></tr></thead><tbody>${flashPerfRows}</tbody></table></div>
+        <div style="margin-bottom:20px">${secHF('02','Próxima Semana')}<ul style="margin:0;padding-left:16px">${flashProxRows}</ul></div>
+        <div style="border-top:1px solid #e5e7eb;padding-top:8px;font-family:var(--font-data);font-size:8px;color:#9ca3af">Berti Construtora LTDA · USO INTERNO · ${esc(c.obra||'')} · S${semanaAtual} · ${dataEmissao}</div>
+      </div>`;
+      relTextos.interno = flashHTML;
+      el.className = 'rel-output';
+      el.innerHTML = flashHTML;
+      stat.textContent = `gerado · ${new Date().toLocaleTimeString('pt-BR')}`;
+      const bCopy = document.getElementById('btn-copy-interno'); if (bCopy) bCopy.disabled = false;
+      toast('Flash gerado', 'success');
+      if (btn) { btn.disabled = false; btn.textContent = 'Gerar Relatório'; }
+      return;
+    }
 
     // IA — apenas análise de desvios, riscos e recomendações (500 tokens)
     const sysAnalise = `Você é o analista de obra da Berti Construtora.
@@ -1159,7 +1321,7 @@ REGRAS ABSOLUTAS:
     stat.textContent = 'erro';
     toast('Erro ao gerar relatório', 'error');
   } finally {
-    btn.disabled = false; btn.textContent = 'Gerar Relatório';
+    if (btn) { btn.disabled = false; btn.textContent = 'Gerar Relatório'; }
   }
 }
 
@@ -1273,6 +1435,40 @@ function renderMedicao() {
 
   document.getElementById('btn-copy-med').disabled = false;
   document.getElementById('btn-pdf-med').disabled = false;
+
+  // ── Modelo Simples ─────────────────────────────────────────────────────────
+  if (modeloSelecionado.medicao === 'simples') {
+    const simplesRows = rows.map(r => `
+      <tr style="border-bottom:1px solid #f3f4f6">
+        <td style="padding:8px 10px;font-size:12px;color:#111">${esc(r.s.descricao||r.s.cod||'')}</td>
+        <td style="padding:8px 10px;font-family:var(--font-data);font-size:11px;text-align:center;color:#6b7280">${r.pctAnt}% → ${r.s.pct_atual||0}%</td>
+        <td style="padding:8px 10px;font-family:var(--font-data);font-size:12px;font-weight:700;text-align:right;color:#1a2e1a">${fmtMoney(r.valSemana)}</td>
+      </tr>`).join('');
+    el.innerHTML = `<div style="background:#fff;border:1px solid var(--border);border-radius:6px;overflow:hidden">
+      <div style="background:#1a2e1a;padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
+        <div style="font-family:var(--font-display);font-size:16px;letter-spacing:2px;color:#fff">BOLETIM SIMPLES · S${semanaAtual}</div>
+        <div style="font-family:var(--font-data);font-size:10px;color:rgba(255,255,255,0.6)">${esc(c.obra||'')} · ${esc(c.cliente||'')}</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="background:#f8fafc">
+          <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:#9ca3af;text-align:left;font-weight:500">SERVIÇO</th>
+          <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:#9ca3af;text-align:center;font-weight:500">AVANÇO</th>
+          <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:#9ca3af;text-align:right;font-weight:500">VALOR MEDIDO</th>
+        </tr></thead>
+        <tbody>${simplesRows}</tbody>
+        <tfoot><tr style="background:#f0f7f2;border-top:2px solid #1a2e1a">
+          <td colspan="2" style="padding:10px;font-family:var(--font-data);font-size:11px;font-weight:700;letter-spacing:1px;color:#1a2e1a">TOTAL SEMANA S${semanaAtual}</td>
+          <td style="padding:10px;font-family:var(--font-data);font-size:13px;font-weight:700;text-align:right;color:#1a2e1a">${fmtMoney(totalSemana)}</td>
+        </tr></tfoot>
+      </table>
+      <div style="padding:10px 14px;font-family:var(--font-data);font-size:10px;color:#9ca3af;display:flex;gap:20px">
+        <span>Acumulado: <strong style="color:#374151">${fmtMoney(totalAcumulado)}</strong></span>
+        <span>Contrato: <strong style="color:#374151">${fmtMoney(totalContrato)}</strong></span>
+        <span>Saldo: <strong style="color:#374151">${fmtMoney(totalContrato - totalAcumulado)}</strong></span>
+      </div>
+    </div>`;
+    return;
+  }
   document.getElementById('btn-top-pdf').disabled = false;
 
   el.innerHTML = `
@@ -1334,7 +1530,12 @@ function renderGantt() {
   }
 
   const semanaMax = Math.max(8, ...crono.map(c => c.semana_prevista_fim || 1), semanaAtual + 2);
-  const semanas = Array.from({length: semanaMax}, (_, i) => i + 1);
+  const ganttModelo = modeloSelecionado.gantt || '2semanas';
+  const semanaIni = ganttModelo === 'completo' ? 1 : Math.max(1, semanaAtual - 1);
+  const semanaFim = ganttModelo === '2semanas' ? semanaAtual + 2
+                  : ganttModelo === 'mes'      ? semanaAtual + 3
+                  : semanaMax;
+  const semanas = Array.from({length: semanaFim - semanaIni + 1}, (_, i) => semanaIni + i);
 
   el.innerHTML = `
     <div style="overflow-x:auto;background:#fff;border:1px solid var(--border);border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.04)">
@@ -1514,6 +1715,7 @@ function showTab(name, btn) {
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 (function init() {
   carregarObras();
+  initModeloCards();
 })();
 </script>
 </body>
