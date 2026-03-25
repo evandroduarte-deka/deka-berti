@@ -747,7 +747,29 @@ async function gerarRelatorioSemanal() {
     const snapAnt = obraAtual?.snapshots?.[`S${semanaAtual - 1}`];
     const servicos = snap?.servicos || obraAtual?.servicos || [];
     const servAnt  = snapAnt?.servicos || [];
-    const fotos    = obraAtual?.fotos || [];
+    // Filtrar fotos pelo intervalo de datas da semana selecionada
+    // Fotos não têm campo "semana" — filtrar pelo campo "data" (ISO YYYY-MM-DD)
+    const todasFotos = obraAtual?.fotos || [];
+    const fotos = (() => {
+      if (!c.periodo_ini) return todasFotos;
+      const iniObra = new Date(c.periodo_ini + 'T00:00:00');
+      const semIni  = new Date(iniObra.getTime() + (semanaAtual - 1) * 7 * 86400000);
+      const semFim  = new Date(semIni.getTime() + 7 * 86400000); // exclusive
+      return todasFotos.filter(f => {
+        if (!f.data) return false;
+        // Suporta tanto YYYY-MM-DD quanto DD/MM/YYYY
+        let d;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(f.data)) {
+          d = new Date(f.data + 'T00:00:00');
+        } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(f.data)) {
+          const [dd, mm, yyyy] = f.data.split('/');
+          d = new Date(`${yyyy}-${mm}-${dd}T00:00:00`);
+        } else {
+          return false;
+        }
+        return d >= semIni && d < semFim;
+      });
+    })();
     const pagamentos = obraAtual?.pagamentos || [];
 
     const pctAtual   = calcPctGeral(servicos);
@@ -804,12 +826,19 @@ async function gerarRelatorioSemanal() {
 
     // ── SEÇÃO 03: fotos — JS puro, sem IA ────────────────────────────────────
     const fotosHTML = fotos.length
-      ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">${fotos.map(f =>
-          `<div><img src="${esc(f.url||f.src||'')}" alt="${esc(f.descricao||'')}"
+      ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">${fotos.map(f => {
+          // Formatar data suportando YYYY-MM-DD e DD/MM/YYYY
+          let dataFmt = '—';
+          if (f.data) {
+            if (/^\d{4}-\d{2}-\d{2}$/.test(f.data)) dataFmt = fmtDate(f.data);
+            else if (/^\d{2}\/\d{2}\/\d{4}$/.test(f.data)) dataFmt = f.data;
+          }
+          return `<div><img src="${esc(f.url||f.src||'')}" alt="${esc(f.legenda||f.descricao||'')}"
             style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:4px;border:1px solid #e5e7eb">
            <div style="font-size:10px;color:#6b7280;font-family:var(--font-data);margin-top:4px;display:flex;justify-content:space-between">
-             <span>${esc(f.descricao||f.ambiente||'')}</span><span>${f.data ? fmtDate(f.data) : '—'}</span>
-           </div></div>`).join('')}</div>`
+             <span>${esc(f.legenda||f.ambiente||'')}</span><span>${dataFmt}</span>
+           </div></div>`;
+        }).join('')}</div>`
       : '<div style="padding:24px;text-align:center;color:#9ca3af;font-size:12px;border:1px dashed #e5e7eb;border-radius:4px">Nenhuma foto registrada para esta semana</div>';
 
     // ── MONTAR DOCUMENTO COMPLETO ─────────────────────────────────────────────
