@@ -212,6 +212,35 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 /* BLOCKED OVERLAY */
 .blocked-badge{display:inline-flex;align-items:center;gap:4px;background:var(--danger-dim);border:1px solid var(--danger);color:var(--danger);border-radius:3px;padding:2px 8px;font-size:11px;font-family:var(--font-data)}
 
+/* ═══════ HOME SCREEN ═══════ */
+#screen-home{min-height:100vh;background:#F7F5F1;display:flex;flex-direction:column}
+#home-header{background:#0D2016;padding:20px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.home-brand{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:#fff;letter-spacing:1px}
+.home-subtitle{font-family:var(--font-data);font-size:12px;color:rgba(255,255,255,.55);margin-top:2px;letter-spacing:2px;text-transform:uppercase}
+.home-header-actions{display:flex;gap:8px;flex-wrap:wrap}
+.home-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:6px;border:none;cursor:pointer;font-family:var(--font-body);font-size:13px;font-weight:500;transition:all .15s}
+.home-btn-primary{background:#2E9650;color:#fff}
+.home-btn-primary:hover{background:#237a40}
+.home-btn-ghost{background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.2)}
+.home-btn-ghost:hover{background:rgba(255,255,255,.2)}
+#home-content{flex:1;max-width:800px;width:100%;margin:0 auto;padding:28px 20px}
+.home-section-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#0D2016;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;opacity:.6}
+.home-obra-card{background:#fff;border:1px solid #E2DDD6;border-radius:10px;padding:18px 20px;margin-bottom:10px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:all .15s;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.home-obra-card:hover{border-color:#2E9650;box-shadow:0 2px 12px rgba(46,150,80,.12);transform:translateY(-1px)}
+.home-obra-info{flex:1;min-width:0}
+.home-obra-nome{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:#0D2016;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-obra-meta{font-size:13px;color:#6B7D6B;margin-bottom:2px}
+.home-obra-sub{font-family:var(--font-data);font-size:11px;color:#9aaa9a}
+.home-obra-pct{font-family:'Syne',sans-serif;font-size:26px;font-weight:700;color:#2E9650;flex-shrink:0;min-width:60px;text-align:right}
+.home-obra-pct.home-pct-warn{color:#b87700}
+.home-obra-pct.home-pct-muted{color:#9aaa9a}
+.home-loading{font-family:var(--font-data);font-size:12px;color:#9aaa9a;padding:28px;text-align:center}
+.home-empty{text-align:center;padding:48px 20px;color:#9aaa9a;font-family:var(--font-data);font-size:12px}
+.home-empty-icon{font-size:36px;margin-bottom:10px;opacity:.4}
+#home-footer{padding:16px 28px;text-align:center;font-family:var(--font-data);font-size:11px;color:#9aaa9a;border-top:1px solid #E2DDD6;background:#F7F5F1}
+.home-back-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:transparent;border:1px solid rgba(255,255,255,.3);border-radius:4px;color:rgba(255,255,255,.7);font-size:12px;font-family:var(--font-data);cursor:pointer}
+.home-back-btn:hover{background:rgba(255,255,255,.1)}
+
 /* COLLAPSE SECTION */
 .sec-toggle{background:none;border:none;cursor:pointer;font-size:13px;color:var(--text-muted);padding:0 4px;line-height:1;transition:transform .2s;display:inline-block;transform:rotate(0deg)}
 .sec-toggle.collapsed{transform:rotate(-90deg)}
@@ -242,8 +271,36 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 </head>
 <body>
 
+<!-- ═══════════════════ HOME — SELEÇÃO DE OBRA ═══════════════════ -->
+<div id="screen-home">
+  <div id="home-header">
+    <div>
+      <div class="home-brand">BERTI CONSTRUTORA LTDA</div>
+      <div class="home-subtitle">DEKA · Cockpit de Obra</div>
+    </div>
+    <div class="home-header-actions">
+      <button class="home-btn home-btn-ghost" onclick="backupObras()" title="Exportar todas as obras como JSON">↓ Backup</button>
+      <label class="home-btn home-btn-ghost" style="cursor:pointer" title="Restaurar obras de arquivo JSON">
+        ↑ Restaurar
+        <input type="file" accept=".json" style="display:none" onchange="restaurarBackup(this)">
+      </label>
+      <button class="home-btn home-btn-primary" onclick="novaObraHome()">+ Nova Obra</button>
+    </div>
+  </div>
+  <div id="home-content">
+    <div class="home-section-title">Obras em andamento</div>
+    <div id="home-obras-list"><div class="home-loading">Carregando obras...</div></div>
+  </div>
+  <div id="home-footer">Fonte: Supabase · Dados sempre atualizados da nuvem · <span id="home-sync-label"></span></div>
+</div>
+
+<!-- ═══════════════════ COCKPIT ═══════════════════ -->
+<div id="screen-cockpit" style="display:none">
 <div id="app-header">
-  <div class="header-brand">DEKA <span>·</span> COCKPIT</div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <button onclick="voltarHome()" style="background:none;border:none;cursor:pointer;font-family:var(--font-data);font-size:11px;color:var(--text-muted);padding:0;display:flex;align-items:center;gap:4px" title="Voltar à lista de obras">← Obras</button>
+    <div class="header-brand">DEKA <span>·</span> COCKPIT</div>
+  </div>
   <div class="header-meta" id="h-obra-info">— · —</div>
 </div>
 
@@ -583,6 +640,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
     <div class="modal-actions" id="modal-actions"></div>
   </div>
 </div>
+</div><!-- /screen-cockpit -->
 
 <script>
 // ─── DEKA_CORE ────────────────────────────────────────────────────────────────
@@ -2447,22 +2505,161 @@ function showTab(name) {
   }
 }
 
+// ─── HOME SCREEN ──────────────────────────────────────────────────────────────
+function mostrarHome() {
+  document.getElementById('screen-home').style.display = 'flex';
+  document.getElementById('screen-cockpit').style.display = 'none';
+  renderHome();
+}
+
+function mostrarCockpit() {
+  document.getElementById('screen-home').style.display = 'none';
+  document.getElementById('screen-cockpit').style.display = '';
+}
+
+async function renderHome() {
+  const el = document.getElementById('home-obras-list');
+  const syncLabel = document.getElementById('home-sync-label');
+  el.innerHTML = `<div class="home-loading">Conectando ao Supabase...</div>`;
+
+  let cards = [];
+  let fonte = 'Supabase';
+
+  try {
+    const rows = await sbFetch('cockpit_obras?select=obra_key,data,updated_at&order=updated_at.desc');
+    if (rows?.length) {
+      cards = rows.map(row => {
+        const st = row.data || {};
+        const c  = st.config || {};
+        const pct = calcPctGeral(st.servicos || []);
+        const semana = Math.max(calcSemanaAtual(c.periodo_ini), c.semana || 1);
+        const updAt = row.updated_at
+          ? new Date(row.updated_at).toLocaleDateString('pt-BR') : '—';
+        return { key: row.obra_key, c, pct, semana, updAt, local: false };
+      });
+    }
+    if (syncLabel) syncLabel.textContent = `Atualizado agora · ${new Date().toLocaleTimeString('pt-BR')}`;
+  } catch(e) {
+    fonte = 'cache local (Supabase offline)';
+    if (syncLabel) syncLabel.textContent = 'Supabase offline — usando cache local';
+  }
+
+  // Complementar com obras apenas locais (não no Supabase)
+  const sbKeys = cards.map(c => c.key);
+  Object.keys(localStorage)
+    .filter(k => k.startsWith('cockpit_'))
+    .forEach(k => {
+      const key = k.replace('cockpit_', '');
+      if (sbKeys.includes(key)) return;
+      try {
+        const st = JSON.parse(localStorage.getItem(k) || '{}');
+        const c  = st.config || {};
+        const pct = calcPctGeral(st.servicos || []);
+        const semana = Math.max(calcSemanaAtual(c.periodo_ini), c.semana || 1);
+        cards.push({ key, c, pct, semana, updAt: '(local)', local: true });
+      } catch {}
+    });
+
+  if (!cards.length) {
+    el.innerHTML = `<div class="home-empty">
+      <div class="home-empty-icon">🏗️</div>
+      Nenhuma obra encontrada.<br>Clique em "+ Nova Obra" para começar.
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = cards.map(card => {
+    const pctClass = card.pct >= 70 ? '' : card.pct >= 35 ? 'home-pct-warn' : 'home-pct-muted';
+    const periodo = card.c.periodo_ini ? ` · ${fmtDate(card.c.periodo_ini)} → ${fmtDate(card.c.periodo_fim||'')}` : '';
+    return `
+    <div class="home-obra-card" onclick="selecionarObraHome('${esc(card.key)}')">
+      <div class="home-obra-info">
+        <div class="home-obra-nome">${esc(card.c.obra || card.key)}</div>
+        <div class="home-obra-meta">${esc(card.c.cliente || '—')}${periodo}</div>
+        <div class="home-obra-sub">S${card.semana} · ${card.updAt}${card.local?' · local':''}</div>
+      </div>
+      <div class="home-obra-pct ${pctClass}">${card.pct}%</div>
+    </div>`;
+  }).join('');
+
+  if (document.getElementById('home-footer')) {
+    document.getElementById('home-footer').innerHTML =
+      `Fonte: ${fonte} · Dados sempre atualizados da nuvem · <span id="home-sync-label">${syncLabel?.textContent||''}</span>`;
+  }
+}
+
+async function selecionarObraHome(key) {
+  mostrarCockpit();
+  await carregarObra(key);
+}
+
+function novaObraHome() {
+  mostrarCockpit();
+  state = estadoVazio();
+  obraKey = '';
+  renderAll();
+  showTab('obra');
+}
+
+function voltarHome() {
+  mostrarHome();
+}
+
+// Backup: exporta todas as obras do localStorage como arquivo JSON
+function backupObras() {
+  const backup = {};
+  Object.keys(localStorage)
+    .filter(k => k.startsWith('cockpit_'))
+    .forEach(k => {
+      try { backup[k] = JSON.parse(localStorage.getItem(k)); } catch {}
+    });
+  if (!Object.keys(backup).length) { toast('Nenhuma obra em cache para exportar', 'warn'); return; }
+  const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `deka-backup-${hoje()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Backup exportado', 'success');
+}
+
+// Restaurar: importa arquivo JSON e salva no localStorage
+function restaurarBackup(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      let count = 0;
+      Object.keys(data).forEach(k => {
+        if (k.startsWith('cockpit_')) {
+          localStorage.setItem(k, JSON.stringify(data[k]));
+          count++;
+        }
+      });
+      toast(`${count} obra(s) restaurada(s)`, 'success');
+      renderHome();
+    } catch(err) {
+      toast('Arquivo inválido: ' + err.message, 'error');
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 (function init() {
-  const params  = new URLSearchParams(window.location.search);
+  const params   = new URLSearchParams(window.location.search);
   const keyParam = params.get('obra_key');
   if (keyParam) {
+    // Vem de link direto (ex: de relatorios.html) — abrir cockpit direto
+    mostrarCockpit();
     carregarObra(keyParam);
   } else {
-    // Tenta carregar última obra salva
-    const keys = Object.keys(localStorage).filter(k => k.startsWith('cockpit_'));
-    if (keys.length) {
-      const lastKey = keys[keys.length - 1];
-      carregarObra(lastKey.replace('cockpit_', ''));
-    } else {
-      state = estadoVazio();
-      renderAll();
-    }
+    // Sem parâmetro — mostrar tela de seleção
+    mostrarHome();
   }
 })();
 </script>
