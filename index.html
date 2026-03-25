@@ -633,6 +633,34 @@ function getObraKey() {
   return slugify(state.config.obra) + '_' + ano;
 }
 
+// ─── KEY NORMALIZATION ───────────────────────────────────────────────────────
+// Mapeia chaves legadas (geradas por getObraKey) → chaves canônicas do Supabase
+const KEY_MAP = {
+  'badida_2026': 'badida-parkshopping-barigui-v1'
+};
+
+function normalizeKey(key) {
+  return KEY_MAP[key] || key;
+}
+
+// Converte pendência do schema antigo (descricao/prioridade/responsavel)
+// para o schema atual (titulo/urgencia/tipo)
+function normalizarPendencia(p) {
+  return {
+    ...p,
+    titulo:   p.titulo   ?? p.descricao  ?? '',
+    urgencia: p.urgencia ?? p.prioridade ?? 'media',
+    tipo:     p.tipo     ?? 'outro',
+  };
+}
+
+function normalizarPendencias(st) {
+  if (st?.pendencias?.length) {
+    st.pendencias = st.pendencias.map(normalizarPendencia);
+  }
+  return st;
+}
+
 // ─── SAVE ─────────────────────────────────────────────────────────────────────
 function saveState() {
   if (!obraKey) {
@@ -668,25 +696,38 @@ async function sbSave() {
 
 // ─── LOAD ─────────────────────────────────────────────────────────────────────
 async function carregarObra(key) {
-  obraKey = key;
-  // 1. Tenta localStorage
-  const local = localStorage.getItem(`cockpit_${key}`);
-  if (local) {
-    try { state = JSON.parse(local); renderAll(); return; } catch {}
+  const canonicalKey = normalizeKey(key);
+  obraKey = canonicalKey;
+
+  // Migrar entrada legada se existir sob chave antiga
+  if (canonicalKey !== key) {
+    const legacy = localStorage.getItem(`cockpit_${key}`);
+    if (legacy) {
+      localStorage.setItem(`cockpit_${canonicalKey}`, legacy);
+      localStorage.removeItem(`cockpit_${key}`);
+    }
   }
-  // 2. Tenta Supabase
+
+  // 1. Tenta Supabase (fonte de verdade quando chave vem de URL)
   try {
-    const rows = await sbFetch(`cockpit_obras?obra_key=eq.${key}&select=*`);
+    const rows = await sbFetch(`cockpit_obras?obra_key=eq.${canonicalKey}&select=*`);
     if (rows?.length) {
-      state = rows[0].data;
-      localStorage.setItem(`cockpit_${key}`, JSON.stringify(state));
+      state = normalizarPendencias(rows[0].data);
+      localStorage.setItem(`cockpit_${canonicalKey}`, JSON.stringify(state));
       renderAll();
       return;
     }
   } catch(e) {
     console.error('Supabase load error:', e);
-    toast('Erro ao carregar do Supabase', 'error');
+    // fallthrough para localStorage
   }
+
+  // 2. Tenta localStorage (offline fallback)
+  const local = localStorage.getItem(`cockpit_${canonicalKey}`);
+  if (local) {
+    try { state = normalizarPendencias(JSON.parse(local)); renderAll(); return; } catch {}
+  }
+
   // 3. Estado vazio
   state = estadoVazio();
   renderAll();
