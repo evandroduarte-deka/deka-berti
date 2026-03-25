@@ -234,13 +234,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 
 <div id="nav-tabs">
   <button class="tab-btn active" onclick="showTab('obra')">Obra</button>
+  <button class="tab-btn" onclick="showTab('visita')">Visita</button>
   <button class="tab-btn" onclick="showTab('cronograma')">Cronograma</button>
   <button class="tab-btn" onclick="showTab('servicos')">Serviços</button>
   <button class="tab-btn" onclick="showTab('equipes')">Equipes</button>
   <button class="tab-btn" onclick="showTab('pagamentos')">Pagamentos</button>
   <button class="tab-btn" onclick="showTab('fotos')">Fotos</button>
-  <button class="tab-btn" onclick="showTab('pendencias')">Pendências <span class="tab-badge" id="badge-pend" style="display:none">0</span></button>
-  <button class="tab-btn" onclick="showTab('materiais')">Materiais</button>
+  <button class="tab-btn" onclick="showTab('registros')">Registros <span class="tab-badge" id="badge-pend" style="display:none">0</span></button>
   <button class="tab-btn" onclick="showTab('fechamento')">Medição</button>
 </div>
 
@@ -302,10 +302,22 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
     </div>
   </div>
 
+</div>
+
+<!-- ═══════════════════════════════ ABA VISITA ══════════════════════════════ -->
+<div id="panel-visita" class="panel">
+  <div class="card">
+    <div class="section-header">
+      <div class="card-title">NARRATIVA DA SEMANA</div>
+      <span id="diario-semana-label" style="font-family:var(--font-data);font-size:11px;color:var(--text-muted)"></span>
+    </div>
+    <textarea class="form-textarea" id="narrativa-semana" rows="3" placeholder="Resumo geral da semana em andamento..." style="width:100%"></textarea>
+    <button class="btn btn-verde btn-sm" style="margin-top:8px" onclick="salvarNarrativa()">Salvar Narrativa</button>
+  </div>
+
   <div class="card">
     <div class="section-header">
       <div class="card-title">DIÁRIO DA SEMANA</div>
-      <span id="diario-semana-label" style="font-family:var(--font-data);font-size:11px;color:var(--text-muted)"></span>
     </div>
     <div class="diario-grid" id="diario-grid"></div>
   </div>
@@ -410,8 +422,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
   <div class="foto-grid" id="fotos-grid"></div>
 </div>
 
-<!-- ═══════════════════════════════ ABA 7 — PENDÊNCIAS ═══════════════════════ -->
-<div id="panel-pendencias" class="panel">
+<!-- ═══════════════════════════════ ABA REGISTROS ═══════════════════════════ -->
+<div id="panel-registros" class="panel">
   <div class="section-header">
     <div class="section-title">PENDÊNCIAS</div>
     <button class="btn btn-ghost btn-sm" onclick="adicionarPendencia()">+ Pendência</button>
@@ -422,11 +434,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
     <button class="btn btn-ghost btn-sm" id="pfiltro-todos" onclick="setPendFiltro('todos')">Todas</button>
   </div>
   <div id="pendencias-list"></div>
-</div>
 
-<!-- ═══════════════════════════════ ABA 8 — MATERIAIS ═══════════════════════ -->
-<div id="panel-materiais" class="panel">
-  <div class="section-header">
+  <div class="section-header" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+    <div class="section-title">NOTAS</div>
+    <button class="btn btn-ghost btn-sm" onclick="adicionarNota()">+ Nota</button>
+  </div>
+  <div id="notas-list"></div>
+
+  <div class="section-header" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
     <div class="section-title">MATERIAIS</div>
     <button class="btn btn-ghost btn-sm" onclick="adicionarMaterial()">+ Material</button>
   </div>
@@ -555,6 +570,15 @@ function parseAgentJSON(text) {
 }
 
 const fmtDate  = iso => { if(!iso) return '—'; const[y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; };
+function normData(d) {
+  if (!d) return '';
+  const s = String(d);
+  if (s.includes('/')) {
+    const p = s.split('/');
+    return p.length === 3 ? `${p[2]}-${String(p[1]).padStart(2,'0')}-${String(p[0]).padStart(2,'0')}` : s;
+  }
+  return s;
+}
 const fmtMoney = val => Number(val||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const slugify  = str => String(str).toLowerCase().normalize('NFD')
   .replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
@@ -738,14 +762,14 @@ function renderAll() {
   renderHeader();
   renderKpiObra();
   renderConfigForm();
+  renderNarrativa();
   renderDiario();
   renderCronograma();
   renderServicos();
   renderEquipes();
   renderPagamentos();
   renderFotos();
-  renderPendencias();
-  renderMateriais();
+  renderRegistros();
   renderFechamento();
 }
 
@@ -952,31 +976,65 @@ function renderServicos() {
     return;
   }
 
+  const statusOpts = ['planejado','EM ANDAMENTO','CONCLUÍDO','PAUSADO','atrasado','cancelado'];
   el.innerHTML = servicos.map((s, i) => {
     const pctFill = s.pct_atual || 0;
     const fillClass = pctFill >= 100 ? '' : pctFill < 30 ? 'danger' : pctFill < 70 ? 'warn' : '';
     return `
-    <div class="list-item">
+    <div class="list-item" style="flex-wrap:wrap;gap:8px">
       <div class="list-item-main">
         <div class="list-item-title">
           <span style="font-family:var(--font-data);font-size:11px;color:var(--text-muted);margin-right:6px">${esc(s.cod||'')}</span>
           ${esc(s.descricao||'')}
         </div>
-        <div class="list-item-sub" style="display:flex;align-items:center;gap:10px;margin-top:4px">
-          <span>${fmtMoney(s.valor)}</span>
-          <span style="color:var(--verde);font-weight:600">${pctFill}%</span>
-          <span class="status-badge status-${esc(s.status_atual||'planejado')}">${esc(s.status_atual||'planejado')}</span>
-        </div>
         <div class="progress-bar" style="margin-top:6px;max-width:300px">
           <div class="progress-fill ${fillClass}" style="width:${pctFill}%"></div>
         </div>
       </div>
-      <div class="list-actions">
-        <button class="btn btn-ghost btn-sm" onclick="editarServico(${i})">✎</button>
-        <button class="btn btn-danger btn-sm" onclick="deletarServico(${i})">✕</button>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <label style="font-size:10px;font-family:var(--font-data);color:var(--text-muted);letter-spacing:.5px">%</label>
+          <input type="number" min="0" max="100" value="${pctFill}"
+            style="width:62px;text-align:center;font-family:var(--font-data);font-weight:600;font-size:15px;color:var(--verde);background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:5px 6px"
+            onchange="updateServicoPct(${i},this.value)">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <label style="font-size:10px;font-family:var(--font-data);color:var(--text-muted);letter-spacing:.5px">Status</label>
+          <select style="background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-size:12px;color:var(--text);font-family:var(--font-body)"
+            onchange="updateServicoStatus(${i},this.value)">
+            ${statusOpts.map(o => `<option value="${esc(o)}" ${(s.status_atual||'planejado')===o?'selected':''}>${esc(o)}</option>`).join('')}
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <label style="font-size:10px;font-family:var(--font-data);color:var(--text-muted);letter-spacing:.5px">R$</label>
+          <input type="number" min="0" value="${s.valor||0}"
+            style="width:110px;background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-size:12px;font-family:var(--font-data);color:var(--ouro)"
+            onblur="updateServicoValor(${i},this.value)">
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="deletarServico(${i})" style="margin-bottom:1px">✕</button>
       </div>
     </div>`;
   }).join('');
+}
+
+function updateServicoPct(i, val) {
+  const pct = Math.min(100, Math.max(0, Number(val)||0));
+  state.servicos[i].pct_atual = pct;
+  if (pct >= 100) state.servicos[i].status_atual = 'CONCLUÍDO';
+  else if (pct > 0 && (!state.servicos[i].status_atual || state.servicos[i].status_atual === 'planejado'))
+    state.servicos[i].status_atual = 'EM ANDAMENTO';
+  saveState(); renderServicos(); renderKpiObra(); renderHeader();
+}
+
+function updateServicoStatus(i, val) {
+  state.servicos[i].status_atual = val;
+  if (val === 'CONCLUÍDO') { state.servicos[i].pct_atual = 100; }
+  saveState(); renderServicos(); renderKpiObra(); renderHeader();
+}
+
+function updateServicoValor(i, val) {
+  state.servicos[i].valor = Number(val)||0;
+  saveState(); renderKpiObra(); renderHeader();
 }
 
 // ─── ABA EQUIPES ──────────────────────────────────────────────────────────────
@@ -987,8 +1045,21 @@ function renderEquipes() {
     el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👷</div>Nenhuma equipe cadastrada</div>`;
     return;
   }
-  el.innerHTML = equipes.map((e, i) => `
-    <div class="list-item">
+  const diasKeys   = ['seg','ter','qua','qui','sex','sab','dom'];
+  const diasLabels = ['S','T','Q','Q','S','S','D'];
+  const diario = state?.diario || {};
+
+  el.innerHTML = equipes.map((e, i) => {
+    const presencaCells = diasKeys.map((d, di) => {
+      const presentes = diario[d]?.equipes_presentes || [];
+      const checked = presentes.includes(e.id) ? 'checked' : '';
+      return `<label style="display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font-family:var(--font-data);font-size:10px;color:var(--text-muted)">
+        ${diasLabels[di]}
+        <input type="checkbox" ${checked} onchange="togglePresencaEquipe('${esc(e.id)}','${d}')" style="cursor:pointer;accent-color:var(--verde);width:14px;height:14px">
+      </label>`;
+    }).join('');
+    return `
+    <div class="list-item" style="flex-wrap:wrap;gap:10px">
       <div class="list-item-main">
         <div class="list-item-title">${esc(e.nome||'')}</div>
         <div class="list-item-sub" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px">
@@ -998,13 +1069,29 @@ function renderEquipes() {
           ${e.pix ? `<span>PIX: ${esc(e.pix)}</span>` : ''}
         </div>
         ${e.notas ? `<div style="font-size:11px;color:var(--text-muted);margin-top:4px">${esc(e.notas)}</div>` : ''}
+        <div style="margin-top:10px">
+          <div style="font-size:10px;font-family:var(--font-data);color:var(--text-muted);margin-bottom:5px;letter-spacing:.5px">PRESENÇA SEMANAL</div>
+          <div style="display:flex;gap:12px">${presencaCells}</div>
+        </div>
       </div>
       <div class="list-actions">
         ${e.contato ? `<a href="https://wa.me/55${e.contato.replace(/\D/g,'')}" target="_blank" class="btn btn-verde btn-sm">WhatsApp</a>` : ''}
         <button class="btn btn-ghost btn-sm" onclick="editarEquipe(${i})">✎</button>
         <button class="btn btn-danger btn-sm" onclick="deletarEquipe(${i})">✕</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+}
+
+function togglePresencaEquipe(equipeId, dia) {
+  state.diario = state.diario || {};
+  state.diario[dia] = state.diario[dia] || {};
+  state.diario[dia].equipes_presentes = state.diario[dia].equipes_presentes || [];
+  const arr = state.diario[dia].equipes_presentes;
+  const idx = arr.indexOf(equipeId);
+  if (idx >= 0) arr.splice(idx, 1);
+  else arr.push(equipeId);
+  saveState();
 }
 
 // ─── ABA PAGAMENTOS ───────────────────────────────────────────────────────────
@@ -1073,7 +1160,7 @@ function renderFotos() {
 
   const filtered = fotos.filter(f => {
     if (filtroSrv && f.servico_ref !== filtroSrv) return false;
-    if (filtroData && f.data !== filtroData) return false;
+    if (filtroData && normData(f.data) !== filtroData) return false;
     return true;
   });
 
@@ -1087,7 +1174,7 @@ function renderFotos() {
       <img src="${esc(f.url||'')}" alt="${esc(f.legenda||'')}" onerror="this.style.height='80px';this.style.background='var(--bg-4)'">
       <div class="foto-card-info">
         <div class="foto-card-leg">${esc(f.legenda||'Sem legenda')}</div>
-        <div class="foto-card-data">${fmtDate(f.data)} ${f.servico_ref ? '· '+esc(f.servico_ref) : ''}</div>
+        <div class="foto-card-data">${fmtDate(normData(f.data))}${f.semana ? ' · S'+f.semana : ''} ${f.servico_ref ? '· '+esc(f.servico_ref) : ''}</div>
         <button class="btn btn-danger btn-sm" style="margin-top:6px;width:100%" onclick="deletarFoto(${i})">Remover</button>
       </div>
     </div>`).join('');
@@ -1738,7 +1825,8 @@ function adicionarFoto() {
     state.fotos = state.fotos || [];
     state.fotos.unshift({
       id:'foto-'+Date.now(), url:vals['f-url'], legenda:vals['f-leg'],
-      data:vals['f-data'], servico_ref:vals['f-srv'], ambiente:vals['f-amb']
+      data:vals['f-data'], servico_ref:vals['f-srv'], ambiente:vals['f-amb'],
+      semana: calcSemanaAtual(state?.config?.periodo_ini)
     });
     saveState(); renderFotos();
   });
@@ -1907,6 +1995,70 @@ function abrirRelatoriosSemana(semana) {
 
 function abrirBrain() {
   window.open(`brain.html`, '_blank');
+}
+
+// ─── NARRATIVA DA SEMANA ──────────────────────────────────────────────────────
+function renderNarrativa() {
+  const el = document.getElementById('narrativa-semana');
+  if (el) el.value = state?.narrativa || '';
+}
+
+function salvarNarrativa() {
+  state.narrativa = document.getElementById('narrativa-semana')?.value || '';
+  saveState();
+  toast('Narrativa salva', 'success');
+}
+
+// ─── REGISTROS (Pendências + Notas + Materiais) ───────────────────────────────
+function renderRegistros() {
+  renderPendencias();
+  renderNotasSection();
+  renderMateriais();
+}
+
+function renderNotasSection() {
+  const notas = state?.notas || [];
+  const el = document.getElementById('notas-list');
+  if (!el) return;
+  if (!notas.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📝</div>Nenhuma nota registrada</div>`;
+    return;
+  }
+  el.innerHTML = notas.map((n, i) => `
+    <div class="list-item">
+      <div class="list-item-main">
+        <div class="list-item-title">${esc(n.texto||'')}</div>
+        <div class="list-item-sub" style="display:flex;gap:10px;margin-top:4px">
+          ${n.tipo ? `<span style="color:var(--text-muted)">${esc(n.tipo)}</span>` : ''}
+          ${n.servico_ref ? `<span>→ ${esc(n.servico_ref)}</span>` : ''}
+          <span>${fmtDate(n.data)}</span>
+        </div>
+      </div>
+      <div class="list-actions">
+        <button class="btn btn-danger btn-sm" onclick="deletarNota(${i})">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function adicionarNota() {
+  abrirModalForm('Nova Nota', [
+    { id:'f-texto', label:'Texto da nota', type:'text' },
+    { id:'f-tipo', label:'Tipo', type:'select', opts:['campo','administrativo','cliente','outro'] },
+    { id:'f-srv', label:'Serviço Ref. (opcional)', type:'text' }
+  ], (vals) => {
+    state.notas = state.notas || [];
+    state.notas.push({
+      id:'n-'+Date.now(), texto:vals['f-texto'], tipo:vals['f-tipo'],
+      servico_ref:vals['f-srv']||'', data:hoje()
+    });
+    saveState(); renderNotasSection();
+  });
+}
+
+function deletarNota(i) {
+  if (!confirm('Remover esta nota?')) return;
+  state.notas.splice(i, 1);
+  saveState(); renderNotasSection();
 }
 
 // ─── TABS ─────────────────────────────────────────────────────────────────────
