@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#060D09">
+<title>DEKA · Hub — Berti Construtora</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Jost:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Syne:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --verde:      #2E9650;
+  --verde-dim:  #1a5c30;
+  --verde-glow: rgba(46,150,80,0.15);
+  --ouro:       #B89A6A;
+  --ouro-dim:   #7a6445;
+  --bg:         #060D09;
+  --bg-2:       #0D1A10;
+  --bg-3:       #142018;
+  --bg-4:       #1a2a1e;
+  --border:     #1e2e20;
+  --border-2:   #2a3e2c;
+  --text:       #e8f0e8;
+  --text-dim:   #7a9a7a;
+  --text-muted: #4a6a4a;
+  --danger:     #cc3333;
+  --danger-dim: #3a0a0a;
+  --warn:       #cc8800;
+  --warn-dim:   #2a1800;
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body:    'Jost', sans-serif;
+  --font-data:    'JetBrains Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;min-height:100vh}
+
+/* HEADER */
+#hub-header{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border)}
+.hub-saudacao{font-family:var(--font-display);font-size:28px;letter-spacing:2px;color:var(--verde)}
+.hub-saudacao span{color:var(--ouro)}
+.hub-datetime{text-align:right}
+.hub-hora{font-family:var(--font-display);font-size:36px;color:var(--text);letter-spacing:3px;line-height:1}
+.hub-data{font-family:var(--font-data);font-size:11px;color:var(--text-dim);margin-top:2px;text-align:right}
+
+/* NAV */
+.hub-nav{display:flex;gap:8px;padding:12px 24px;background:var(--bg-2);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.hub-nav-btn{padding:6px 14px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--text-dim);font-family:var(--font-body);font-size:12px;cursor:pointer;transition:all .15s;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
+.hub-nav-btn:hover{border-color:var(--verde);color:var(--verde)}
+.hub-nav-btn.active{border-color:var(--verde);color:var(--verde);background:var(--verde-glow)}
+
+/* GRID PRINCIPAL */
+#hub-main{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:20px 24px;max-width:1400px;margin:0 auto}
+@media(max-width:900px){#hub-main{grid-template-columns:1fr}}
+@media(max-width:600px){#hub-main{padding:12px 16px}}
+
+/* CARDS */
+.hub-card{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px}
+.hub-card.full{grid-column:1/-1}
+.hub-card.critical{border-color:var(--danger);background:var(--danger-dim)}
+.hub-card.warn{border-color:var(--warn)}
+.hub-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.hub-card-title{font-family:var(--font-display);font-size:13px;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase}
+.hub-card-count{font-family:var(--font-data);font-size:12px;color:var(--text-muted)}
+
+/* OBRAS */
+.obra-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.obra-row:last-child{border-bottom:none}
+.obra-row-nome{font-weight:500;flex:1;font-size:13px}
+.obra-row-pct{font-family:var(--font-display);font-size:20px;color:var(--verde);min-width:48px;text-align:right}
+.obra-row-pct.warn{color:var(--warn)}
+.obra-row-pct.danger{color:var(--danger)}
+.obra-row-sub{font-size:11px;font-family:var(--font-data);color:var(--text-muted);margin-top:1px}
+.obra-row-alerta{font-size:11px;color:var(--danger);background:var(--danger-dim);border-radius:3px;padding:2px 6px;margin-top:3px}
+.progress-mini{height:3px;background:var(--bg-4);border-radius:2px;overflow:hidden;margin-top:4px}
+.progress-mini-fill{height:100%;border-radius:2px;background:var(--verde);transition:width .3s}
+.progress-mini-fill.warn{background:var(--warn)}
+.progress-mini-fill.danger{background:var(--danger)}
+
+/* MENSAGENS */
+.msg-item{background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:8px}
+.msg-item-dest{font-family:var(--font-data);font-size:11px;color:var(--ouro);margin-bottom:4px}
+.msg-item-text{font-size:12px;color:var(--text-dim);line-height:1.5;max-height:60px;overflow:hidden}
+.msg-item-actions{display:flex;gap:6px;margin-top:8px}
+
+/* ALERTAS */
+.alerta-item{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
+.alerta-item:last-child{border-bottom:none}
+.alerta-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.alerta-dot.alta{background:var(--danger)}
+.alerta-dot.media{background:var(--warn)}
+.alerta-dot.baixa{background:var(--text-muted)}
+.alerta-body{flex:1}
+.alerta-titulo{font-size:13px;font-weight:500}
+.alerta-sub{font-size:11px;color:var(--text-muted);font-family:var(--font-data);margin-top:2px}
+
+/* PRIORIDADES */
+.prior-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.prior-item:last-child{border-bottom:none}
+.prior-num{font-family:var(--font-display);font-size:28px;color:var(--verde-dim);min-width:28px;line-height:1}
+.prior-titulo{font-weight:500;font-size:13px;flex:1}
+.prior-sub{font-size:11px;color:var(--text-muted);font-family:var(--font-data);margin-top:2px}
+
+/* AGENDA */
+.agenda-item{padding:8px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.agenda-item:last-child{border-bottom:none}
+.agenda-hora{font-family:var(--font-data);font-size:12px;color:var(--ouro);min-width:50px}
+.agenda-desc{font-size:13px;flex:1}
+
+/* PARCEIROS */
+.parceiro-item{padding:8px 0;border-bottom:1px solid var(--border)}
+.parceiro-item:last-child{border-bottom:none}
+.parceiro-nome{font-weight:500;font-size:13px}
+.parceiro-sub{font-size:11px;font-family:var(--font-data);color:var(--text-muted);margin-top:2px}
+.parceiro-acao{font-size:12px;color:var(--warn);margin-top:3px}
+
+/* BUTTON */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:4px;border:none;cursor:pointer;font-family:var(--font-body);font-size:12px;font-weight:500;transition:all .15s}
+.btn-verde{background:var(--verde-dim);border:1px solid var(--verde);color:var(--verde)}
+.btn-verde:hover{background:var(--verde);color:#fff}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-dim)}
+.btn-ghost:hover{border-color:var(--verde);color:var(--verde)}
+.btn-ouro{background:var(--ouro-dim);border:1px solid var(--ouro);color:var(--ouro)}
+.btn-ouro:hover{background:var(--ouro);color:#000}
+
+/* RELOAD */
+#btn-reload{position:fixed;bottom:20px;right:20px;background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--text-dim);transition:all .15s;z-index:100}
+#btn-reload:hover{border-color:var(--verde);color:var(--verde)}
+#btn-reload.spin{animation:spin .6s linear}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* EMPTY */
+.hub-empty{text-align:center;padding:20px;color:var(--text-muted);font-family:var(--font-data);font-size:11px}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:6px;font-family:var(--font-body);font-size:14px;animation:toastIn .2s ease;max-width:320px}
+.toast-info{background:var(--bg-3);border:1px solid var(--verde);color:var(--text)}
+.toast-success{background:var(--verde-dim);border:1px solid var(--verde);color:#fff}
+.toast-error{background:#2a0808;border:1px solid var(--danger);color:#ff6666}
+.toast-warn{background:#2a1800;border:1px solid var(--warn);color:#ffaa33}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<div id="hub-header">
+  <div>
+    <div class="hub-saudacao" id="hub-greeting">BOM DIA, <span>EVANDRO</span></div>
+    <div style="font-size:12px;color:var(--text-muted);font-family:var(--font-data);margin-top:2px" id="hub-subtext">Carregando dados...</div>
+  </div>
+  <div class="hub-datetime">
+    <div class="hub-hora" id="hub-hora">—:—</div>
+    <div class="hub-data" id="hub-data">—</div>
+  </div>
+</div>
+
+<div class="hub-nav">
+  <a href="brain.html" class="hub-nav-btn">⬡ Brain</a>
+  <a href="comercial.html" class="hub-nav-btn">◈ Comercial</a>
+  <a href="index.html" class="hub-nav-btn">⊞ Cockpit</a>
+  <a href="relatorios.html" class="hub-nav-btn">◎ Relatórios</a>
+</div>
+
+<div id="hub-main">
+
+  <!-- ALERTAS CRÍTICOS -->
+  <div class="hub-card full" id="card-alertas" style="display:none;border-color:var(--danger)">
+    <div class="hub-card-header">
+      <div class="hub-card-title" style="color:var(--danger)">⚠ ALERTAS DO DIA</div>
+      <div class="hub-card-count" id="alertas-count"></div>
+    </div>
+    <div id="alertas-list"></div>
+  </div>
+
+  <!-- OBRAS ATIVAS -->
+  <div class="hub-card">
+    <div class="hub-card-header">
+      <div class="hub-card-title">Obras Ativas</div>
+      <div class="hub-card-count" id="obras-count">—</div>
+    </div>
+    <div id="obras-list"><div class="hub-empty">Carregando...</div></div>
+  </div>
+
+  <!-- PRIORIDADES DO DIA -->
+  <div class="hub-card">
+    <div class="hub-card-header">
+      <div class="hub-card-title">3 Prioridades de Hoje</div>
+      <a href="brain.html" class="btn btn-ghost" style="font-size:11px">Brain →</a>
+    </div>
+    <div id="prioridades-list"><div class="hub-empty">Carregando do Brain...</div></div>
+  </div>
+
+  <!-- AGENDA DO DIA -->
+  <div class="hub-card">
+    <div class="hub-card-header">
+      <div class="hub-card-title">Agenda de Hoje</div>
+    </div>
+    <div id="agenda-list"><div class="hub-empty">Sem compromissos registrados</div></div>
+  </div>
+
+  <!-- MENSAGENS PRONTAS -->
+  <div class="hub-card">
+    <div class="hub-card-header">
+      <div class="hub-card-title">Mensagens Prontas</div>
+      <div class="hub-card-count" id="msgs-count"></div>
+    </div>
+    <div id="msgs-list"><div class="hub-empty">Nenhuma mensagem pendente</div></div>
+  </div>
+
+  <!-- PARCEIROS COM AÇÃO VENCIDA -->
+  <div class="hub-card full" id="card-parceiros" style="display:none">
+    <div class="hub-card-header">
+      <div class="hub-card-title" style="color:var(--warn)">Parceiros — Ação Pendente</div>
+      <a href="brain.html" class="btn btn-ghost" style="font-size:11px">Ver todos →</a>
+    </div>
+    <div id="parceiros-list"></div>
+  </div>
+
+</div>
+
+<button id="btn-reload" onclick="recarregar()" title="Atualizar dados">↻</button>
+
+<script>
+// ─── DEKA_CORE ────────────────────────────────────────────────────────────────
+function esc(str) {
+  return String(str ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toast(msg, tipo = 'info', dur = 3000) {
+  const t = document.createElement('div');
+  t.className = `toast toast-${tipo}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), dur);
+}
+
+const SB_URL = 'https://tdylutdfzgtcfyhynenk.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkeWx1dGRmemd0Y2Z5aHluZW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyODQxMjcsImV4cCI6MjA4ODg2MDEyN30.k44CAV8O8AGhq4lzy-Ms5CF6JsW2fgMqLEegKb4K-pg';
+
+async function sbFetch(endpoint, options = {}) {
+  const res = await fetch(`${SB_URL}/rest/v1/${endpoint}`, {
+    signal: AbortSignal.timeout(15000),
+    ...options,
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': `Bearer ${SB_KEY}`,
+      'Content-Type': 'application/json',
+      ...options.headers
+    }
+  });
+  if (!res.ok) throw new Error(`Supabase ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+
+const AI_URL   = 'https://anthropic-proxy.berti-b52.workers.dev/v1/messages';
+const AI_MODEL = 'claude-sonnet-4-5';
+
+async function aiFetch(systemText, userMsg, maxTokens = 1024) {
+  const res = await fetch(AI_URL, {
+    method: 'POST',
+    signal: AbortSignal.timeout(30000),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: AI_MODEL,
+      max_tokens: maxTokens,
+      system: [{ type: 'text', text: systemText, cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content: userMsg }]
+    })
+  });
+  if (!res.ok) throw new Error(`AI ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  return data.content?.[0]?.text ?? '';
+}
+
+async function aiStream(systemText, userMsg, onChunk, maxTokens = 2048) {
+  const res = await fetch(AI_URL, {
+    method: 'POST',
+    signal: AbortSignal.timeout(60000),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: AI_MODEL, max_tokens: maxTokens, stream: true,
+      system: [{ type: 'text', text: systemText, cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content: userMsg }]
+    })
+  });
+  if (!res.ok) throw new Error(`AI Stream ${res.status}`);
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    for (const line of dec.decode(value).split('\n')) {
+      if (!line.startsWith('data: ')) continue;
+      try {
+        const d = JSON.parse(line.slice(6));
+        if (d.type === 'content_block_delta' && d.delta?.text) onChunk(d.delta.text);
+      } catch {}
+    }
+  }
+}
+
+function parseAgentJSON(text) {
+  try { return JSON.parse(text.replace(/```json|```/g,'').trim()); }
+  catch(e) { console.error('Agent JSON parse error:', text); return null; }
+}
+
+const fmtDate  = iso => { if(!iso) return '—'; const[y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; };
+const fmtMoney = val => Number(val||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const slugify  = str => String(str).toLowerCase().normalize('NFD')
+  .replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+const hoje     = () => new Date().toISOString().split('T')[0];
+
+function cacheSet(key, data) {
+  localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data }));
+}
+function cacheGet(key, ttlMs = 5 * 60 * 1000) {
+  try {
+    const raw = JSON.parse(localStorage.getItem(key) || '{}');
+    if (!raw.ts || Date.now() - raw.ts > ttlMs) return null;
+    return raw.data;
+  } catch { return null; }
+}
+
+function calcPctGeral(servicos) {
+  if (!servicos?.length) return 0;
+  const totalValor = servicos.reduce((s, v) => s + (Number(v.valor) || 0), 0);
+  if (totalValor === 0) {
+    return Math.round(servicos.reduce((s, v) => s + (Number(v.pct_atual) || 0), 0) / servicos.length);
+  }
+  const ponderado = servicos.reduce((s, v) => s + (Number(v.pct_atual) || 0) * (Number(v.valor) || 0), 0);
+  return Math.round(ponderado / totalValor);
+}
+
+// ─── CLOCK ────────────────────────────────────────────────────────────────────
+function atualizarRelogio() {
+  const agora = new Date();
+  const h = String(agora.getHours()).padStart(2,'0');
+  const m = String(agora.getMinutes()).padStart(2,'0');
+  document.getElementById('hub-hora').textContent = `${h}:${m}`;
+
+  const dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  document.getElementById('hub-data').textContent =
+    `${dias[agora.getDay()]}, ${agora.getDate()} ${meses[agora.getMonth()]} ${agora.getFullYear()}`;
+
+  // Saudação
+  const hr = agora.getHours();
+  const saud = hr < 12 ? 'BOM DIA' : hr < 18 ? 'BOA TARDE' : 'BOA NOITE';
+  document.getElementById('hub-greeting').innerHTML = `${saud}, <span>EVANDRO</span>`;
+}
+
+// ─── LOAD OBRAS ───────────────────────────────────────────────────────────────
+async function carregarObras() {
+  let obras = [];
+
+  // Tenta Supabase
+  try {
+    const rows = await sbFetch('cockpit_obras?select=obra_key,data,updated_at&order=updated_at.desc');
+    obras = rows || [];
+  } catch {
+    // Fallback: localStorage
+    obras = Object.keys(localStorage)
+      .filter(k => k.startsWith('cockpit_'))
+      .map(k => {
+        try { return { obra_key: k.replace('cockpit_',''), data: JSON.parse(localStorage.getItem(k)) }; }
+        catch { return null; }
+      }).filter(Boolean);
+  }
+
+  renderObras(obras);
+  renderAlertas(obras);
+  return obras;
+}
+
+function calcSemanaAtual(periodoIni) {
+  if (!periodoIni) return 1;
+  const ini = new Date(periodoIni + 'T00:00:00');
+  return Math.max(1, Math.floor((new Date() - ini) / (7 * 86400000)) + 1);
+}
+
+function renderObras(obras) {
+  const obrasAtivas = obras.filter(o => {
+    const fim = o.data?.config?.periodo_fim;
+    return !fim || fim >= hoje();
+  });
+  document.getElementById('obras-count').textContent = obrasAtivas.length;
+  const el = document.getElementById('obras-list');
+
+  if (!obrasAtivas.length) {
+    el.innerHTML = `<div class="hub-empty">Nenhuma obra ativa</div>`;
+    return;
+  }
+
+  el.innerHTML = obrasAtivas.map(o => {
+    const c = o.data?.config || {};
+    const pct = calcPctGeral(o.data?.servicos || []);
+    const semana = calcSemanaAtual(c.periodo_ini);
+    const pendsAbertas = (o.data?.pendencias || []).filter(p => p.status === 'ABERTO');
+    const diasRest = c.periodo_fim
+      ? Math.max(0, Math.ceil((new Date(c.periodo_fim + 'T00:00:00') - new Date()) / 86400000))
+      : null;
+    const critico = diasRest !== null && diasRest <= 7 && pct < 80;
+    const pctClass = critico ? 'danger' : pct < 40 ? 'warn' : '';
+    return `
+    <div class="obra-row">
+      <div style="flex:1">
+        <div class="obra-row-nome">${esc(c.obra || o.obra_key)}</div>
+        <div class="obra-row-sub">${esc(c.cliente||'—')} · S${semana}${diasRest !== null ? ` · ${diasRest}d restantes` : ''}</div>
+        ${critico ? `<div class="obra-row-alerta">⚠ Prazo crítico — ${diasRest} dias</div>` : ''}
+        ${pendsAbertas.length ? `<div style="font-size:11px;color:var(--warn);margin-top:3px">● ${pendsAbertas.length} pendência${pendsAbertas.length>1?'s':''} aberta${pendsAbertas.length>1?'s':''}</div>` : ''}
+        <div class="progress-mini" style="max-width:160px">
+          <div class="progress-mini-fill ${pctClass}" style="width:${pct}%"></div>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div class="obra-row-pct ${pctClass}">${pct}%</div>
+        <a href="index.html?obra_key=${esc(o.obra_key)}" class="btn btn-ghost" style="margin-top:4px;font-size:11px">Abrir</a>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── ALERTAS ──────────────────────────────────────────────────────────────────
+function renderAlertas(obras) {
+  const alertas = [];
+  const hojeStr = hoje();
+
+  obras.forEach(o => {
+    const c = o.data?.config || {};
+    const pct = calcPctGeral(o.data?.servicos || []);
+
+    // Prazo crítico
+    if (c.periodo_fim) {
+      const dias = Math.ceil((new Date(c.periodo_fim + 'T00:00:00') - new Date()) / 86400000);
+      if (dias <= 7 && dias >= 0 && pct < 90) {
+        alertas.push({
+          titulo: `${c.obra || o.obra_key}: prazo em ${dias} dia${dias!==1?'s':''}`,
+          sub: `Progresso atual: ${pct}%`,
+          urgencia: dias <= 2 ? 'alta' : 'media',
+          link: `index.html?obra_key=${o.obra_key}`
+        });
+      }
+    }
+
+    // Pendências críticas
+    const pendsAlta = (o.data?.pendencias || []).filter(p => p.status === 'ABERTO' && p.urgencia === 'alta');
+    if (pendsAlta.length) {
+      alertas.push({
+        titulo: `${c.obra || o.obra_key}: ${pendsAlta.length} pendência${pendsAlta.length>1?'s':''} urgente${pendsAlta.length>1?'s':''}`,
+        sub: pendsAlta.map(p => p.titulo).slice(0,2).join(' · '),
+        urgencia: 'alta',
+        link: `index.html?obra_key=${o.obra_key}`
+      });
+    }
+
+    // Materiais urgentes não recebidos
+    const matsUrg = (o.data?.materiais || []).filter(m => m.urgencia === 'alta' && m.status !== 'recebido');
+    if (matsUrg.length) {
+      alertas.push({
+        titulo: `${c.obra || o.obra_key}: ${matsUrg.length} material${matsUrg.length>1?'is':''} urgente${matsUrg.length>1?'s':''}`,
+        sub: matsUrg.map(m => m.item).slice(0,3).join(', '),
+        urgencia: 'media',
+        link: `index.html?obra_key=${o.obra_key}`
+      });
+    }
+  });
+
+  const card = document.getElementById('card-alertas');
+  const list = document.getElementById('alertas-list');
+  document.getElementById('alertas-count').textContent = `${alertas.length} alerta${alertas.length!==1?'s':''}`;
+
+  if (!alertas.length) {
+    card.style.display = 'none';
+    return;
+  }
+
+  card.style.display = 'block';
+  list.innerHTML = alertas.map(a => `
+    <div class="alerta-item">
+      <div class="alerta-dot ${esc(a.urgencia||'media')}"></div>
+      <div class="alerta-body">
+        <div class="alerta-titulo">${esc(a.titulo)}</div>
+        ${a.sub ? `<div class="alerta-sub">${esc(a.sub)}</div>` : ''}
+      </div>
+      ${a.link ? `<a href="${esc(a.link)}" class="btn btn-ghost" style="font-size:11px;flex-shrink:0">Ver</a>` : ''}
+    </div>`).join('');
+}
+
+// ─── LOAD BRAIN DATA ──────────────────────────────────────────────────────────
+async function carregarBrainData() {
+  const hojeStr = hoje();
+  let tarefas = [];
+  let parceiros = [];
+
+  try {
+    const rows = await sbFetch(`brain_data?select=*&status=eq.ativo`);
+    tarefas   = (rows || []).filter(r => r.tipo === 'tarefa').map(r => r.data);
+    parceiros = (rows || []).filter(r => r.tipo === 'parceiro').map(r => r.data);
+  } catch {
+    // Fallback localStorage
+    try {
+      const bd = JSON.parse(localStorage.getItem('brain_v2_berti') || '{}');
+      tarefas   = bd.tarefas   || [];
+      parceiros = bd.parceiros || [];
+    } catch {}
+  }
+
+  renderPrioridades(tarefas, hojeStr);
+  renderAgenda(tarefas);
+  renderMensagens(tarefas);
+  renderParceiros(parceiros, hojeStr);
+}
+
+function renderPrioridades(tarefas, hojeStr) {
+  const prioritarias = tarefas
+    .filter(t => t.data === hojeStr && t.status === 'pendente' && t.prioridade === 'alta')
+    .concat(tarefas.filter(t => t.data === hojeStr && t.status === 'pendente' && t.prioridade !== 'alta'))
+    .slice(0, 3);
+
+  const el = document.getElementById('prioridades-list');
+  if (!prioritarias.length) {
+    // Tenta tarefas de qualquer data pendentes
+    const atrasadas = tarefas.filter(t => t.status === 'pendente' && t.data < hojeStr).slice(0,3);
+    if (atrasadas.length) {
+      el.innerHTML = atrasadas.map((t, i) => `
+        <div class="prior-item">
+          <div class="prior-num">${i+1}</div>
+          <div>
+            <div class="prior-titulo">${esc(t.titulo||'')}</div>
+            <div class="prior-sub">${esc(t.categoria||'')} · ${esc(t.contexto||'')} <span style="color:var(--danger)">atrasada</span></div>
+          </div>
+        </div>`).join('');
+    } else {
+      el.innerHTML = `<div class="hub-empty">Sem tarefas prioritárias para hoje</div>`;
+    }
+    return;
+  }
+
+  el.innerHTML = prioritarias.map((t, i) => `
+    <div class="prior-item">
+      <div class="prior-num">${i+1}</div>
+      <div>
+        <div class="prior-titulo">${esc(t.titulo||'')}</div>
+        <div class="prior-sub">${esc(t.categoria||'')}${t.contexto ? ' · '+esc(t.contexto) : ''}${t.tempo ? ' · ~'+t.tempo+'min' : ''}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderAgenda(tarefas) {
+  // Agenda: tarefas de hoje que têm horário (campo tempo usado como referência de hora do dia)
+  // Também lê agenda_manual do brain
+  let agenda = [];
+
+  // Tenta ler agenda manual do brain
+  try {
+    const bd = JSON.parse(localStorage.getItem('brain_v2_berti') || '{}');
+    const agendaManual = bd.agenda_manual || '';
+    if (agendaManual) {
+      // Parse linhas: "09:00 Reunião fulano" ou "09:00 - Reunião"
+      agendaManual.split('\n').filter(l => l.trim()).forEach(linha => {
+        const match = linha.match(/^(\d{1,2}:\d{2})\s*[-·]?\s*(.+)/);
+        if (match) {
+          agenda.push({ hora: match[1], desc: match[2].trim() });
+        } else if (linha.trim()) {
+          agenda.push({ hora: '—', desc: linha.trim() });
+        }
+      });
+    }
+  } catch {}
+
+  const el = document.getElementById('agenda-list');
+  if (!agenda.length) {
+    el.innerHTML = `<div class="hub-empty">Sem agenda registrada<br><a href="brain.html" style="color:var(--verde)">Registrar no Brain →</a></div>`;
+    return;
+  }
+
+  el.innerHTML = agenda.map(a => `
+    <div class="agenda-item">
+      <div class="agenda-hora">${esc(a.hora)}</div>
+      <div class="agenda-desc">${esc(a.desc)}</div>
+    </div>`).join('');
+}
+
+function renderMensagens(tarefas) {
+  // Mensagens prontas: tarefas com whatsapp_msg preenchido e status pendente
+  const msgs = tarefas.filter(t => t.whatsapp_msg && t.status === 'pendente').slice(0, 5);
+  const el = document.getElementById('msgs-list');
+  const count = document.getElementById('msgs-count');
+  count.textContent = msgs.length ? `${msgs.length}` : '';
+
+  if (!msgs.length) {
+    el.innerHTML = `<div class="hub-empty">Nenhuma mensagem pendente</div>`;
+    return;
+  }
+
+  el.innerHTML = msgs.map(t => {
+    const tel = (t.whatsapp_para || '').replace(/\D/g,'');
+    const waUrl = tel ? `https://wa.me/55${tel}?text=${encodeURIComponent(t.whatsapp_msg)}` : '';
+    return `
+    <div class="msg-item">
+      <div class="msg-item-dest">Para: ${esc(t.whatsapp_para||'?')} · ${esc(t.contexto||'')}</div>
+      <div class="msg-item-text">${esc(t.whatsapp_msg||'')}</div>
+      <div class="msg-item-actions">
+        ${waUrl ? `<a href="${esc(waUrl)}" target="_blank" class="btn btn-verde">WhatsApp</a>` : ''}
+        <button class="btn btn-ghost" onclick="copiarMsg('${esc(t.whatsapp_msg||'')}')">Copiar</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function copiarMsg(msg) {
+  navigator.clipboard.writeText(msg).then(() => toast('Copiado!', 'success'));
+}
+
+function renderParceiros(parceiros, hojeStr) {
+  // Parceiros com ação vencida (prazo_proxima_acao < hoje)
+  const vencidos = parceiros.filter(p => {
+    if (!p.prazo_proxima_acao) return false;
+    return p.prazo_proxima_acao < hojeStr && p.status !== 'inativo';
+  });
+
+  // Parceiros sem interação há 15+ dias
+  const inativos = parceiros.filter(p => {
+    if (!p.ultima_interacao) return true;
+    const diff = Math.floor((new Date() - new Date(p.ultima_interacao + 'T00:00:00')) / 86400000);
+    return diff >= 15 && p.status === 'ativo';
+  }).filter(p => !vencidos.find(v => v.id === p.id));
+
+  const todos = [...vencidos, ...inativos].slice(0, 6);
+  const card = document.getElementById('card-parceiros');
+  const list = document.getElementById('parceiros-list');
+
+  if (!todos.length) {
+    card.style.display = 'none';
+    return;
+  }
+
+  card.style.display = 'block';
+  list.innerHTML = todos.map(p => {
+    const isVencido = vencidos.find(v => v.id === p.id);
+    const diasSemInteracao = p.ultima_interacao
+      ? Math.floor((new Date() - new Date(p.ultima_interacao + 'T00:00:00')) / 86400000)
+      : null;
+    return `
+    <div class="parceiro-item">
+      <div class="parceiro-nome">${esc(p.nome||'')} ${p.empresa ? `<span style="font-weight:400;color:var(--text-dim)">· ${esc(p.empresa)}</span>` : ''}</div>
+      <div class="parceiro-sub">
+        ${p.contato ? `📱 ${esc(p.contato)}` : ''}
+        ${diasSemInteracao !== null ? ` · ${diasSemInteracao}d sem interação` : ''}
+        ${p.comissao_pendente > 0 ? ` · <span style="color:var(--ouro)">Comissão pendente: ${fmtMoney(p.comissao_pendente)}</span>` : ''}
+      </div>
+      ${isVencido && p.proxima_acao ? `<div class="parceiro-acao">⚠ Vencido: ${esc(p.proxima_acao)}</div>` : ''}
+      ${!isVencido && diasSemInteracao >= 15 ? `<div class="parceiro-acao">● Sem contato há ${diasSemInteracao} dias</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ─── SUBTEXTO DO HUB ─────────────────────────────────────────────────────────
+function atualizarSubtexto(obras) {
+  const ativas = obras.filter(o => {
+    const fim = o.data?.config?.periodo_fim;
+    return !fim || fim >= hoje();
+  });
+  const totalPend = ativas.reduce((s, o) =>
+    s + (o.data?.pendencias||[]).filter(p => p.status === 'ABERTO').length, 0);
+  document.getElementById('hub-subtext').textContent =
+    `${ativas.length} obra${ativas.length!==1?'s':''} ativa${ativas.length!==1?'s':''} · ${totalPend} pendência${totalPend!==1?'s':''} aberta${totalPend!==1?'s':''}`;
+}
+
+// ─── RELOAD ───────────────────────────────────────────────────────────────────
+async function recarregar() {
+  const btn = document.getElementById('btn-reload');
+  btn.classList.add('spin');
+  try {
+    const obras = await carregarObras();
+    await carregarBrainData();
+    atualizarSubtexto(obras);
+    toast('Dados atualizados', 'success');
+  } catch(e) {
+    toast('Erro ao atualizar: ' + e.message, 'error');
+  } finally {
+    setTimeout(() => btn.classList.remove('spin'), 600);
+  }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+(async function init() {
+  atualizarRelogio();
+  setInterval(atualizarRelogio, 30000);
+
+  try {
+    const obras = await carregarObras();
+    await carregarBrainData();
+    atualizarSubtexto(obras);
+  } catch(e) {
+    console.error('Hub init error:', e);
+  }
+})();
+</script>
+</body>
+</html>
