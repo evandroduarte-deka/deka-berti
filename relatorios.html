@@ -391,11 +391,21 @@ Contato: (41) 9183-6651
 </regras_absolutas>
 
 <formato_saida>
-- ZERO markdown: proibido usar **, *, ##, ###, ---, _texto_, [texto], ou qualquer sintaxe markdown
-- Títulos de seção: SEMPRE em CAIXA ALTA sozinhos na linha (ex: SERVIÇOS EXECUTADOS)
-- Itens de lista: prefixo "- " (traço espaço)
-- Dados chave-valor: "Rótulo: valor" na mesma linha
-- Texto simples: sem formatação especial
+REGRA ABSOLUTA DE FORMATAÇÃO: ZERO markdown em qualquer circunstância.
+Proibido: ** * ## ### --- _ ` [ ] ( ) qualquer caractere de formatação markdown.
+Títulos de seção: CAIXA ALTA sozinhos na linha, sem prefixo, sem dois-pontos.
+Itens de lista: apenas "- texto" (traço espaço texto).
+Dados: apenas "Rótulo: valor" (sem negrito, sem aspas especiais).
+
+Exemplo CORRETO de saída:
+SERVIÇOS EXECUTADOS
+- Alvenaria de vedação: 65% concluído
+- Revestimento cerâmico: em andamento, 40%
+
+Exemplo PROIBIDO (nunca fazer isto):
+**SERVIÇOS EXECUTADOS**
+## Serviços
+- **Alvenaria**: 65%
 </formato_saida>
 
 <estrutura_obrigatoria>
@@ -642,18 +652,23 @@ function textoParaHTML(txt) {
   if (!txt) return '';
 
   // ── Pré-processamento: normaliza markdown → texto estruturado ──────────────
+  // Converte \n literal (backslash-n) em quebra de linha real
+  txt = txt.replace(/\\n/g, '\n');
   // Remove separadores markdown
-  txt = txt.replace(/^---+\s*$/gm, '');
-  txt = txt.replace(/^\*\*\*+\s*$/gm, '');
-  // Converte cabeçalhos markdown ## em CAPS para detecção posterior
-  txt = txt.replace(/^#{1,3}\s+(.+)$/gm, (_, h) => h.trim().toUpperCase());
-  // Remove negrito/itálico preservando o texto
-  txt = txt.replace(/\*\*(.+?)\*\*/g, '$1');
-  txt = txt.replace(/\*(.+?)\*/g, '$1');
-  txt = txt.replace(/__(.+?)__/g, '$1');
-  txt = txt.replace(/_(.+?)_/g, '$1');
+  txt = txt.replace(/^[-*_]{3,}\s*$/gm, '');
+  // Converte cabeçalhos markdown ## / ### em CAPS para detecção posterior
+  txt = txt.replace(/^#{1,6}\s+(.+)$/gm, (_, h) => h.trim().toUpperCase());
+  // Remove negrito/itálico (dotAll: usa [\s\S] para pegar multi-linha)
+  txt = txt.replace(/\*\*([\s\S]+?)\*\*/g, '$1');
+  txt = txt.replace(/\*([\s\S]+?)\*/g, '$1');
+  txt = txt.replace(/__([\s\S]+?)__/g, '$1');
+  txt = txt.replace(/_([\s\S]+?)_/g, '$1');
+  // Remove código inline
+  txt = txt.replace(/`([^`]+)`/g, '$1');
   // Remove links markdown [texto](url) → texto
   txt = txt.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+  // Colapsa linhas em branco excessivas (>2 seguidas)
+  txt = txt.replace(/\n{3,}/g, '\n\n');
 
   const lines = txt.split('\n');
   let html = '';
