@@ -597,7 +597,7 @@ function renderResumoObra() {
     <div class="rel-meta-grid">
       <div class="rel-meta-row"><span class="rel-meta-label">Obra </span>${esc(c.obra||'—')}</div>
       <div class="rel-meta-row"><span class="rel-meta-label">Cliente </span>${esc(c.cliente||'—')}</div>
-      <div class="rel-meta-row"><span class="rel-meta-label">Endereço </span>${esc(c.endereco||'—')}</div>
+      <div class="rel-meta-row"><span class="rel-meta-label">Endereço </span>${esc(c.endereco_obra||c.endereco||c.local||'—')}</div>
       <div class="rel-meta-row"><span class="rel-meta-label">Período </span>${fmtDate(c.periodo_ini)} → ${fmtDate(c.periodo_fim)}</div>
       <div class="rel-meta-row"><span class="rel-meta-label">Semana </span><strong style="color:var(--hdr)">S${semanaAtual}</strong> · ${getPeriodoSemana(c.periodo_ini, semanaAtual)}</div>
       <div class="rel-meta-row"><span class="rel-meta-label">Serviços </span>${servicos.length} total · ${concluidos} concluídos</div>
@@ -876,7 +876,7 @@ async function gerarRelatorioSemanal() {
           </div>
         </div>
         <div style="font-family:var(--font-display);font-size:24px;letter-spacing:2px;color:#1a2e1a;margin-bottom:3px">${esc((c.obra||'').toUpperCase())}</div>
-        <div style="font-size:11px;color:#6b7280;margin-bottom:16px">${esc(c.endereco||'—')}</div>
+        <div style="font-size:11px;color:#6b7280;margin-bottom:16px">${esc(c.endereco_obra||c.endereco||c.local||'—')}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 28px">
           ${metaCell('Contratante', esc(c.cliente||'—'))}
           ${metaCell('Semana de Referência', `S${semanaAtual} · ${esc(periodo)}`)}
@@ -961,12 +961,195 @@ async function gerarRelatorioInterno() {
   relTextos.interno = '';
 
   try {
-    const ctx = montarContextoInterno();
-    const userMsg = `Gere o RELATÓRIO INTERNO para a Semana S${semanaAtual}.\n\nDados:\n${ctx}`;
-    const resposta = await aiFetch(SYS_RELATORIO_INTERNO, userMsg, 3000);
-    relTextos.interno = resposta;
+    const c = obraAtual.config || {};
+    const snap = obraAtual?.snapshots?.[`S${semanaAtual}`];
+    const snapAnt = obraAtual?.snapshots?.[`S${semanaAtual - 1}`];
+    const servicos = snap?.servicos || obraAtual?.servicos || [];
+    const servsAnt = snapAnt?.servicos || [];
+    const pagamentos = obraAtual?.pagamentos || [];
+    const pendencias = obraAtual?.pendencias || [];
+    const periodo = getPeriodoSemana(c.periodo_ini, semanaAtual);
+    const dataEmissao = new Date().toLocaleDateString('pt-BR');
+
+    // KPIs
+    const pctAtual = calcPctGeral(servicos);
+    const pctAntVal = calcPctGeral(servsAnt);
+    const delta = pctAtual - pctAntVal;
+    const totalPago = pagamentos.filter(p=>p.status==='pago').reduce((s,p)=>s+(Number(p.valor)||0),0);
+    const totalPend = pagamentos.filter(p=>p.status==='pendente').reduce((s,p)=>s+(Number(p.valor)||0),0);
+    const valorMedidoAcum = servicos.reduce((s,v)=>s+(Number(v.valor)||0)*(Number(v.pct_atual)||0)/100,0);
+    const valorMedidoAnt = servsAnt.reduce((s,v)=>s+(Number(v.valor)||0)*(Number(v.pct_atual)||0)/100,0);
+    const medicaoSemana = Math.max(0, valorMedidoAcum - valorMedidoAnt);
+    const pendsAbertas = pendencias.filter(p=>p.status==='ABERTO').length;
+
+    // Serviços com delta
+    const servsComDelta = servicos.map(s => {
+      const ant = servsAnt.find(x => x.cod === s.cod);
+      const pctPrev = s.pct_previsto_semana?.[`S${semanaAtual}`] ?? null;
+      const pctA = ant?.pct_atual ?? 0;
+      const d = (s.pct_atual||0) - pctA;
+      return { ...s, pct_ant: pctA, delta: d, pct_previsto: pctPrev, abaixo: pctPrev !== null && (s.pct_atual||0) < pctPrev };
+    });
+
+    // Serviços para próxima semana
+    const servsProxSemana = servicos.filter(s =>
+      (s.semana_prevista_ini <= semanaAtual + 1) && (s.semana_prevista_fim >= semanaAtual + 1) && (s.pct_atual||0) < 100
+    );
+
+    // IA — apenas análise de desvios, riscos e recomendações (500 tokens)
+    const sysAnalise = `Você é o analista de obra da Berti Construtora.
+Gere SOMENTE a análise interna: desvios identificados, riscos e recomendações.
+REGRAS ABSOLUTAS:
+- ZERO markdown: proibido usar **, *, ##, ---, _
+- Texto corrido em no máximo 3 parágrafos curtos
+- Linguagem técnica e direta
+- Baseado APENAS nos dados fornecidos`;
+    const analise = await aiFetch(sysAnalise, `Analise a Semana S${semanaAtual}:\n${montarContextoInterno()}`, 500);
+
+    // Helpers HTML
+    function secHeadInt(num, titulo) {
+      return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="font-family:var(--font-data);font-size:8px;letter-spacing:2px;color:#9ca3af">${num}</div>
+        <div style="height:1px;flex:1;background:#e5e7eb"></div>
+        <div style="font-family:var(--font-display);font-size:14px;letter-spacing:2px;color:#1a2e1a">${titulo.toUpperCase()}</div>
+        <div style="height:1px;flex:1;background:#e5e7eb"></div>
+      </div>`;
+    }
+    function kpiInt(label, val, cor) {
+      return `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:14px;text-align:center;border-top:3px solid ${cor}">
+        <div style="font-family:var(--font-display);font-size:26px;letter-spacing:1px;color:${cor};line-height:1">${val}</div>
+        <div style="font-family:var(--font-data);font-size:8px;letter-spacing:1px;color:#9ca3af;margin-top:4px;text-transform:uppercase">${esc(label)}</div>
+      </div>`;
+    }
+
+    // Tabela performance
+    const perfRows = servsComDelta.filter(s => s.delta > 0 || s.pct_atual > 0).map(s => {
+      const badge = s.abaixo
+        ? `<span style="background:#fee2e2;color:#dc2626;border-radius:3px;padding:1px 5px;font-size:9px;font-family:var(--font-data)">ABAIXO</span>`
+        : s.delta > 0
+          ? `<span style="background:#dcfce7;color:#16a34a;border-radius:3px;padding:1px 5px;font-size:9px;font-family:var(--font-data)">+${s.delta}%</span>`
+          : `<span style="background:#f3f4f6;color:#6b7280;border-radius:3px;padding:1px 5px;font-size:9px;font-family:var(--font-data)">—</span>`;
+      const prevStr = s.pct_previsto !== null ? `<span style="color:#9ca3af;font-size:9px"> · prev ${s.pct_previsto}%</span>` : '';
+      return `<tr style="border-bottom:1px solid #f3f4f6">
+        <td style="padding:6px 8px;font-size:11px;color:#111">${esc(s.cod||'')} ${esc(s.descricao||'')}</td>
+        <td style="padding:6px 8px;font-size:11px;color:#6b7280;text-align:center">${s.pct_ant}%</td>
+        <td style="padding:6px 8px;font-size:11px;font-weight:600;text-align:center">${s.pct_atual||0}%${prevStr}</td>
+        <td style="padding:6px 8px;text-align:center">${badge}</td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="4" style="padding:10px 8px;text-align:center;color:#9ca3af;font-size:11px">Sem dados de serviços</td></tr>`;
+
+    // Tabela pagamentos
+    const pagRows = pagamentos.map(p => {
+      const sStyle = p.status === 'pago' ? 'background:#dcfce7;color:#16a34a' : 'background:#fef9c3;color:#b45309';
+      return `<tr style="border-bottom:1px solid #f3f4f6">
+        <td style="padding:6px 8px;font-size:11px;color:#111">${esc(p.descricao||p.tipo||'—')}</td>
+        <td style="padding:6px 8px;font-size:11px;color:#6b7280;text-align:center">${esc(fmtDate(p.data||p.vencimento||''))}</td>
+        <td style="padding:6px 8px;font-size:11px;font-weight:600;text-align:right">${fmtMoney(p.valor)}</td>
+        <td style="padding:6px 8px;text-align:center"><span style="${sStyle};border-radius:3px;padding:1px 6px;font-size:9px;font-family:var(--font-data)">${esc((p.status||'').toUpperCase())}</span></td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="4" style="padding:10px 8px;text-align:center;color:#9ca3af;font-size:11px">Sem registros de pagamento</td></tr>`;
+
+    // Próxima semana
+    const proxRows = servsProxSemana.length
+      ? servsProxSemana.map(s => `<li style="font-size:11px;color:#374151;padding:3px 0">${esc(s.descricao)} <span style="color:#9ca3af">(atual: ${s.pct_atual||0}%)</span></li>`).join('')
+      : `<li style="font-size:11px;color:#9ca3af;padding:3px 0">Sem serviços planejados registrados para S${semanaAtual + 1}</li>`;
+
+    const html = `<div style="background:#fff;font-family:'Jost',sans-serif;font-size:13px;color:#111;max-width:820px;margin:0 auto;padding:0">
+
+      <!-- CABEÇALHO -->
+      <div style="border-bottom:3px solid #1a2e1a;padding-bottom:20px;margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+          <div>
+            <div style="font-family:var(--font-display);font-size:34px;letter-spacing:4px;color:#1a2e1a;line-height:1">BERTI.</div>
+            <div style="font-family:var(--font-data);font-size:8px;letter-spacing:3px;color:#9ca3af;margin-top:2px">CONSTRUTORA</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:var(--font-data);font-size:8px;letter-spacing:2px;color:#9ca3af;text-transform:uppercase;margin-bottom:4px">Relatório Interno de Gestão</div>
+            <div style="font-size:11px;color:#6b7280">Emissão: ${esc(dataEmissao)} · CONFIDENCIAL</div>
+          </div>
+        </div>
+        <div style="font-family:var(--font-display);font-size:24px;letter-spacing:2px;color:#1a2e1a;margin-bottom:3px">${esc((c.obra||'').toUpperCase())}</div>
+        <div style="font-size:11px;color:#6b7280;margin-bottom:16px">${esc(c.endereco_obra||c.endereco||c.local||'—')}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 28px">
+          <div style="padding:5px 0;border-bottom:1px solid #f3f4f6"><div style="font-family:var(--font-data);font-size:8px;letter-spacing:1px;color:#9ca3af;text-transform:uppercase;margin-bottom:2px">Cliente</div><div style="font-size:12px;font-weight:600;color:#111">${esc(c.cliente||'—')}</div></div>
+          <div style="padding:5px 0;border-bottom:1px solid #f3f4f6"><div style="font-family:var(--font-data);font-size:8px;letter-spacing:1px;color:#9ca3af;text-transform:uppercase;margin-bottom:2px">Semana</div><div style="font-size:12px;font-weight:600;color:#111">S${semanaAtual} · ${esc(periodo)}</div></div>
+          <div style="padding:5px 0;border-bottom:1px solid #f3f4f6"><div style="font-family:var(--font-data);font-size:8px;letter-spacing:1px;color:#9ca3af;text-transform:uppercase;margin-bottom:2px">Período da Obra</div><div style="font-size:12px;font-weight:600;color:#111">${fmtDate(c.periodo_ini)} a ${fmtDate(c.periodo_fim)}</div></div>
+          <div style="padding:5px 0;border-bottom:1px solid #f3f4f6"><div style="font-family:var(--font-data);font-size:8px;letter-spacing:1px;color:#9ca3af;text-transform:uppercase;margin-bottom:2px">Valor do Contrato</div><div style="font-size:12px;font-weight:600;color:#111">${fmtMoney(c.valor_contrato)}</div></div>
+        </div>
+      </div>
+
+      <!-- KPI STRIP -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px">
+        ${kpiInt('Progresso Geral', pctAtual + '%', '#1a2e1a')}
+        ${kpiInt('Delta Semana', (delta >= 0 ? '+' : '') + delta + 'pp', delta >= 0 ? '#16a34a' : '#dc2626')}
+        ${kpiInt('Medição S' + semanaAtual, fmtMoney(medicaoSemana), '#2563eb')}
+        ${kpiInt('Pendências Abertas', String(pendsAbertas), pendsAbertas > 0 ? '#dc2626' : '#16a34a')}
+      </div>
+
+      <!-- SEÇÃO 01 — PERFORMANCE -->
+      <div style="margin-bottom:28px">
+        ${secHeadInt('01', 'Performance por Serviço')}
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr style="background:#1a2e1a">
+            <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.7);text-align:left;font-weight:500">SERVIÇO</th>
+            <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.7);text-align:center;font-weight:500">ANTERIOR</th>
+            <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.7);text-align:center;font-weight:500">ATUAL</th>
+            <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.7);text-align:center;font-weight:500">STATUS</th>
+          </tr></thead>
+          <tbody>${perfRows}</tbody>
+        </table>
+      </div>
+
+      <!-- SEÇÃO 02 — ANÁLISE IA -->
+      <div style="margin-bottom:28px">
+        ${secHeadInt('02', 'Análise · Desvios e Riscos')}
+        <p style="font-size:13px;line-height:1.75;color:#374151">${esc(analise)}</p>
+      </div>
+
+      <!-- SEÇÃO 03 — FINANCEIRO -->
+      <div style="margin-bottom:28px">
+        ${secHeadInt('03', 'Financeiro')}
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px;text-align:center">
+            <div style="font-family:var(--font-display);font-size:18px;color:#1a2e1a">${fmtMoney(totalPago)}</div>
+            <div style="font-family:var(--font-data);font-size:8px;letter-spacing:1px;color:#9ca3af;text-transform:uppercase;margin-top:4px">Total Pago</div>
+          </div>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px;text-align:center">
+            <div style="font-family:var(--font-display);font-size:18px;color:#b45309">${fmtMoney(totalPend)}</div>
+            <div style="font-family:var(--font-data);font-size:8px;letter-spacing:1px;color:#9ca3af;text-transform:uppercase;margin-top:4px">Pendente</div>
+          </div>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px;text-align:center">
+            <div style="font-family:var(--font-display);font-size:18px;color:#2563eb">${fmtMoney(valorMedidoAcum)}</div>
+            <div style="font-family:var(--font-data);font-size:8px;letter-spacing:1px;color:#9ca3af;text-transform:uppercase;margin-top:4px">Medido Acumulado</div>
+          </div>
+        </div>
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr style="background:#1a2e1a">
+            <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.7);text-align:left;font-weight:500">DESCRIÇÃO</th>
+            <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.7);text-align:center;font-weight:500">DATA</th>
+            <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.7);text-align:right;font-weight:500">VALOR</th>
+            <th style="padding:8px 10px;font-family:var(--font-data);font-size:9px;letter-spacing:1px;color:rgba(255,255,255,0.7);text-align:center;font-weight:500">STATUS</th>
+          </tr></thead>
+          <tbody>${pagRows}</tbody>
+        </table>
+      </div>
+
+      <!-- SEÇÃO 04 — PRÓXIMA SEMANA -->
+      <div style="margin-bottom:40px">
+        ${secHeadInt('04', 'Planejamento · Próxima Semana')}
+        <ul style="margin:0;padding-left:16px">${proxRows}</ul>
+      </div>
+
+      <!-- RODAPÉ -->
+      <div style="border-top:1px solid #e5e7eb;padding-top:10px;display:flex;justify-content:space-between;font-family:var(--font-data);font-size:8px;color:#9ca3af;letter-spacing:.5px">
+        <span>Berti Construtora LTDA · CNPJ 59.622.624/0001-93 · USO INTERNO</span>
+        <span>S${semanaAtual} · ${esc(c.obra||'')} · ${esc(dataEmissao)}</span>
+      </div>
+    </div>`;
+
+    relTextos.interno = html;
     el.className = 'rel-output';
-    el.innerHTML = textoParaHTML(resposta);
+    el.innerHTML = html;
     stat.textContent = `gerado · ${new Date().toLocaleTimeString('pt-BR')}`;
     ['btn-copy-interno'].forEach(id => { const b = document.getElementById(id); if(b) b.disabled = false; });
     toast('Relatório interno gerado', 'success');
