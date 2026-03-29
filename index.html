@@ -2331,6 +2331,29 @@ body.tabs-active #tab-cronograma.active{max-width:100%!important;margin:0!import
       </div>
     </div>
 
+    <!-- Token Worker -->
+    <div id="worker-token-bloco" style="margin-bottom:12px">
+      <!-- Estado: configurado -->
+      <div id="worker-token-status-view" style="display:none;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius)">
+        <div style="width:8px;height:8px;border-radius:50%;background:#6EE7B7;flex-shrink:0"></div>
+        <div style="flex:1">
+          <div style="font-size:11px;font-weight:700;color:var(--ink)">Token Worker (Cloudflare) — Configurado</div>
+          <div id="worker-token-preview" style="font-size:10px;color:var(--muted);font-family:var(--font-mono)">•••••••••••••••</div>
+        </div>
+        <button onclick="editarWorkerToken()" style="font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);padding:4px 8px;border-radius:var(--radius);cursor:pointer">Alterar</button>
+      </div>
+      <!-- Estado: editar -->
+      <div id="worker-token-edit-view" style="display:none">
+        <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:6px">Token Worker (Cloudflare)</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="password" id="cfg-worker-token" placeholder="Token secreto do Worker" style="flex:1" autocomplete="off">
+          <button class="btn btn-primary btn-sm" onclick="salvarWorkerToken()">Salvar</button>
+          <button onclick="cancelarEditWorkerToken()" style="font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);padding:6px 8px;border-radius:var(--radius);cursor:pointer">✕</button>
+        </div>
+        <div class="input-hint" style="margin-top:4px">Cloudflare Dashboard → Workers → anthropic-proxy → Settings → Variables → DEKA_SECRET_TOKEN</div>
+      </div>
+    </div>
+
     <!-- Teste rápido IA -->
     <div id="ia-test-bloco" style="margin-bottom:12px">
       <button onclick="testarIA()" id="btn-testar-ia" style="font-size:11px;font-weight:600;background:none;border:1.5px solid var(--border);color:var(--muted);padding:8px 14px;border-radius:var(--radius);cursor:pointer;width:100%;text-align:left;display:flex;align-items:center;gap:8px">
@@ -8798,6 +8821,47 @@ function cancelarEditApiKey(){
   mostrarApiConfigurada();
 }
 
+function salvarWorkerToken(){
+  const t = ((document.getElementById('cfg-worker-token')||{value:''}).value||'').trim();
+  if(!t){ toast('Cole o token do Worker primeiro', 'error'); return; }
+  localStorage.setItem('mdo_worker_token', t);
+  mostrarWorkerTokenConfigurado();
+  toast('Token Worker salvo!', 'success');
+}
+
+function mostrarWorkerTokenConfigurado(){
+  const t = localStorage.getItem('mdo_worker_token') || '';
+  const sv = document.getElementById('worker-token-status-view');
+  const ev = document.getElementById('worker-token-edit-view');
+  const prev = document.getElementById('worker-token-preview');
+  if(!sv || !ev) return;
+  if(t){
+    sv.style.display = 'flex';
+    ev.style.display = 'none';
+    if(prev) prev.textContent = '•••••••••••••••';
+  } else {
+    sv.style.display = 'none';
+    ev.style.display = 'block';
+  }
+}
+
+function editarWorkerToken(){
+  document.getElementById('worker-token-status-view').style.display = 'none';
+  document.getElementById('worker-token-edit-view').style.display = 'block';
+  const t = localStorage.getItem('mdo_worker_token')||'';
+  const el = document.getElementById('cfg-worker-token');
+  if(el && t) el.value = t;
+  if(el)el.focus();
+}
+
+function cancelarEditWorkerToken(){
+  mostrarWorkerTokenConfigurado();
+}
+
+function getWorkerToken(){
+  return localStorage.getItem('mdo_worker_token') || '';
+}
+
 function carregarApiKey(){
   mostrarApiConfigurada();
 }
@@ -8831,7 +8895,10 @@ async function callClaude(opts){
     const timer = setTimeout(function(){ controller.abort(); }, 45000); // 45s timeout
     const resp = await fetch('https://anthropic-proxy.berti-b52.workers.dev', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Deka-Token': getWorkerToken()
+      },
       body: JSON.stringify(body),
       signal: controller.signal
     });
@@ -8907,7 +8974,10 @@ async function testarIA(){
     var t0 = Date.now();
     var r = await fetch('https://anthropic-proxy.berti-b52.workers.dev', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: {
+        'Content-Type':'application/json',
+        'X-Deka-Token': getWorkerToken()
+      },
       body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:30,messages:[{role:'user',content:'Responda apenas: OK'}]})
     });
     var d = await r.json();
@@ -11781,6 +11851,7 @@ function init(){
   if(!_ik){ localStorage.setItem('mdo_imgbb_key','588ec0d66fb7cefc2ee8aea196125c53'); _ik='588ec0d66fb7cefc2ee8aea196125c53'; }
   if(_ak) mostrarApiConfigurada();
   if(_ik) mostrarImgbbConfigurada();
+  mostrarWorkerTokenConfigurado();
   showObraSelector();
   setTimeout(function(){ try{ migrarPlanilhasLegacy(); carregarPlanilhas(); }catch(e){console.error(e);} },300);
   setTimeout(function(){ try{ initSync(); }catch(e){console.error(e);} },600);
