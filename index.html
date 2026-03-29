@@ -8893,7 +8893,7 @@ async function callClaude(opts){
   try {
     const controller = new AbortController();
     const timer = setTimeout(function(){ controller.abort(); }, 45000); // 45s timeout
-    const resp = await fetch('https://anthropic-proxy.berti-b52.workers.dev', {
+    const resp = await fetch('https://anthropic-proxy.berti-b52.workers.dev/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -8972,7 +8972,7 @@ async function testarIA(){
   log += '── Worker (Cloudflare) ──\n';
   try {
     var t0 = Date.now();
-    var r = await fetch('https://anthropic-proxy.berti-b52.workers.dev', {
+    var r = await fetch('https://anthropic-proxy.berti-b52.workers.dev/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type':'application/json',
