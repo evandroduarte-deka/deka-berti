@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat de Orçamento · DEKA OS</title>
+  <style>
+    /* ================================================================
+       DEKA OS v2.0 — chat-orcamento.html
+       Módulo: AGT_INTAKE — Elaboração de Propostas via Chat
+       Tema: Escuro com acento dourado (#e2c55c)
+       Regra: Zero lógica aqui — toda JS em chat-orcamento.js
+    ================================================================ */
+
+    /* ---- Reset ---- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    button { font: inherit; cursor: pointer; border: none; background: none; }
+    textarea { font: inherit; }
+
+    /* ---- Design Tokens ---- */
+    :root {
+      --bg-base: #07090e;
+      --bg-surface: #0c0f17;
+      --bg-card: #10141f;
+      --bg-card-hover: #151a28;
+      --border: #191f30;
+      --border-active: #253050;
+      --text-primary: #dde2f0;
+      --text-secondary: #5a6480;
+      --text-muted: #2e3650;
+      --accent: #e2c55c;
+      --accent-dim: rgba(226, 197, 92, 0.10);
+      --accent-border: rgba(226, 197, 92, 0.22);
+      --green: #22c55e;
+      --red: #ef4444;
+      --font-body: 'Inter', system-ui, sans-serif;
+      --font-mono: 'IBM Plex Mono', 'Consolas', monospace;
+      --r-md: 8px;
+      --r-lg: 12px;
+    }
+
+    /* ---- Body ---- */
+    body {
+      font-family: var(--font-body);
+      font-size: 14px;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: 56px;
+      background: rgba(7, 9, 14, 0.95);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 16px;
+    }
+
+    .header-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .header-title em {
+      font-style: normal;
+      color: var(--accent);
+    }
+
+    .header-spacer {
+      flex: 1;
+    }
+
+    .btn-header {
+      padding: 8px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      transition: all 0.2s;
+    }
+
+    .btn-header:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent);
+    }
+
+    /* ---- Chat Container ---- */
+    .chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    /* ---- Chat Messages ---- */
+    #chat-mensagens {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .mensagem {
+      display: flex;
+      gap: 12px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .mensagem-gestor {
+      flex-direction: row-reverse;
+    }
+
+    .mensagem-sistema {
+      justify-content: center;
+    }
+
+    .mensagem-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .mensagem-gestor .mensagem-avatar {
+      background: var(--accent-dim);
+    }
+
+    .mensagem-conteudo {
+      max-width: 70%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 12px 16px;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+    }
+
+    .mensagem-gestor .mensagem-conteudo {
+      background: var(--accent-dim);
+      border-color: var(--accent-border);
+    }
+
+    .mensagem-sistema .mensagem-conteudo {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-style: italic;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .mensagem-conteudo pre {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 12px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      margin: 8px 0;
+    }
+
+    .mensagem-conteudo code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    /* ---- Actions Panel ---- */
+    #painel-acoes {
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    #painel-acoes.oculto {
+      display: none;
+    }
+
+    .btn-acao {
+      padding: 10px 20px;
+      border-radius: var(--r-md);
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-acao-primary {
+      background: var(--accent);
+      color: #000;
+    }
+
+    .btn-acao-primary:hover {
+      background: #f0d878;
+      transform: translateY(-1px);
+    }
+
+    .btn-acao-secondary {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-acao-secondary:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-active);
+    }
+
+    /* ---- Input Area ---- */
+    #chat-input-area {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .pdf-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-pdf {
+      padding: 8px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      transition: all 0.2s;
+    }
+
+    .btn-pdf:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent);
+    }
+
+    #preview-pdf {
+      display: none;
+      padding: 8px 12px;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent-border);
+      border-radius: var(--r-md);
+      font-size: 13px;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #preview-pdf.ativo {
+      display: flex;
+    }
+
+    .btn-remover-pdf {
+      padding: 2px 8px;
+      background: var(--bg-surface);
+      border-radius: 4px;
+      font-size: 12px;
+      margin-left: auto;
+    }
+
+    .btn-remover-pdf:hover {
+      background: var(--red);
+      color: #fff;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+    }
+
+    #chat-input {
+      flex: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 10px 12px;
+      color: var(--text-primary);
+      font-size: 14px;
+      resize: none;
+      min-height: 44px;
+      max-height: 150px;
+      transition: border-color 0.2s;
+    }
+
+    #chat-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    #chat-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    #btn-enviar,
+    #btn-loading {
+      width: 44px;
+      height: 44px;
+      background: var(--accent);
+      border-radius: var(--r-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: #000;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    #btn-enviar:hover:not(:disabled) {
+      background: #f0d878;
+      transform: scale(1.05);
+    }
+
+    #btn-enviar:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    #btn-loading {
+      background: var(--bg-card);
+      border: 2px solid var(--accent);
+      color: var(--accent);
+    }
+
+    #btn-loading.oculto {
+      display: none;
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid transparent;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ---- Empty State ---- */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .empty-state-text {
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ---- Scrollbar ---- */
+    #chat-mensagens::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    #chat-mensagens::-webkit-scrollbar-track {
+      background: var(--bg-base);
+    }
+
+    #chat-mensagens::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    #chat-mensagens::-webkit-scrollbar-thumb:hover {
+      background: var(--border-active);
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-title">💼 <em>Estudo de Orçamento</em></div>
+    <div class="header-spacer"></div>
+    <button id="btn-nova-conversa" class="btn-header">🔄 Nova Conversa</button>
+  </div>
+
+  <!-- Chat Container -->
+  <div class="chat-container">
+    <!-- Messages -->
+    <div id="chat-mensagens">
+      <div class="empty-state">
+        <div class="empty-state-icon">💬</div>
+        <div class="empty-state-text">
+          Olá! Sou o AGT_INTAKE.<br>
+          Vou te ajudar a montar o estudo de orçamento.<br>
+          Me passa o que você tiver: PDF do projeto, narrativa ou fotos!
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions Panel (hidden initially) -->
+    <div id="painel-acoes" class="oculto">
+      <button id="btn-importar-proposta" class="btn-acao btn-acao-primary">
+        💾 Salvar como Oportunidade
+      </button>
+      <button id="btn-importar-cockpit" class="btn-acao btn-acao-secondary">
+        ✅ Abrir como Obra Ativa
+      </button>
+      <button id="btn-baixar-json" class="btn-acao btn-acao-secondary">
+        ⬇️ Baixar JSON
+      </button>
+    </div>
+
+    <!-- Input Area -->
+    <div id="chat-input-area">
+      <!-- PDF Upload -->
+      <div class="pdf-area">
+        <button id="btn-anexar-pdf" class="btn-pdf">📎 Anexar PDF do projeto</button>
+        <input type="file" id="file-input-pdf" accept="application/pdf" style="display: none;">
+        <div id="preview-pdf">
+          <span id="preview-pdf-nome"></span>
+          <button class="btn-remover-pdf">×</button>
+        </div>
+      </div>
+
+      <!-- Input Row -->
+      <div class="input-row">
+        <textarea
+          id="chat-input"
+          placeholder="Digite sua mensagem... (Enter para enviar, Shift+Enter para quebrar linha)"
+          rows="1"
+        ></textarea>
+        <button id="btn-enviar">▲</button>
+        <div id="btn-loading" class="oculto">
+          <div class="spinner"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEKA_CONFIG antes dos imports -->
+  <script>
+    window.DEKA_CONFIG = {
+      supabaseUrl:     'https://tdylutdfzgtcfyhynenk.supabase.co',
+      supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkeWx1dGRmemd0Y2Z5aHluZW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyODQxMjcsImV4cCI6MjA4ODg2MDEyN30.k44CAV8O8AGhq4lzy-Ms5CF6JsW2fgMqLEegKb4K-pg',
+      workerUrl:       'https://anthropic-proxy.berti-b52.workers.dev',
+      token:           'deka2025@berti#seguro'
+    };
+  </script>
+  <script type="module" src="deka.js"></script>
+  <script type="module">
+    import { init } from './chat-orcamento.js';
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pipeline Comercial · DEKA OS</title>
+  <style>
+    /* ================================================================
+       DEKA OS v2.0 — oportunidades.html
+       Módulo: Pipeline Comercial — Gestão de Oportunidades
+       Tema: Escuro com acento dourado (#e2c55c)
+       Regra: Zero lógica aqui — toda JS em oportunidades.js
+    ================================================================ */
+
+    /* ---- Reset ---- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    button { font: inherit; cursor: pointer; border: none; background: none; }
+
+    /* ---- Design Tokens ---- */
+    :root {
+      --bg-base: #07090e;
+      --bg-surface: #0c0f17;
+      --bg-card: #10141f;
+      --bg-card-hover: #151a28;
+      --border: #191f30;
+      --border-active: #253050;
+      --text-primary: #dde2f0;
+      --text-secondary: #5a6480;
+      --text-muted: #2e3650;
+      --accent: #e2c55c;
+      --accent-dim: rgba(226, 197, 92, 0.10);
+      --green: #22c55e;
+      --red: #ef4444;
+      --amber: #f5a623;
+      --blue: #3b82f6;
+      --purple: #a78bfa;
+      --font-body: 'Inter', system-ui, sans-serif;
+      --font-mono: 'IBM Plex Mono', 'Consolas', monospace;
+      --r-md: 8px;
+      --r-lg: 12px;
+    }
+
+    /* ---- Body ---- */
+    body {
+      font-family: var(--font-body);
+      font-size: 14px;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: 56px;
+      background: rgba(7, 9, 14, 0.95);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 16px;
+    }
+
+    .logo {
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .logo em {
+      font-style: normal;
+      color: var(--accent);
+    }
+
+    .header-nav {
+      display: flex;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    .btn-header {
+      padding: 8px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      transition: all 0.2s;
+    }
+
+    .btn-header:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent);
+    }
+
+    .btn-header.primary {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+    }
+
+    .btn-header.primary:hover {
+      background: #f0d878;
+    }
+
+    /* ---- Container ---- */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* ---- Pipeline ---- */
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .pipeline-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 20px;
+      transition: transform 0.2s;
+    }
+
+    .pipeline-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .pipeline-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .pipeline-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .pipeline-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .pipeline-count {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .pipeline-valor {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* ---- Filtros ---- */
+    .filtros {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .filtro-btn {
+      padding: 6px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      font-size: 13px;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+
+    .filtro-btn:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-primary);
+    }
+
+    .filtro-btn.ativo {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ---- Lista ---- */
+    .oportunidade-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 20px;
+      margin-bottom: 16px;
+      transition: all 0.2s;
+    }
+
+    .oportunidade-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-active);
+    }
+
+    .oportunidade-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .oportunidade-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .oportunidade-cliente {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .badge {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .oportunidade-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .oportunidade-valor {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .oportunidade-data {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .oportunidade-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-acao {
+      padding: 6px 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .btn-acao:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-active);
+    }
+
+    .btn-acao.primary {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+    }
+
+    .btn-acao.primary:hover {
+      background: #f0d878;
+    }
+
+    .btn-acao.success {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--green);
+      border-color: var(--green);
+    }
+
+    .btn-acao.danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--red);
+      border-color: var(--red);
+    }
+
+    /* ---- Empty/Loading States ---- */
+    .empty-state,
+    .loading-state {
+      text-align: center;
+      padding: 64px 24px;
+      color: var(--text-secondary);
+    }
+
+    .empty-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      opacity: 0.3;
+    }
+
+    .empty-text {
+      font-size: 15px;
+      margin-bottom: 20px;
+    }
+
+    .skeleton {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 20px;
+      margin-bottom: 16px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .oculto {
+      display: none !important;
+    }
+
+    /* ---- Modal ---- */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .modal {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      max-width: 600px;
+      width: 100%;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-titulo {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .modal-subtitulo {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .btn-fechar-modal {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 20px;
+      transition: all 0.2s;
+    }
+
+    .btn-fechar-modal:hover {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+    }
+
+    .modal-body {
+      padding: 24px;
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .modal-textarea {
+      flex: 1;
+      min-height: 200px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 12px;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.4;
+      resize: vertical;
+      transition: border-color 0.2s;
+    }
+
+    .modal-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .modal-textarea::placeholder {
+      color: var(--text-muted);
+    }
+
+    .importar-erro {
+      padding: 12px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid var(--red);
+      border-radius: var(--r-md);
+      color: var(--red);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    .btn-modal {
+      padding: 10px 20px;
+      border-radius: var(--r-md);
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-modal-secondary {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-modal-secondary:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-active);
+    }
+
+    .btn-modal-primary {
+      background: var(--accent);
+      color: #000;
+    }
+
+    .btn-modal-primary:hover {
+      background: #f0d878;
+    }
+
+    .btn-modal-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">💼 <em>Oportunidades</em></div>
+    <div class="header-nav">
+      <button id="btn-nova-oportunidade" class="btn-header primary">＋ Nova Oportunidade</button>
+      <button id="btn-importar-claude" class="btn-header">📥 Importar do Claude</button>
+      <button id="btn-ver-prompt" class="btn-header">📋 Prompt IA</button>
+      <button id="btn-refresh" class="btn-header">🔄</button>
+    </div>
+  </div>
+
+  <!-- Container -->
+  <div class="container">
+    <!-- Pipeline -->
+    <div class="pipeline">
+      <!-- Card 1: Em Estudo -->
+      <div id="pipeline-rascunho" class="pipeline-card">
+        <div class="pipeline-header">
+          <div class="pipeline-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">📝</div>
+          <div class="pipeline-title">Em Estudo</div>
+        </div>
+        <div class="pipeline-count" id="count-rascunho" style="color: #3b82f6;">0</div>
+        <div class="pipeline-valor" id="valor-rascunho">R$ 0,00</div>
+      </div>
+
+      <!-- Card 2: Proposta Enviada -->
+      <div id="pipeline-enviado" class="pipeline-card">
+        <div class="pipeline-header">
+          <div class="pipeline-icon" style="background: rgba(245, 166, 35, 0.15); color: #f5a623;">📤</div>
+          <div class="pipeline-title">Proposta Enviada</div>
+        </div>
+        <div class="pipeline-count" id="count-enviado" style="color: #f5a623;">0</div>
+        <div class="pipeline-valor" id="valor-enviado">R$ 0,00</div>
+      </div>
+
+      <!-- Card 3: Em Negociação -->
+      <div id="pipeline-negociacao" class="pipeline-card">
+        <div class="pipeline-header">
+          <div class="pipeline-icon" style="background: rgba(167, 139, 250, 0.15); color: #a78bfa;">🤝</div>
+          <div class="pipeline-title">Em Negociação</div>
+        </div>
+        <div class="pipeline-count" id="count-negociacao" style="color: #a78bfa;">0</div>
+        <div class="pipeline-valor" id="valor-negociacao">R$ 0,00</div>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div id="filtros-status" class="filtros">
+      <button class="filtro-btn ativo" data-filtro="todas">Todas</button>
+      <button class="filtro-btn" data-filtro="rascunho">Em Estudo</button>
+      <button class="filtro-btn" data-filtro="enviado_cliente">Enviada</button>
+      <button class="filtro-btn" data-filtro="aguardando_aprovacao">Negociação</button>
+      <button class="filtro-btn" data-filtro="aceito">Aceito</button>
+      <button class="filtro-btn" data-filtro="recusado">Recusado</button>
+    </div>
+
+    <!-- Loading State -->
+    <div id="lista-loading" class="loading-state oculto">
+      <div class="skeleton" style="height: 150px;"></div>
+      <div class="skeleton" style="height: 150px;"></div>
+      <div class="skeleton" style="height: 150px;"></div>
+    </div>
+
+    <!-- Empty State -->
+    <div id="lista-vazia" class="empty-state oculto">
+      <div class="empty-icon">📋</div>
+      <div class="empty-text">Nenhuma oportunidade ainda.</div>
+      <button class="btn-header primary" onclick="window.location.href='chat-orcamento.html'">
+        Criar primeira oportunidade
+      </button>
+    </div>
+
+    <!-- Lista de Oportunidades -->
+    <div id="lista-oportunidades"></div>
+  </div>
+
+  <!-- Modal Prompt AGT_INTAKE -->
+  <div id="modal-prompt" class="modal-overlay oculto">
+    <div class="modal" style="max-width: 700px;">
+      <div class="modal-header">
+        <div>
+          <div class="modal-titulo">Prompt AGT_INTAKE — Cole no Claude.ai</div>
+          <div class="modal-subtitulo">Anexe os PDFs do projeto e cole este prompt como primeira mensagem</div>
+        </div>
+        <button class="btn-fechar-modal" id="btn-fechar-prompt-x">×</button>
+      </div>
+      <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+        <textarea
+          id="prompt-conteudo"
+          class="modal-textarea"
+          readonly
+          style="min-height: 400px; font-family: var(--font-mono); font-size: 12px; line-height: 1.5; background: var(--bg-surface);"
+        ></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-modal btn-modal-secondary" id="btn-fechar-prompt">Fechar</button>
+        <button class="btn-modal btn-modal-primary" id="btn-copiar-prompt">📋 Copiar Prompt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Importar JSON -->
+  <div id="modal-importar" class="modal-overlay oculto">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="modal-titulo">Importar Orçamento do Claude</div>
+          <div class="modal-subtitulo">Cole o JSON gerado pelo AGT_INTAKE</div>
+        </div>
+        <button class="btn-fechar-modal" id="btn-fechar-modal">×</button>
+      </div>
+      <div class="modal-body">
+        <textarea
+          id="json-importar"
+          class="modal-textarea"
+          placeholder='{ "nova_proposta": { ... }, "novos_itens": [ ... ] }'
+        ></textarea>
+        <div id="importar-erro" class="importar-erro oculto"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-modal btn-modal-secondary" id="btn-cancelar-importar">Cancelar</button>
+        <button class="btn-modal btn-modal-primary" id="btn-confirmar-importar">✅ Importar Proposta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEKA_CONFIG antes dos imports -->
+  <script>
+    window.DEKA_CONFIG = {
+      supabaseUrl:     'https://tdylutdfzgtcfyhynenk.supabase.co',
+      supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkeWx1dGRmemd0Y2Z5aHluZW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyODQxMjcsImV4cCI6MjA4ODg2MDEyN30.k44CAV8O8AGhq4lzy-Ms5CF6JsW2fgMqLEegKb4K-pg',
+      workerUrl:       'https://anthropic-proxy.berti-b52.workers.dev',
+      token:           'deka2025@berti#seguro'
+    };
+  </script>
+  <script type="module" src="deka.js"></script>
+  <script type="module">
+    import { init } from './oportunidades.js';
+    init();
+  </script>
+</body>
+</html>

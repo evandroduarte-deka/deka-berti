@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catálogo de Serviços · DEKA OS</title>
+  <style>
+    /* ================================================================
+       DEKA OS v2.0 — catalogo.html
+       Módulo: Catálogo de Serviços — Aprovação e Gestão
+       Tema: Escuro com acento dourado (#e2c55c)
+       Regra: Zero lógica aqui — toda JS em catalogo.js
+    ================================================================ */
+
+    /* ---- Reset ---- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    button { font: inherit; cursor: pointer; border: none; background: none; }
+    input, select { font: inherit; }
+
+    /* ---- Design Tokens ---- */
+    :root {
+      --bg-base: #07090e;
+      --bg-surface: #0c0f17;
+      --bg-card: #10141f;
+      --bg-card-hover: #151a28;
+      --border: #191f30;
+      --border-active: #253050;
+      --text-primary: #dde2f0;
+      --text-secondary: #5a6480;
+      --text-muted: #2e3650;
+      --accent: #e2c55c;
+      --accent-dim: rgba(226, 197, 92, 0.10);
+      --green: #22c55e;
+      --red: #ef4444;
+      --amber: #f5a623;
+      --blue: #3b82f6;
+      --font-body: 'Inter', system-ui, sans-serif;
+      --r-md: 8px;
+      --r-lg: 12px;
+    }
+
+    /* ---- Body ---- */
+    body {
+      font-family: var(--font-body);
+      font-size: 14px;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: 56px;
+      background: rgba(7, 9, 14, 0.95);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 16px;
+    }
+
+    .logo {
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo em {
+      font-style: normal;
+      color: var(--accent);
+    }
+
+    .badge-pendentes {
+      padding: 2px 8px;
+      background: var(--amber);
+      color: #000;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    /* ---- Container ---- */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* ---- Tabs ---- */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab {
+      padding: 12px 20px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .tab:hover {
+      color: var(--text-primary);
+    }
+
+    .tab.ativo {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* ---- Aba Content ---- */
+    .aba-content {
+      display: none;
+    }
+
+    .aba-content.ativo {
+      display: block;
+    }
+
+    /* ---- Filtro ---- */
+    .filtro-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .filtro-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .filtro-select {
+      padding: 8px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      color: var(--text-primary);
+      font-size: 13px;
+      min-width: 200px;
+    }
+
+    .filtro-select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .count-badge {
+      margin-left: auto;
+      padding: 4px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* ---- Cards ---- */
+    .servico-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 20px;
+      margin-bottom: 16px;
+      transition: all 0.2s;
+    }
+
+    .servico-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-active);
+    }
+
+    .servico-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .servico-codigo {
+      font-size: 14px;
+      font-weight: 700;
+      font-family: monospace;
+      color: var(--accent);
+    }
+
+    .servico-categoria {
+      padding: 4px 10px;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-fonte {
+      padding: 4px 10px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .badge-uso {
+      padding: 4px 10px;
+      background: rgba(245, 166, 35, 0.15);
+      color: var(--amber);
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: auto;
+    }
+
+    .servico-descricao {
+      font-size: 14px;
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+
+    .servico-descricao strong {
+      color: var(--accent);
+    }
+
+    .servico-campos {
+      display: grid;
+      grid-template-columns: 1fr 150px 180px;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .campo-editavel {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .campo-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .campo-input {
+      padding: 8px 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      color: var(--text-primary);
+      font-size: 13px;
+      transition: border-color 0.2s;
+    }
+
+    .campo-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .servico-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn-acao {
+      padding: 8px 16px;
+      border-radius: var(--r-md);
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-acao.success {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--green);
+      border: 1px solid var(--green);
+    }
+
+    .btn-acao.success:hover {
+      background: var(--green);
+      color: #000;
+    }
+
+    .btn-acao.danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--red);
+      border: 1px solid var(--red);
+    }
+
+    .btn-acao.danger:hover {
+      background: var(--red);
+      color: #fff;
+    }
+
+    /* ---- Empty State ---- */
+    .empty-state {
+      text-align: center;
+      padding: 64px 24px;
+      color: var(--text-secondary);
+    }
+
+    .empty-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      opacity: 0.3;
+    }
+
+    .empty-text {
+      font-size: 15px;
+    }
+
+    .oculto {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      📚 <em>Catálogo</em>
+      <span id="badge-pendentes" class="badge-pendentes oculto">0</span>
+    </div>
+  </div>
+
+  <!-- Container -->
+  <div class="container">
+    <!-- Tabs -->
+    <div class="tabs">
+      <button id="tab-pendentes" class="tab ativo">Pendentes de Aprovação</button>
+      <button id="tab-ativo" class="tab">Catálogo Ativo</button>
+    </div>
+
+    <!-- Aba: Pendentes -->
+    <div id="aba-pendentes" class="aba-content ativo">
+      <div id="lista-pendentes"></div>
+      <div id="empty-pendentes" class="empty-state oculto">
+        <div class="empty-icon">✅</div>
+        <div class="empty-text">Nenhum serviço pendente. Catálogo atualizado!</div>
+      </div>
+    </div>
+
+    <!-- Aba: Catálogo Ativo -->
+    <div id="aba-catalogo" class="aba-content">
+      <div class="filtro-row">
+        <span class="filtro-label">Filtrar por categoria:</span>
+        <select id="filtro-categoria" class="filtro-select">
+          <option value="">Todas as categorias</option>
+        </select>
+        <span id="count-catalogo" class="count-badge">0 serviços</span>
+      </div>
+      <div id="lista-catalogo"></div>
+    </div>
+  </div>
+
+  <!-- DEKA_CONFIG -->
+  <script>
+    window.DEKA_CONFIG = {
+      supabaseUrl:     'https://tdylutdfzgtcfyhynenk.supabase.co',
+      supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkeWx1dGRmemd0Y2Z5aHluZW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyODQxMjcsImV4cCI6MjA4ODg2MDEyN30.k44CAV8O8AGhq4lzy-Ms5CF6JsW2fgMqLEegKb4K-pg',
+      workerUrl:       'https://anthropic-proxy.berti-b52.workers.dev',
+      token:           'deka2025@berti#seguro'
+    };
+  </script>
+  <script type="module" src="deka.js"></script>
+  <script type="module">
+    import { init } from './catalogo.js';
+    init();
+  </script>
+</body>
+</html>

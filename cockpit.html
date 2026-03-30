@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-tema="claro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DEKA OS - Cockpit</title>
+  <style>
+    /* ==========================================================================
+       TEMA CLARO (ALTO CONTRASTE PARA USO SOB SOL)
+       ========================================================================== */
+    :root {
+      --bg-fundo: #F3F4F6;
+      --bg-card: #FFFFFF;
+      --texto-principal: #111827;
+      --texto-secundario: #374151;
+      --borda: #D1D5DB;
+      --cor-primaria: #2563EB;
+      --cor-primaria-hover: #1D4ED8;
+      --cor-gravando: #DC2626;
+      --cor-sucesso: #059669;
+      --raio-borda: 12px;
+      --sombra: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-fundo);
+      color: var(--texto-principal);
+      line-height: 1.5;
+      padding-bottom: 2rem;
+    }
+
+    h1, h2, h3 { font-weight: 700; }
+    p { font-size: 1.125rem; }
+
+    .container { max-width: 600px; margin: 0 auto; padding: 1rem; }
+
+    .cabecalho {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.25rem 0;
+      margin-bottom: 1.5rem;
+      border-bottom: 2px solid var(--borda);
+    }
+
+    .btn-voltar {
+      text-decoration: none;
+      color: var(--texto-principal);
+      font-size: 1.5rem;
+      font-weight: bold;
+      padding: 0.5rem;
+      border-radius: 8px;
+      background-color: var(--bg-card);
+      border: 1px solid var(--borda);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .form-group { margin-bottom: 1.5rem; }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      font-size: 1.125rem;
+    }
+
+    select, textarea {
+      width: 100%;
+      padding: 1rem;
+      font-size: 1.125rem;
+      border: 2px solid var(--borda);
+      border-radius: var(--raio-borda);
+      background-color: var(--bg-card);
+      color: var(--texto-principal);
+      font-family: inherit;
+    }
+
+    textarea { min-height: 150px; resize: vertical; }
+
+    select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--cor-primaria);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+
+    .gravacao-card {
+      background: var(--bg-card);
+      border-radius: var(--raio-borda);
+      padding: 1.5rem;
+      box-shadow: var(--sombra);
+      text-align: center;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--borda);
+    }
+
+    .btn-gravar {
+      background-color: var(--texto-principal);
+      color: #fff;
+      border: none;
+      border-radius: 50px;
+      padding: 1.25rem 2rem;
+      font-size: 1.25rem;
+      font-weight: bold;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      transition: all 0.2s ease;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .btn-gravar.gravando {
+      background-color: var(--cor-gravando);
+      animation: pulso-gravacao 1.5s infinite;
+    }
+
+    @keyframes pulso-gravacao {
+      0%   { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+      70%  { box-shadow: 0 0 0 20px rgba(220, 38, 38, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+    }
+
+    .display-tempo {
+      font-size: 2.5rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      margin: 1rem 0 0.5rem;
+      color: var(--texto-principal);
+    }
+
+    .status-texto {
+      font-size: 1.125rem;
+      color: var(--texto-secundario);
+      font-weight: 500;
+    }
+
+    .transcricao-box {
+      background-color: #F9FAFB;
+      border: 1px dashed var(--borda);
+      border-radius: var(--raio-borda);
+      padding: 1.25rem;
+      font-size: 1.125rem;
+      color: var(--texto-secundario);
+      min-height: 80px;
+      margin-bottom: 1.5rem;
+      white-space: pre-wrap;
+    }
+
+    .btn-primario {
+      background-color: var(--cor-primaria);
+      color: #fff;
+      border: none;
+      border-radius: var(--raio-borda);
+      padding: 1.25rem;
+      font-size: 1.25rem;
+      font-weight: bold;
+      width: 100%;
+      cursor: pointer;
+      box-shadow: var(--sombra);
+    }
+
+    .btn-primario:disabled {
+      background-color: var(--borda);
+      color: #9CA3AF;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .resultado-card {
+      margin-top: 2rem;
+      background: #ECFDF5;
+      border: 2px solid var(--cor-sucesso);
+      border-radius: var(--raio-borda);
+      padding: 1.5rem;
+      box-shadow: var(--sombra);
+    }
+
+    .resultado-card h3 {
+      color: var(--cor-sucesso);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .resultado-conteudo { font-size: 1.125rem; white-space: pre-wrap; }
+
+    .oculto { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <header class="cabecalho">
+      <a href="/hub.html" class="btn-voltar" aria-label="Voltar para o Hub">←</a>
+      <h1>Cockpit de Campo</h1>
+    </header>
+
+    <main>
+      <section class="form-group">
+        <label for="obra-select">Obra Ativa</label>
+        <select id="obra-select">
+          <option value="">Carregando obras...</option>
+        </select>
+      </section>
+
+      <section class="gravacao-card">
+        <button id="btn-gravar" class="" type="button">
+          <span class="icone">🎤</span>
+          <span class="texto">Gravar Relatório</span>
+        </button>
+        <div id="timer-gravacao" class="display-tempo">00:00</div>
+        <div id="status-gravacao" class="status-texto" aria-live="polite">Pronto para gravar.</div>
+      </section>
+
+      <section class="form-group">
+        <label>Transcrição / Notas</label>
+        <div id="transcricao-preview" class="transcricao-box">A transcrição aparecerá aqui...</div>
+        <textarea id="transcricao-manual" placeholder="Digite aqui o seu relatório caso não possa gravar áudio..."></textarea>
+      </section>
+
+      <section class="form-group">
+        <button id="btn-processar" class="btn-primario" disabled type="button">
+          ✨ Processar com IA
+        </button>
+      </section>
+
+      <section id="resultado-ia" class="resultado-card oculto" aria-live="assertive">
+        <h3>✅ Payload Sync Gerado</h3>
+        <div class="resultado-conteudo"></div>
+      </section>
+    </main>
+
+  </div>
+
+  <script>
+    window.DEKA_CONFIG = {
+      supabaseUrl:     'https://tdylutdfzgtcfyhynenk.supabase.co',
+      supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkeWx1dGRmemd0Y2Z5aHluZW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyODQxMjcsImV4cCI6MjA4ODg2MDEyN30.k44CAV8O8AGhq4lzy-Ms5CF6JsW2fgMqLEegKb4K-pg',
+      workerUrl:       'https://anthropic-proxy.berti-b52.workers.dev',
+      token:           'deka2025@berti#seguro',
+    };
+  </script>
+
+  <script type="module">
+    import { init } from './cockpit.js';
+    init();
+  </script>
+  <script type="module" src="./nav.js"></script>
+
+</body>
+</html>

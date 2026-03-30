@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-tema="auto">
+<!--
+  DEKA OS v2.0 — obra.html
+  ════════════════════════════════════════════════════════════════════════════
+  Tela: Detalhe de Obra
+  Acesso: obra.html?id=<uuid>
+
+  IDs obrigatórios (contrato com obra.js):
+    #obra-cabecalho   → card com dados base da obra e barra de progresso global
+    #obra-servicos    → grid de serviços com progress bars individuais
+    #obra-pendencias  → lista de pendências ativas ordenadas por prioridade
+    #obra-visitas     → timeline das últimas 5 visitas registradas
+
+  REGRAS DEKA OS:
+    - Zero lógica de negócio neste arquivo
+    - Zero DOMContentLoaded aqui (exclusivo do deka.js)
+    - window.DEKA_CONFIG definido antes de qualquer import
+    - CSS embutido e escoped nesta tela
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="DEKA OS — Detalhe de Obra · Berti Construtora" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#0f1117" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f5f0" />
+
+  <!-- Sem fontes externas: system-ui garante zero latência de carregamento -->
+  <title>Detalhe da Obra · DEKA OS</title>
+
+  <style>
+    /* ═══════════════════════════════════════════════════════════════════════
+       1. DESIGN TOKENS — Variáveis de tema (claro e escuro)
+       Idêntico ao hub.html para garantir consistência visual global.
+    ═══════════════════════════════════════════════════════════════════════ */
+
+    :root {
+      /* Tipografia */
+      --font-base: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "SF Mono", "Fira Code", "Consolas", monospace;
+
+      /* Tamanhos */
+      --radius-sm:  6px;
+      --radius-md:  10px;
+      --radius-lg:  14px;
+      --radius-xl:  20px;
+      --space-xs:   0.25rem;
+      --space-sm:   0.5rem;
+      --space-md:   1rem;
+      --space-lg:   1.5rem;
+      --space-xl:   2rem;
+      --space-2xl:  3rem;
+
+      /* Acento de marca — dourado Berti (constante entre temas) */
+      --cor-acento:        #e2c55c;
+      --cor-acento-suave:  rgba(226, 197, 92, 0.12);
+      --cor-acento-hover:  #f0d878;
+
+      /* Status semânticos (constantes entre temas) */
+      --cor-ativa:          #22c55e;
+      --cor-ativa-bg:       rgba(34, 197, 94,  0.12);
+      --cor-pausada:        #f59e0b;
+      --cor-pausada-bg:     rgba(245, 158, 11, 0.12);
+      --cor-concluida:      #3b82f6;
+      --cor-concluida-bg:   rgba(59, 130, 246, 0.12);
+
+      /* Progresso */
+      --cor-barra-alta:  #22c55e;
+      --cor-barra-media: #f59e0b;
+      --cor-barra-baixa: #ef4444;
+
+      /* Transições */
+      --transicao-rapida:  120ms ease;
+      --transicao-padrao:  200ms ease;
+      --transicao-lenta:   350ms ease;
+    }
+
+    /* Tema escuro (padrão — escritório) */
+    :root,
+    [data-tema="escuro"] {
+      --cor-fundo:          #0f1117;
+      --cor-fundo-elevado:  #161b27;
+      --cor-fundo-card:     #1c2333;
+      --cor-fundo-hover:    #212a3e;
+      --cor-borda:          rgba(255, 255, 255, 0.07);
+      --cor-borda-hover:    rgba(226, 197, 92,  0.30);
+      --cor-texto-primario: #e8eaf0;
+      --cor-texto-secundario:#8892a4;
+      --cor-texto-terciario: #5a6478;
+      --cor-skeleton-base:  #1e2638;
+      --cor-skeleton-brilho:#263045;
+      --cor-sombra:         rgba(0, 0, 0, 0.40);
+      --cor-sombra-card:    rgba(0, 0, 0, 0.20);
+      --cor-sombra-hover:   rgba(0, 0, 0, 0.50);
+    }
+
+    /* Tema claro (obra — alta luminosidade) */
+    @media (prefers-color-scheme: light) {
+      :root:not([data-tema="escuro"]) {
+        --cor-fundo:          #f5f5f0;
+        --cor-fundo-elevado:  #ffffff;
+        --cor-fundo-card:     #ffffff;
+        --cor-fundo-hover:    #fafaf7;
+        --cor-borda:          rgba(0, 0, 0, 0.08);
+        --cor-borda-hover:    rgba(226, 197, 92,  0.50);
+        --cor-texto-primario: #111827;
+        --cor-texto-secundario:#4b5563;
+        --cor-texto-terciario: #9ca3af;
+        --cor-skeleton-base:  #e8e8e4;
+        --cor-skeleton-brilho:#f0f0ec;
+        --cor-sombra:         rgba(0, 0, 0, 0.08);
+        --cor-sombra-card:    rgba(0, 0, 0, 0.05);
+        --cor-sombra-hover:   rgba(0, 0, 0, 0.12);
+      }
+    }
+
+    [data-tema="claro"] {
+      --cor-fundo:          #f5f5f0;
+      --cor-fundo-elevado:  #ffffff;
+      --cor-fundo-card:     #ffffff;
+      --cor-fundo-hover:    #fafaf7;
+      --cor-borda:          rgba(0, 0, 0, 0.08);
+      --cor-borda-hover:    rgba(226, 197, 92,  0.50);
+      --cor-texto-primario: #111827;
+      --cor-texto-secundario:#4b5563;
+      --cor-texto-terciario: #9ca3af;
+      --cor-skeleton-base:  #e8e8e4;
+      --cor-skeleton-brilho:#f0f0ec;
+      --cor-sombra:         rgba(0, 0, 0, 0.08);
+      --cor-sombra-card:    rgba(0, 0, 0, 0.05);
+      --cor-sombra-hover:   rgba(0, 0, 0, 0.12);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       2. RESET E BASE
+    ═══════════════════════════════════════════════════════════════════════ */
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin:     0;
+      padding:    0;
+    }
+
+    html {
+      font-size:           16px;
+      scroll-behavior:     smooth;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      font-family:      var(--font-base);
+      background-color: var(--cor-fundo);
+      color:            var(--cor-texto-primario);
+      line-height:      1.6;
+      min-height:       100dvh;
+      overflow-x:       hidden;
+      position:         relative;
+    }
+
+    /* Foco acessível — visível apenas via teclado */
+    :focus-visible {
+      outline:        2px solid var(--cor-acento);
+      outline-offset: 3px;
+      border-radius:  var(--radius-sm);
+    }
+
+    :focus:not(:focus-visible) {
+      outline: none;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       3. LAYOUT ESTRUTURAL
+    ═══════════════════════════════════════════════════════════════════════ */
+
+    .obra-wrapper {
+      max-width:  1280px;
+      margin:     0 auto;
+      padding:    var(--space-lg) var(--space-md);
+    }
+
+    @media (min-width: 640px) {
+      .obra-wrapper { padding: var(--space-xl) var(--space-lg); }
+    }
+
+    @media (min-width: 1024px) {
+      .obra-wrapper { padding: var(--space-2xl) var(--space-xl); }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       4. NAVEGAÇÃO — Botão voltar para o hub
+    ═══════════════════════════════════════════════════════════════════════ */
+
+    .obra-nav {
+      margin-bottom: var(--space-lg);
+    }
+
+    .btn-voltar {
+      display:          inline-flex;
+      align-items:      center;
+      gap:              var(--space-sm);
+      padding:          var(--space-sm) var(--space-md);
+      background-color: var(--cor-fundo-card);
+      border:           1px solid var(--cor-borda);
+      border-radius:    var(--radius-md);
+      color:            var(--cor-texto-secundario);
+      font-size:        0.875rem;
+      font-weight:      500;
+      text-decoration:  none;
+      transition:       all var(--transicao-rapida);
+      cursor:           pointer;
+    }
+
+    .btn-voltar:hover {
+      background-color: var(--cor-fundo-hover);
+      border-color:     var(--cor-borda-hover);
+      color:            var(--cor-texto-primario);
+      transform:        translateX(-2px);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       5. CABEÇALHO DA OBRA — Card principal com dados base
+    ═══════════════════════════════════════════════════════════════════════ */
+
+    .obra-header-card {
+      background-color: var(--cor-fundo-card);
+      border:           1px solid var(--cor-borda);
+      border-radius:    var(--radius-lg);
+      padding:          var(--space-xl);
+      margin-bottom:    var(--space-xl);
+      box-shadow:       0 2px 8px var(--cor-sombra-card);
+    }
+
+    .obra-header-top {
+      display:         flex;
+      align-items:     flex-start;
+      justify-content: space-between;
+      gap:             var(--space-md);
+      margin-bottom:   var(--space-lg);
+      flex-wrap:       wrap;
+    }
+
+    .obra-nome {
+      font-size:   1.75rem;
+      font-weight: 700;
+      color:       var(--cor-texto-primario);
+      line-height: 1.2;
+    }
+
+    .obra-status-badge {
+      display:        inline-block;
+      padding:        var(--space-xs) var(--space-md);
+      border-radius:  var(--radius-md);
+      font-size:      0.75rem;
+      font-weight:    600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color:          #fff;
+    }
+
+    .obra-info-grid {
+      display:               grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap:                   var(--space-lg);
+      margin-bottom:         var(--space-xl);
+    }
+
+    .obra-info-item {
+      display:        flex;
+      flex-direction: column;
+      gap:            var(--space-xs);
+    }
+
+    .obra-info-label {
+      font-size:   0.75rem;
+      font-weight: 500;
+      color:       var(--cor-texto-terciario);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .obra-info-valor {
+      font-size:   1rem;
+      font-weight: 600;
+      color:       var(--cor-texto-primario);
+    }
+
+    /* Barra de progresso global */
+    .obra-progresso-container {
+      padding-top:    var(--space-md);
+      border-top:     1px solid var(--cor-borda);
+    }
+
+    .obra-progresso-header {
+      display:         flex;
+      justify-content: space-between;
+      align-items:     baseline;
+      margin-bottom:   var(--space-sm);
+    }
+
+    .obra-progresso-label {
+      font-size:   0.875rem;
+      font-weight: 500;
+      color:       var(--cor-texto-secundario);
+    }
+
+    .obra-progresso-percentual {
+      font-size:   1.25rem;
+      font-weight: 700;
+      color:       var(--cor-acento);
+    }
+
+    .obra-progresso-barra {
+      height:           12px;
+      background-color: var(--cor-skeleton-base);
+      border-radius:    var(--radius-xl);
+      overflow:         hidden;
+      position:         relative;
+    }
+
+    .obra-progresso-fill {
+      height:           100%;
+      background:       linear-gradient(90deg, var(--cor-barra-baixa) 0%, var(--cor-barra-media) 50%, var(--cor-barra-alta) 100%);
+      border-radius:    var(--radius-xl);
+      transition:       width var(--transicao-lenta);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       6. SEÇÕES — Títulos e estados vazios
+    ═══════════════════════════════════════════════════════════════════════ */
+
+    .obra-secao-titulo {
+      font-size:     1.5rem;
+      font-weight:   700;
+      color:         var(--cor-texto-primario);
+      margin-bottom: var(--space-lg);
+      margin-top:    var(--space-2xl);
+    }
+
+    .obra-secao-vazia {
+      background-color: var(--cor-fundo-card);
+      border:           1px dashed var(--cor-borda);
+      border-radius:    var(--radius-lg);
+      padding:          var(--space-2xl);
+      text-align:       center;
+      color:            var(--cor-texto-terciario);
+    }
+
+    .obra-secao-vazia-icone {
+      display:     block;
+      font-size:   3rem;
+      margin-bottom: var(--space-md);
+      opacity:     0.5;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       7. SERVIÇOS — Grid de cards com progress bars
+    ═══════════════════════════════════════════════════════════════════════ */
+
+    .obra-servicos-grid {
+      display:               grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap:                   var(--space-lg);
+    }
+
+    .obra-servico-card {
+      background-color: var(--cor-fundo-card);
+      border:           1px solid var(--cor-borda);
+      border-radius:    var(--radius-lg);
+      padding:          var(--space-lg);
+      transition:       all var(--transicao-rapida);
+      cursor:           default;
+    }
+
+    .obra-servico-card:hover {
+      border-color: var(--cor-borda-hover);
+      box-shadow:   0 4px 12px var(--cor-sombra-hover);
+    }
+
+    .obra-servico-header {
+      display:         flex;
+      justify-content: space-between;
+      align-items:     flex-start;
+      gap:             var(--space-md);
+      margin-bottom:   var(--space-md);
+    }
+
+    .obra-servico-titulo {
+      font-size:   1rem;
+      font-weight: 600;
+      color:       var(--cor-texto-primario);
+      line-height: 1.4;
+      flex:        1;
+    }
+
+    .obra-servico-valor {
+      font-size:      0.875rem;
+      font-weight:    600;
+      color:          var(--cor-acento);
+      white-space:    nowrap;
+      font-family:    var(--font-mono);
+    }
+
+    .obra-servico-progresso-container {
+      margin-bottom: var(--space-md);
+    }
+
+    .obra-servico-progresso-header {
+      display:         flex;
+      justify-content: space-between;
+      align-items:     baseline;
+      margin-bottom:   var(--space-xs);
+    }
+
+    .obra-servico-progresso-label {
+      font-size:   0.75rem;
+      font-weight: 500;
+      color:       var(--cor-texto-terciario);
+    }
+
+    .obra-servico-progresso-percentual {
+      font-size:   0.875rem;
+      font-weight: 700;
+      color:       var(--cor-texto-secundario);
+    }
+
+    .obra-servico-progresso-barra {
+      height:           8px;
+      background-color: var(--cor-skeleton-base);
+      border-radius:    var(--radius-xl);
+      overflow:         hidden;
+    }
+
+    .obra-servico-progresso-fill {
+      height:     100%;
+      background: linear-gradient(90deg, var(--cor-barra-baixa) 0%, var(--cor-barra-media) 50%, var(--cor-barra-alta) 100%);
+      border-radius: var(--radius-xl);
+      transition: width var(--transicao-padrao);
+    }
+
+    .obra-servico-descricao-interna {
+      font-size:   0.875rem;
+      color:       var(--cor-texto-terciario);
+      line-height: 1.5;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       8. PENDÊNCIAS — Cards com borda lateral por prioridade
+    ═══════════════════════════════════════════════════════════════════════ */
+
+    .obra-pendencias-lista {
+      display:        flex;
+      flex-direction: column;
+      gap:            var(--space-md);
+    }
+
+    .obra-pendencia-card {
+      background-color: var(--cor-fundo-card);
+      border:           1px solid var(--cor-borda);
+      border-radius:    var(--radius-md);
+      padding:          var(--space-lg);
+      transition:       all var(--transicao-rapida);
+    }
+
+    .obra-pendencia-card:hover {
+      box-shadow: 0 2px 8px var(--cor-sombra-hover);
+    }
+
+    .obra-pendencia-header {
+      display:         flex;
+      justify-content: space-between;
+      align-items:     center;
+      margin-bottom:   var(--space-md);
+      gap:             var(--space-md);
+      flex-wrap:       wrap;
+    }
+
+    .obra-pendencia-prioridade {
+      font-size:      0.75rem;
+      font-weight:    700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display:        flex;
+      align-items:    center;
+      gap:            var(--space-xs);
+    }
+
+    .obra-pendencia-data {
+      font-size:   0.75rem;
+      color:       var(--cor-texto-terciario);
+      font-family: var(--font-mono);
+    }
+
+    .obra-pendencia-descricao {
+      font-size:     0.9375rem;
+      color:         var(--cor-texto-primario);
+      line-height:   1.6;
+      margin-bottom: var(--space-md);
+    }
+
+    .obra-pendencia-footer {
+      display:         flex;
+      justify-content: space-between;
+      align-items:     center;
+      gap:             var(--space-md);
+      padding-top:     var(--space-md);
+      border-top:      1px solid var(--cor-borda);
+      flex-wrap:       wrap;
+    }
+
+    .obra-pendencia-responsavel {
+      font-size:   0.875rem;
+      color:       var(--cor-texto-secundario);
+      display:     flex;
+      align-items: center;
+      gap:         var(--space-xs);
+    }
+
+    .obra-pendencia-status {
+      font-size:      0.75rem;
+      font-weight:    600;
+      color:          var(--cor-texto-terciario);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       9. VISITAS — Timeline vertical
+    ═══════════════════════════════════════════════════════════════════════ */
+
+    .obra-visitas-timeline {
+      position: relative;
+    }
+
+    .obra-visita-item {
+      display:       flex;
+      gap:           var(--space-lg);
+      margin-bottom: var(--space-xl);
+    }
+
+    .obra-visita-linha {
+      position:       relative;
+      width:          40px;
+      display:        flex;
+      justify-content: center;
+      flex-shrink:    0;
+    }
+
+    .obra-visita-linha::before {
+      content:          '';
+      position:         absolute;
+      top:              20px;
+      left:             50%;
+      transform:        translateX(-50%);
+      width:            2px;
+      height:           calc(100% + var(--space-xl));
+      background-color: var(--cor-borda);
+    }
+
+    .obra-visita-linha.ultima::before {
+      display: none;
+    }
+
+    .obra-visita-ponto {
+      width:            12px;
+      height:           12px;
+      border-radius:    50%;
+      background-color: var(--cor-acento);
+      border:           3px solid var(--cor-fundo-card);
+      box-shadow:       0 0 0 2px var(--cor-borda);
+      position:         relative;
+      z-index:          1;
+      margin-top:       4px;
+    }
+
+    .obra-visita-card {
+      flex:             1;
+      background-color: var(--cor-fundo-card);
+      border:           1px solid var(--cor-borda);
+      border-radius:    var(--radius-lg);
+      padding:          var(--space-lg);
+      transition:       all var(--transicao-rapida);
+    }
+
+    .obra-visita-card:hover {
+      border-color: var(--cor-borda-hover);
+      box-shadow:   0 2px 8px var(--cor-sombra-hover);
+    }
+
+    .obra-visita-header {
+      display:         flex;
+      justify-content: space-between;
+      align-items:     center;
+      margin-bottom:   var(--space-md);
+      gap:             var(--space-md);
+    }
+
+    .obra-visita-data {
+      font-size:   0.875rem;
+      font-weight: 600;
+      color:       var(--cor-acento);
+      font-family: var(--font-mono);
+    }
+
+    .obra-visita-status {
+      font-size: 1rem;
+      cursor:    help;
+    }
+
+    .obra-visita-resumo {
+      font-size:   0.9375rem;
+      color:       var(--cor-texto-secundario);
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       10. RESPONSIVIDADE ADICIONAL
+    ═══════════════════════════════════════════════════════════════════════ */
+
+    @media (max-width: 640px) {
+      .obra-nome {
+        font-size: 1.5rem;
+      }
+
+      .obra-info-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .obra-servicos-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .obra-servico-header {
+        flex-direction: column;
+        align-items:    flex-start;
+      }
+
+      .obra-visita-linha {
+        width: 30px;
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       11. ANIMAÇÃO DE CARREGAMENTO (opcional — se usar skeleton)
+    ═══════════════════════════════════════════════════════════════════════ */
+
+    @keyframes skeleton-pulse {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.5; }
+    }
+
+    .skeleton {
+      background-color: var(--cor-skeleton-base);
+      animation:        skeleton-pulse 1.5s ease-in-out infinite;
+      border-radius:    var(--radius-sm);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ══════════════════════════════════════════════════════════════════════
+       CONFIGURAÇÃO (definida ANTES de qualquer import)
+
+       PRODUÇÃO: Substitua os placeholders pelos valores reais.
+       SEGURANÇA: supabaseAnonKey é a chave pública (anon) — exposta é seguro.
+                  O acesso aos dados é controlado pelo RLS do Supabase.
+                  token e keys privadas ficam APENAS no Cloudflare Worker.
+  ══════════════════════════════════════════════════════════════════════ -->
+  <script>
+    window.DEKA_CONFIG = {
+      supabaseUrl:     'https://tdylutdfzgtcfyhynenk.supabase.co',
+      supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkeWx1dGRmemd0Y2Z5aHluZW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyODQxMjcsImV4cCI6MjA4ODg2MDEyN30.k44CAV8O8AGhq4lzy-Ms5CF6JsW2fgMqLEegKb4K-pg',
+      workerUrl:       'https://anthropic-proxy.berti-b52.workers.dev',
+      token:           'deka2025@berti#seguro',
+    };
+  </script>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       MOTOR DO SISTEMA
+       deka.js inicializa o Supabase, o sistema de toast e os monitores.
+       Importado ANTES do obra.js para garantir disponibilidade de exports.
+  ══════════════════════════════════════════════════════════════════════ -->
+  <script type="module" src="./deka.js"></script>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       MÓDULO DA TELA
+       obra.js extrai o UUID da URL, carrega dados do Supabase e renderiza.
+       Zero lógica de negócio no HTML — tudo acontece via DOMContentLoaded.
+  ══════════════════════════════════════════════════════════════════════ -->
+  <script type="module" src="./obra.js"></script>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       ESTRUTURA DA TELA
+  ══════════════════════════════════════════════════════════════════════ -->
+  <div class="obra-wrapper">
+    <!-- Navegação: botão voltar -->
+    <nav class="obra-nav">
+      <a href="./hub.html" class="btn-voltar">
+        ← Voltar ao Hub
+      </a>
+    </nav>
+
+    <!-- Container 1: Cabeçalho da obra (dados base + barra de progresso global) -->
+    <div id="obra-cabecalho"></div>
+
+    <!-- Container 2: Serviços (grid de cards com progress bars) -->
+    <div id="obra-servicos"></div>
+
+    <!-- Container 3: Pendências ativas (cards com prioridade) -->
+    <div id="obra-pendencias"></div>
+
+    <!-- Container 4: Últimas visitas (timeline vertical) -->
+    <div id="obra-visitas"></div>
+  </div>
+</body>
+</html>
