@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DEKA · Importar do Claude</title>
+<meta name="apple-mobile-web-app-title" content="DEKA IMPORTAR">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#060D09">
+<link rel="apple-touch-icon" href="icons/deka-hub.png">
+<link rel="icon" type="image/png" href="icons/deka-hub.png">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Jost:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --void:#060D09;--base:#080F0B;--layer:#0B1510;--raise:#0F1C14;--lift:#14231A;--panel:#192C20;
+  --g1:#1A2E20;--g2:#243D2C;
+  --t0:#E8F2EC;--t1:#A8C4B0;--t2:#607868;--t3:#374840;
+  --acc:#2E9650;--acc2:#1E6635;--acc3:rgba(46,150,80,.14);--acc4:rgba(46,150,80,.07);
+  --gold:#B89A6A;--hot:#C8382A;--warn:#B8841A;--ok:#2E9650;
+  --cond:'Syne',sans-serif;--body:'Jost',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+body{font-family:var(--body);background:var(--void);color:var(--t0);min-height:100vh;min-height:100dvh;overflow-x:hidden}
+::selection{background:var(--acc2);color:#fff}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--base)}::-webkit-scrollbar-thumb{background:var(--g1);border-radius:3px}
+
+/* TOPBAR */
+.tb{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--g1);background:var(--base);position:sticky;top:0;z-index:90}
+.tb-left{display:flex;align-items:center;gap:12px}
+.tb-brand{font-family:var(--cond);font-size:20px;font-weight:800;letter-spacing:-.5px}
+.tb-brand b{color:var(--acc)}
+.tb-tag{font-family:var(--cond);font-size:9px;color:var(--t2);letter-spacing:1.5px;text-transform:uppercase;background:var(--raise);padding:3px 8px;border-radius:3px;border:1px solid var(--g1)}
+.tb-back{display:flex;align-items:center;gap:6px;text-decoration:none;color:var(--t2);font-size:11px;font-family:var(--mono);font-weight:600;padding:6px 10px;border-radius:5px;transition:all .15s;letter-spacing:.05em}
+.tb-back:hover{background:var(--raise);color:var(--acc)}
+
+/* MAIN */
+.main{max-width:860px;margin:0 auto;padding:20px 16px 60px}
+
+/* SECTION LABEL */
+.sec-label{font-family:var(--cond);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin:28px 0 10px 4px}
+.sec-label:first-child{margin-top:8px}
+
+/* SECTION */
+.section{background:var(--layer);border:1px solid var(--g1);border-radius:10px;padding:24px;margin-bottom:16px}
+.section.hidden{display:none}
+
+/* TEXTAREA */
+.json-area{width:100%;min-height:400px;background:var(--base);border:1px solid var(--g1);color:var(--t1);font-family:var(--mono);font-size:11px;padding:16px;border-radius:8px;resize:vertical;outline:none;line-height:1.8;transition:border-color .2s}
+.json-area:focus{border-color:var(--acc2)}
+.json-area::placeholder{color:var(--t3)}
+
+/* BUTTONS */
+.btn{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:12px 24px;border-radius:6px;cursor:pointer;transition:all .18s;border:none;display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.97)}
+.btn.disabled{opacity:.4;pointer-events:none}
+
+.btn-primary{background:var(--acc);color:#fff}
+.btn-primary:hover{background:var(--acc2)}
+
+.btn-secondary{background:none;border:1px solid var(--g1);color:var(--t2)}
+.btn-secondary:hover{border-color:var(--t1);color:var(--t1)}
+
+.btn-success{background:var(--ok);color:#fff}
+.btn-success:hover{background:var(--acc2)}
+
+.btn-group{display:flex;gap:10px;margin-top:20px}
+
+/* PREVIEW CARD */
+.preview-card{background:var(--raise);border:1px solid var(--g2);border-radius:8px;padding:20px;margin-bottom:20px}
+.preview-hd{font-family:var(--cond);font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--g1)}
+
+.preview-row{display:flex;align-items:baseline;gap:12px;padding:7px 0;font-size:12px}
+.preview-lbl{color:var(--t3);min-width:140px;flex-shrink:0;font-size:10px;letter-spacing:.3px;font-family:var(--cond);font-weight:600;text-transform:uppercase}
+.preview-val{color:var(--t1);font-weight:400}
+.preview-val.mono{font-family:var(--mono);font-size:11px;color:var(--t2)}
+.preview-val.big{font-size:15px;font-weight:600;color:var(--acc)}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;margin-top:16px}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead{background:var(--base);border-top:1px solid var(--g1);border-bottom:1px solid var(--g1)}
+th{text-align:left;padding:10px 12px;font-family:var(--cond);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--t3);font-weight:700}
+td{padding:10px 12px;border-bottom:1px solid var(--g1);color:var(--t2)}
+td.mono{font-family:var(--mono);font-size:10px;color:var(--t3)}
+tbody tr:hover{background:var(--raise)}
+tbody tr:last-child td{border-bottom:none}
+
+/* RESULT */
+.result-msg{font-family:var(--cond);font-size:16px;font-weight:700;color:var(--acc);margin-bottom:16px;letter-spacing:-.3px}
+.result-link{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--acc);font-size:13px;font-weight:600;padding:12px 20px;border:1px solid var(--acc2);border-radius:6px;transition:all .15s;margin-bottom:12px}
+.result-link:hover{background:var(--acc3);border-color:var(--acc)}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--acc2);color:var(--t0);font-size:11px;font-weight:600;font-family:var(--cond);padding:10px 20px;border-radius:6px;opacity:0;transition:all .3s;z-index:999;pointer-events:none;max-width:500px;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.error{background:var(--hot)}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="tb">
+  <div class="tb-left">
+    <div class="tb-brand">BERTI<b>.</b>DEKA</div>
+    <div class="tb-tag">Importar do Claude</div>
+  </div>
+  <a class="tb-back" href="hub.html">← HUB</a>
+</div>
+
+<div class="main">
+
+  <!-- SEÇÃO 1: INPUT -->
+  <div id="secInput" class="section">
+    <div class="sec-label">JSON do Claude.ai</div>
+    <textarea id="jsonInput" class="json-area" placeholder='Cole aqui o JSON gerado pelo Claude.ai...
+
+Exemplo:
+{
+  "nova_obra": {
+    "nome": "Reforma Hall Ed. New Concept",
+    "cliente": "Condomínio New Concept",
+    "endereco": "Rua Emiliano Perneta, 390 — Centro, Curitiba/PR",
+    "data_inicio": "2026-04-15",
+    "data_previsao_fim": "2026-06-30",
+    "status": "ativa",
+    "percentual_global": 0
+  },
+  "novos_servicos": [
+    {
+      "codigo": "SRV-001",
+      "descricao_interna": "Demolição seletiva de revestimentos existentes",
+      "descricao_cliente": "Remoção dos revestimentos atuais do hall",
+      "equipe_codigo": "EQ-ALV-01",
+      "valor_contratado": 8500.00,
+      "percentual_concluido": 0
+    }
+  ]
+}'></textarea>
+    <div class="btn-group">
+      <button id="btnValidar" class="btn btn-primary">Validar JSON</button>
+    </div>
+  </div>
+
+  <!-- SEÇÃO 2: PREVIEW -->
+  <div id="secPreview" class="section hidden">
+    <div class="sec-label">Preview dos Dados</div>
+
+    <div class="preview-card">
+      <div class="preview-hd">Informações da Obra</div>
+      <div class="preview-row">
+        <div class="preview-lbl">Nome da Obra</div>
+        <div class="preview-val" id="pvNome"></div>
+      </div>
+      <div class="preview-row">
+        <div class="preview-lbl">Cliente</div>
+        <div class="preview-val" id="pvCliente"></div>
+      </div>
+      <div class="preview-row">
+        <div class="preview-lbl">Endereço</div>
+        <div class="preview-val mono" id="pvEndereco"></div>
+      </div>
+      <div class="preview-row">
+        <div class="preview-lbl">Período</div>
+        <div class="preview-val mono" id="pvPeriodo"></div>
+      </div>
+      <div class="preview-row">
+        <div class="preview-lbl">Total de Serviços</div>
+        <div class="preview-val big" id="pvQtdServicos"></div>
+      </div>
+      <div class="preview-row">
+        <div class="preview-lbl">Valor Total</div>
+        <div class="preview-val big" id="pvValorTotal"></div>
+      </div>
+    </div>
+
+    <div class="preview-card">
+      <div class="preview-hd">Serviços a Importar</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Descrição Interna</th>
+              <th>Equipe</th>
+              <th>Valor</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyServicos"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="btn-group">
+      <button id="btnCriar" class="btn btn-success">✓ Criar Obra no Sistema</button>
+      <button id="btnVoltar" class="btn btn-secondary">← Voltar e Editar</button>
+    </div>
+  </div>
+
+  <!-- SEÇÃO 3: RESULTADO -->
+  <div id="secResultado" class="section hidden">
+    <div class="sec-label">Importação Concluída</div>
+
+    <div class="preview-card">
+      <div class="result-msg" id="resultMsg"></div>
+      <a id="linkObra" class="result-link" href="#" target="_blank">→ Abrir obra no Hub</a>
+      <div style="margin-top:16px">
+        <button id="btnNova" class="btn btn-primary">Importar Outra Obra</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast"></div>
+
+<!-- DEKA CONFIG -->
+<script>
+  window.DEKA_CONFIG = JSON.parse(localStorage.getItem('deka_config') || '{}');
+</script>
+
+<!-- MAIN SCRIPT -->
+<script type="module">
+import { supabase, showToast } from './deka.js';
+
+// Elementos
+const secInput = document.getElementById('secInput');
+const secPreview = document.getElementById('secPreview');
+const secResultado = document.getElementById('secResultado');
+const jsonInput = document.getElementById('jsonInput');
+const btnValidar = document.getElementById('btnValidar');
+const btnCriar = document.getElementById('btnCriar');
+const btnVoltar = document.getElementById('btnVoltar');
+const btnNova = document.getElementById('btnNova');
+
+// Estado
+let jsonValidado = null;
+
+// Validar JSON
+btnValidar.addEventListener('click', () => {
+  const texto = jsonInput.value.trim();
+
+  if (!texto) {
+    showToast('Cole o JSON no campo acima', 'error');
+    return;
+  }
+
+  try {
+    const json = JSON.parse(texto);
+
+    // Validar estrutura
+    if (!json.nova_obra || typeof json.nova_obra !== 'object') {
+      throw new Error('JSON inválido: campo "nova_obra" ausente ou inválido');
+    }
+
+    if (!json.novos_servicos || !Array.isArray(json.novos_servicos) || json.novos_servicos.length === 0) {
+      throw new Error('JSON inválido: campo "novos_servicos" deve ser um array não vazio');
+    }
+
+    // Validar campos obrigatórios em nova_obra
+    const obra = json.nova_obra;
+    if (!obra.nome || !obra.cliente || !obra.endereco) {
+      throw new Error('JSON inválido: campos obrigatórios ausentes em "nova_obra" (nome, cliente, endereco)');
+    }
+
+    // Validar datas (formato YYYY-MM-DD)
+    const regexData = /^\d{4}-\d{2}-\d{2}$/;
+    if (obra.data_inicio && !regexData.test(obra.data_inicio)) {
+      throw new Error('JSON inválido: data_inicio deve estar no formato YYYY-MM-DD');
+    }
+    if (obra.data_previsao_fim && !regexData.test(obra.data_previsao_fim)) {
+      throw new Error('JSON inválido: data_previsao_fim deve estar no formato YYYY-MM-DD');
+    }
+
+    // Validar campos obrigatórios em cada serviço
+    for (let i = 0; i < json.novos_servicos.length; i++) {
+      const srv = json.novos_servicos[i];
+      if (!srv.codigo || !srv.descricao_interna || !srv.descricao_cliente || !srv.equipe_codigo) {
+        throw new Error(`JSON inválido: serviço ${i + 1} tem campos obrigatórios ausentes (codigo, descricao_interna, descricao_cliente, equipe_codigo)`);
+      }
+    }
+
+    // JSON válido
+    jsonValidado = json;
+    renderizarPreview(json);
+    showToast('JSON validado com sucesso!', 'success');
+
+  } catch (error) {
+    console.error('[DEKA][Importar] Erro ao validar JSON:', error);
+    showToast(error.message || 'JSON inválido. Verifique o formato.', 'error');
+  }
+});
+
+// Renderizar Preview
+function renderizarPreview(json) {
+  const obra = json.nova_obra;
+  const servicos = json.novos_servicos;
+
+  // Calcular valor total
+  const valorTotal = servicos.reduce((soma, s) => soma + (parseFloat(s.valor_contratado) || 0), 0);
+
+  // Preencher dados da obra
+  document.getElementById('pvNome').textContent = obra.nome;
+  document.getElementById('pvCliente').textContent = obra.cliente;
+  document.getElementById('pvEndereco').textContent = obra.endereco || '—';
+
+  const periodo = obra.data_inicio && obra.data_previsao_fim
+    ? `${formatarData(obra.data_inicio)} a ${formatarData(obra.data_previsao_fim)}`
+    : '—';
+  document.getElementById('pvPeriodo').textContent = periodo;
+
+  document.getElementById('pvQtdServicos').textContent = servicos.length;
+  document.getElementById('pvValorTotal').textContent = formatarMoeda(valorTotal);
+
+  // Preencher tabela de serviços
+  const tbody = document.getElementById('tbodyServicos');
+  tbody.innerHTML = '';
+
+  servicos.forEach(srv => {
+    const tr = document.createElement('tr');
+
+    const tdCodigo = document.createElement('td');
+    tdCodigo.className = 'mono';
+    tdCodigo.textContent = srv.codigo;
+
+    const tdDesc = document.createElement('td');
+    tdDesc.textContent = srv.descricao_interna;
+
+    const tdEquipe = document.createElement('td');
+    tdEquipe.className = 'mono';
+    tdEquipe.textContent = srv.equipe_codigo;
+
+    const tdValor = document.createElement('td');
+    tdValor.className = 'mono';
+    tdValor.textContent = formatarMoeda(parseFloat(srv.valor_contratado) || 0);
+
+    tr.appendChild(tdCodigo);
+    tr.appendChild(tdDesc);
+    tr.appendChild(tdEquipe);
+    tr.appendChild(tdValor);
+
+    tbody.appendChild(tr);
+  });
+
+  // Mostrar preview, ocultar input
+  secInput.classList.add('hidden');
+  secPreview.classList.remove('hidden');
+}
+
+// Criar Obra
+btnCriar.addEventListener('click', async () => {
+  if (!jsonValidado) {
+    showToast('JSON não validado', 'error');
+    return;
+  }
+
+  btnCriar.disabled = true;
+  btnCriar.textContent = 'Criando...';
+
+  try {
+    const obra = jsonValidado.nova_obra;
+    const servicos = jsonValidado.novos_servicos;
+
+    // INSERT em obras
+    const { data: obraCriada, error: errObra } = await supabase
+      .from('obras')
+      .insert({
+        nome: obra.nome,
+        cliente: obra.cliente,
+        endereco: obra.endereco || null,
+        data_inicio: obra.data_inicio || null,
+        data_previsao_fim: obra.data_previsao_fim || null,
+        status: obra.status || 'ativa',
+        percentual_global: parseFloat(obra.percentual_global) || 0
+      })
+      .select('id')
+      .single();
+
+    if (errObra) throw errObra;
+
+    const obraId = obraCriada.id;
+
+    // INSERT em obra_servicos (batch)
+    const servicosParaInserir = servicos.map(s => ({
+      obra_id: obraId,
+      codigo: s.codigo,
+      descricao_interna: s.descricao_interna,
+      descricao_cliente: s.descricao_cliente,
+      equipe_codigo: s.equipe_codigo,
+      valor_contratado: parseFloat(s.valor_contratado) || 0,
+      percentual_concluido: parseFloat(s.percentual_concluido) || 0
+    }));
+
+    const { error: errServicos } = await supabase
+      .from('obra_servicos')
+      .insert(servicosParaInserir);
+
+    if (errServicos) throw errServicos;
+
+    // Sucesso
+    mostrarResultado(obraId, servicos.length);
+    showToast('Obra criada com sucesso!', 'success');
+
+  } catch (error) {
+    console.error('[DEKA][Importar] Erro ao criar obra:', error);
+    showToast(error.message || 'Erro ao criar obra', 'error');
+    btnCriar.disabled = false;
+    btnCriar.textContent = '✓ Criar Obra no Sistema';
+  }
+});
+
+// Mostrar Resultado
+function mostrarResultado(obraId, qtdServicos) {
+  document.getElementById('resultMsg').textContent = `Obra criada com sucesso! ${qtdServicos} serviço(s) cadastrado(s).`;
+  document.getElementById('linkObra').href = `hub.html`;
+
+  secPreview.classList.add('hidden');
+  secResultado.classList.remove('hidden');
+}
+
+// Voltar
+btnVoltar.addEventListener('click', () => {
+  secPreview.classList.add('hidden');
+  secInput.classList.remove('hidden');
+  jsonValidado = null;
+});
+
+// Importar Nova
+btnNova.addEventListener('click', () => {
+  jsonInput.value = '';
+  jsonValidado = null;
+  secResultado.classList.add('hidden');
+  secInput.classList.remove('hidden');
+});
+
+// Helpers
+function formatarData(dataISO) {
+  if (!dataISO) return '—';
+  const [ano, mes, dia] = dataISO.split('-');
+  return `${dia}/${mes}/${ano}`;
+}
+
+function formatarMoeda(valor) {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(valor);
+}
+</script>
+
+</body>
+</html>
