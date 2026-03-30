@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nova Proposta · DEKA OS</title>
+  <style>
+    /* ================================================================
+       DEKA OS v2.0 — orcamento.html
+       Módulo: AGT_ORCAMENTO — Geração de Propostas Comerciais
+       Tema: Escuro com acento dourado (#e2c55c)
+       Regra: Zero lógica aqui — toda JS em orcamento.js
+    ================================================================ */
+
+    /* ---- Reset ---- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    button { font: inherit; cursor: pointer; border: none; background: none; }
+    input, textarea, select { font: inherit; }
+
+    /* ---- Design Tokens ---- */
+    :root {
+      --bg-base: #07090e;
+      --bg-surface: #0c0f17;
+      --bg-card: #10141f;
+      --bg-card-hover: #151a28;
+      --border: #191f30;
+      --border-active: #253050;
+      --text-primary: #dde2f0;
+      --text-secondary: #5a6480;
+      --text-muted: #2e3650;
+      --accent: #e2c55c;
+      --accent-dim: rgba(226, 197, 92, 0.10);
+      --accent-border: rgba(226, 197, 92, 0.22);
+      --green: #22c55e;
+      --red: #ef4444;
+      --amber: #f5a623;
+      --font-body: 'Inter', system-ui, sans-serif;
+      --r-md: 8px;
+      --r-lg: 12px;
+    }
+
+    /* ---- Body ---- */
+    body {
+      font-family: var(--font-body);
+      font-size: 14px;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.5;
+      padding: 24px;
+    }
+
+    /* ---- Container ---- */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      margin-bottom: 32px;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .header h1 em {
+      font-style: normal;
+      color: var(--accent);
+    }
+
+    .header p {
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    /* ---- Sections ---- */
+    .section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+    }
+
+    .oculto {
+      display: none !important;
+    }
+
+    /* ---- Form Controls ---- */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    textarea,
+    input[type="number"],
+    input[type="text"] {
+      width: 100%;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 10px 12px;
+      color: var(--text-primary);
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus,
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 120px;
+      font-family: inherit;
+    }
+
+    #campo-briefing-texto {
+      min-height: 200px;
+    }
+
+    #campo-links {
+      min-height: 80px;
+      font-size: 13px;
+    }
+
+    input[type="number"] {
+      width: 120px;
+    }
+
+    /* ---- Buttons ---- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: var(--r-md);
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #f0d878;
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-active);
+    }
+
+    /* ---- Image Preview ---- */
+    #lista-imagens {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .preview-imagem {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      border-radius: var(--r-md);
+      overflow: hidden;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+    }
+
+    .preview-imagem img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .btn-remover-imagem {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.7);
+      color: #fff;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .preview-imagem:hover .btn-remover-imagem {
+      opacity: 1;
+    }
+
+    /* ---- Loading ---- */
+    .loading {
+      text-align: center;
+      padding: 48px 24px;
+    }
+
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    /* ---- Resultado ---- */
+    #resultado-nome-obra {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    #resultado-escopo {
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+
+    .meta-info {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .meta-item {
+      font-size: 13px;
+    }
+
+    .meta-label {
+      color: var(--text-secondary);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .meta-value {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* ---- Tabela ---- */
+    .tabela-wrapper {
+      overflow-x: auto;
+      margin-bottom: 24px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: var(--bg-surface);
+    }
+
+    th {
+      padding: 12px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr:hover {
+      background: var(--bg-card-hover);
+    }
+
+    td {
+      padding: 12px;
+      font-size: 13px;
+    }
+
+    td input[type="number"] {
+      width: 80px;
+      padding: 6px 8px;
+    }
+
+    .td-servico {
+      font-weight: 500;
+    }
+
+    .td-obs {
+      color: var(--text-secondary);
+      font-size: 12px;
+      max-width: 200px;
+    }
+
+    /* ---- Totais ---- */
+    .totais {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .totais-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .total-item {
+      text-align: center;
+    }
+
+    .total-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .total-valor {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .total-final {
+      color: var(--accent);
+      font-size: 24px;
+    }
+
+    /* ---- Actions ---- */
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    /* ---- Modal ---- */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal.oculto {
+      display: none;
+    }
+
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+    }
+
+    .modal-content {
+      position: relative;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 24px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      z-index: 1001;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--text-primary);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    select {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      color: var(--text-primary);
+      padding: 10px 12px;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>💰 <em>Nova Proposta</em></h1>
+      <p>Geração automática de orçamentos com IA — AGT_ORCAMENTO</p>
+    </div>
+
+    <!-- ETAPA 1: Briefing -->
+    <form id="orcamento-form" class="section">
+      <div class="section-title">1. Briefing do Cliente</div>
+
+      <div class="form-group">
+        <label class="form-label" for="campo-briefing-texto">
+          Descrição do projeto (mínimo 20 caracteres)
+        </label>
+        <textarea
+          id="campo-briefing-texto"
+          placeholder="Exemplo: Reforma completa de apartamento de 80m² na Vila Madalena. Inclui renovação de todos os pisos, pintura geral, modernização da cozinha e dos dois banheiros. Cliente deseja acabamento de médio-alto padrão..."
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="campo-margem">
+          Margem de lucro (%)
+        </label>
+        <input
+          type="number"
+          id="campo-margem"
+          value="30"
+          min="0"
+          max="100"
+          step="5"
+        >
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="campo-links">
+          Links de referência (opcional, uma URL por linha, máximo 5)
+        </label>
+        <textarea
+          id="campo-links"
+          placeholder="https://exemplo.com/inspiracao&#10;https://pinterest.com/board/..."
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          Imagens de referência (opcional, máximo 10)
+        </label>
+        <button type="button" id="btn-anexar-imagem" class="btn btn-secondary">
+          📎 Anexar Imagem
+        </button>
+        <input
+          type="file"
+          id="file-input-imagem"
+          accept="image/jpeg,image/png,image/webp"
+          multiple
+          style="display: none;"
+        >
+        <div id="lista-imagens"></div>
+      </div>
+
+      <button type="button" id="btn-gerar" class="btn btn-primary" disabled>
+        ✨ Gerar Proposta com IA
+      </button>
+    </form>
+
+    <!-- Loading State -->
+    <div id="orcamento-loading" class="section oculto">
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Gerando proposta com Claude Sonnet 4...</div>
+        <div id="loadingTimer" style="color: var(--text-secondary); font-size: 12px; margin-top: 8px;">0s</div>
+      </div>
+    </div>
+
+    <!-- ETAPA 2: Resultado -->
+    <div id="orcamento-resultado" class="section oculto">
+      <div class="section-title">2. Proposta Gerada</div>
+
+      <div class="form-group">
+        <label class="form-label">Nome da Obra</label>
+        <input type="text" id="input-nome-obra" style="font-size: 18px; font-weight: 600;">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Escopo da Obra</label>
+        <textarea id="input-escopo" style="min-height: 80px;"></textarea>
+      </div>
+
+      <div class="meta-info">
+        <div class="meta-item">
+          <span class="meta-label">Prazo estimado (dias)</span>
+          <input type="number" id="input-prazo" min="1" step="1" style="width: 80px; padding: 4px 8px; font-weight: 600;">
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Total de itens</span>
+          <span class="meta-value" id="resultado-total-itens">0</span>
+        </div>
+      </div>
+
+      <div class="tabela-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Serviço</th>
+              <th>Unidade</th>
+              <th>Quantidade</th>
+              <th>R$ Unitário</th>
+              <th>R$ Total</th>
+              <th>Observação IA</th>
+            </tr>
+          </thead>
+          <tbody id="resultado-tabela-itens">
+            <!-- Preenchido dinamicamente -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="totais">
+        <div class="totais-grid">
+          <div class="total-item">
+            <span class="total-label">Custo Total</span>
+            <div class="total-valor" id="resultado-custo-total">R$ 0,00</div>
+          </div>
+          <div class="total-item">
+            <span class="total-label">Margem (<span id="resultado-margem-display">30</span>%)</span>
+            <div class="total-valor" id="resultado-margem-valor">R$ 0,00</div>
+          </div>
+          <div class="total-item">
+            <span class="total-label">Valor Final</span>
+            <div class="total-valor total-final" id="resultado-valor-final">R$ 0,00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botão Adicionar Serviço -->
+      <div style="margin: 24px 0;">
+        <button type="button" id="btn-adicionar-servico" class="btn btn-secondary">
+          ➕ Adicionar Serviço Manualmente
+        </button>
+      </div>
+
+      <div class="section-title">3. Confirmação de Dados</div>
+
+      <div class="form-group">
+        <label class="form-label" for="campo-cliente-nome">
+          Nome do cliente
+        </label>
+        <input type="text" id="campo-cliente-nome" placeholder="Nome completo">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="campo-endereco">
+          Endereço da obra
+        </label>
+        <input type="text" id="campo-endereco" placeholder="Rua, número, bairro, cidade">
+      </div>
+
+      <div class="actions">
+        <button type="button" id="btn-aprovar" class="btn btn-primary" disabled>
+          ✅ Aprovar e Salvar Proposta
+        </button>
+        <button type="button" id="btn-regenerar" class="btn btn-secondary">
+          🔄 Regenerar
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal Adicionar Serviço -->
+    <div id="modal-adicionar-servico" class="modal oculto">
+      <div class="modal-overlay"></div>
+      <div class="modal-content">
+        <h3 class="modal-title">Adicionar Serviço Manualmente</h3>
+
+        <div class="form-group">
+          <label class="form-label" for="modal-select-servico">
+            Selecione o Serviço
+          </label>
+          <select id="modal-select-servico" style="width: 100%; padding: 10px;">
+            <option value="">-- Selecione --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="modal-input-quantidade">
+            Quantidade
+          </label>
+          <input
+            type="number"
+            id="modal-input-quantidade"
+            min="0.01"
+            step="0.01"
+            value="1"
+          >
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="btn-confirmar-adicionar" class="btn btn-primary">
+            ✅ Adicionar
+          </button>
+          <button type="button" id="btn-cancelar-modal" class="btn btn-secondary">
+            ✖ Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEKA_CONFIG antes dos imports -->
+  <script>
+    window.DEKA_CONFIG = {
+      supabaseUrl:     'https://tdylutdfzgtcfyhynenk.supabase.co',
+      supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkeWx1dGRmemd0Y2Z5aHluZW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyODQxMjcsImV4cCI6MjA4ODg2MDEyN30.k44CAV8O8AGhq4lzy-Ms5CF6JsW2fgMqLEegKb4K-pg',
+      workerUrl:       'https://anthropic-proxy.berti-b52.workers.dev',
+      token:           'deka2025@berti#seguro'
+    };
+  </script>
+  <script type="module" src="deka.js"></script>
+  <script type="module">
+    import { init } from './orcamento.js';
+    init();
+  </script>
+</body>
+</html>
