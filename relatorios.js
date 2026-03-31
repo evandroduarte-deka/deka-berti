@@ -1002,7 +1002,7 @@ function _abrirPDF() {
   };
 
   localStorage.setItem('deka_relatorio_pdf', JSON.stringify(payload));
-  window.open('relatorio-pdf.html', '_blank');
+  window.open('relatorio-pdf.html?v=' + Date.now(), '_blank');
 }
 
 // =============================================================================
