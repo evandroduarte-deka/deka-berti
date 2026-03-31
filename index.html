@@ -4063,6 +4063,27 @@ function sbSyncServicos(obraId, servicos) {
 
       if (r.ok || r.status === 201 || r.status === 204) {
         console.log('[DEKA][Sync] obra_servicos sincronizado:', rows.length, 'serviços');
+        // Atualizar percentual_global na tabela obras
+        var totalValor = rows.reduce(function(a, s) { return a + (s.valor_contratado || 0); }, 0);
+        var pctGeral = totalValor > 0
+          ? Math.round(rows.reduce(function(a, s) { return a + (s.percentual_concluido * (s.valor_contratado || 0)); }, 0) / totalValor)
+          : Math.round(rows.reduce(function(a, s) { return a + s.percentual_concluido; }, 0) / Math.max(1, rows.length));
+        var rPct = await fetch(SB_URL + '/rest/v1/obras?id=eq.' + obraId, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type':  'application/json',
+            'apikey':        SB_KEY,
+            'Authorization': 'Bearer ' + SB_KEY,
+            'Prefer':        'return=minimal',
+          },
+          body: JSON.stringify({ percentual_global: pctGeral }),
+          signal: AbortSignal.timeout(10000),
+        });
+        if (rPct.ok || rPct.status === 204) {
+          console.log('[DEKA][Sync] percentual_global atualizado:', pctGeral + '%');
+        } else {
+          console.error('[DEKA][Sync] Erro ao atualizar percentual_global:', rPct.status);
+        }
       } else {
         console.error('[DEKA][Sync] Erro ao sincronizar obra_servicos:', r.status);
       }
