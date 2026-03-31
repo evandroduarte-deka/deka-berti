@@ -853,6 +853,49 @@ function _renderizarPreview(md, obra, dataInicio, dataFim, semanaNum, delta, tip
   if (Estado.btnPdf) Estado.btnPdf.disabled = false;
 }
 
+function _coletarFotosSemana(dataInicio, dataFim) {
+  if (!dataInicio || !dataFim) return [];
+  try {
+    // Ler fotos do cockpit_obras via localStorage
+    var keys = Object.keys(localStorage).filter(function(k){ return k.startsWith('cockpit_'); });
+    if (!keys.length) return [];
+    var melhor = null; var melhorTs = 0;
+    keys.forEach(function(k) {
+      try {
+        var d = JSON.parse(localStorage.getItem(k));
+        if (d && d._savedAt) {
+          var ts = new Date(d._savedAt).getTime();
+          if (ts > melhorTs) { melhorTs = ts; melhor = d; }
+        }
+      } catch(e) {}
+    });
+    if (!melhor || !Array.isArray(melhor.fotos)) return [];
+    // Filtrar fotos do período selecionado
+    var ini = dataInicio.split('-').reverse().join('/'); // dd/mm/yyyy
+    var fim = dataFim.split('-').reverse().join('/');
+    var fotosSemana = melhor.fotos.filter(function(f) {
+      if (!f.cloud || !f.url) return false;
+      if (!f.data) return false;
+      // Comparar data no formato dd/mm/yyyy
+      var partes = f.data.split('/');
+      if (partes.length !== 3) return false;
+      var iso = partes[2]+'-'+partes[1]+'-'+partes[0];
+      return iso >= dataInicio && iso <= dataFim;
+    });
+    return fotosSemana.map(function(f) {
+      return {
+        url:     f.url || f.src,
+        thumb:   f.thumb || f.url || f.src,
+        data:    f.data || '',
+        legenda: f.legenda || f.ambiente || f.servico_ref || '',
+      };
+    });
+  } catch(e) {
+    console.error('[DEKA][PDF] Erro ao coletar fotos:', e);
+    return [];
+  }
+}
+
 function _abrirPDF() {
   if (!Estado.relatorioGerado || !Estado.obraSelecionada) return;
 
@@ -910,17 +953,28 @@ function _abrirPDF() {
     concluidos:        delta?.concluidos || 0,
     emAndamento:       delta?.emAndamento || 0,
     prazoStatus:       prazoStatus,
-    resumoIA:          Estado.relatorioGerado
-                         .replace(/^#.+\n/m, '')
-                         .replace(/##.+\n/gm, '')
-                         .replace(/[*_#`]/g, '')
-                         .trim()
-                         .split('\n\n')[0],
+    resumoIA: (function() {
+      var md = Estado.relatorioGerado || '';
+      // Remover linhas que começam com # (headers)
+      var linhas = md.split('\n').filter(function(l) {
+        return !l.startsWith('#') && !l.startsWith('📅') && !l.startsWith('📊');
+      });
+      // Pegar até a primeira seção relevante
+      var texto = linhas.join('\n')
+        .replace(/[*_`]/g, '')
+        .replace(/^\s*•\s*/gm, '')
+        .trim();
+      // Pegar apenas o bloco "O que avançamos" até "Pontos em acompanhamento"
+      var match = md.match(/O que avançamos esta semana\s*\n([\s\S]*?)(?=##|🔧|📆|$)/i);
+      if (match) return match[1].replace(/[*_`#]/g,'').replace(/^\s*•\s*/gm,'• ').trim();
+      return texto.split('\n\n').slice(0,2).join('\n\n');
+    })(),
     servicosExecutados: servicosExec,
     proximaSemana:      proxSemFmt,
-    pendencias:         (pends || []).map(function(p) {
+    pendencias: (pends || []).map(function(p) {
       return { descricao: p.descricao, prioridade: p.prioridade, responsavel: p.responsavel, status: p.status };
     }),
+    fotos: _coletarFotosSemana(Estado.dataInicioEl?.value, Estado.dataFimEl?.value),
   };
 
   localStorage.setItem('deka_relatorio_pdf', JSON.stringify(payload));

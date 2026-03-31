@@ -213,10 +213,10 @@ body {
   letter-spacing: .04em;
   white-space: nowrap;
 }
-.badge-concluido { background: #e1f5ee; color: #085041; }
-.badge-andamento { background: #e6f1fb; color: #042c53; }
-.badge-executar  { background: #f1efe8; color: #2c2c2a; }
-.badge-pausado   { background: #faeeda; color: #633806; }
+.badge-concluido { background: #085041; color: #fff; }
+.badge-andamento { background: #185fa5; color: #fff; }
+.badge-executar  { background: #444; color: #fff; }
+.badge-pausado   { background: #854f0b; color: #fff; }
 
 /* Progresso inline */
 .prog-wrap { display: flex; align-items: center; gap: 5px; }
@@ -252,6 +252,32 @@ body {
   padding-top: 3mm;
 }
 
+/* Fotos */
+.fotos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4mm;
+  margin-top: 2mm;
+}
+.foto-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1mm;
+}
+.foto-item img {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  border-radius: 3px;
+  border: 0.5px solid #e8e8e8;
+}
+.foto-legenda {
+  font-size: 7pt;
+  color: #888;
+  text-align: center;
+  font-style: italic;
+}
+
 /* ── Print ── */
 @media print {
   body { background: #fff; }
@@ -261,6 +287,8 @@ body {
   .prog-bar-mini-fill, .progress-bar-fill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .resumo-box { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .section { page-break-inside: avoid; }
+  .fotos-grid { page-break-inside: avoid; }
+  .foto-item img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 
 @media screen {
@@ -334,53 +362,60 @@ body {
     <div class="resumo-box" id="resumo-ia">Carregando...</div>
   </div>
 
-  <!-- 02 SERVIÇOS EXECUTADOS -->
+  <!-- FOTOS DA SEMANA -->
+  <div class="section" id="section-fotos" style="display:none">
+    <div class="section-header">
+      <span class="section-num" style="color:#185fa5">02</span>
+      <span class="section-title">Registro Fotográfico da Semana</span>
+    </div>
+    <div class="fotos-grid" id="fotos-grid"></div>
+  </div>
+
+  <!-- 03 SERVIÇOS EXECUTADOS -->
   <div class="section">
     <div class="section-header">
-      <span class="section-num">02</span>
+      <span class="section-num">03</span>
       <span class="section-title">Serviços Executados</span>
     </div>
     <table class="tabela">
       <thead>
         <tr>
-          <th style="width:35%">Serviço</th>
-          <th style="width:18%">Equipe</th>
-          <th style="width:20%">Período</th>
-          <th style="width:12%">Status</th>
+          <th style="width:45%">Serviço</th>
+          <th style="width:25%">Período</th>
+          <th style="width:15%">Status</th>
           <th style="width:15%">Progresso</th>
         </tr>
       </thead>
       <tbody id="tbody-executados">
-        <tr><td colspan="5" style="text-align:center;color:#999;padding:8px">Carregando...</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- 03 PRÓXIMA SEMANA -->
-  <div class="section">
-    <div class="section-header">
-      <span class="section-num">03</span>
-      <span class="section-title">Planejamento — Próxima Semana</span>
-    </div>
-    <table class="tabela">
-      <thead>
-        <tr>
-          <th style="width:40%">Serviço</th>
-          <th style="width:20%">Equipe</th>
-          <th style="width:22%">Período</th>
-          <th style="width:18%">Status atual</th>
-        </tr>
-      </thead>
-      <tbody id="tbody-proxima">
         <tr><td colspan="4" style="text-align:center;color:#999;padding:8px">Carregando...</td></tr>
       </tbody>
     </table>
   </div>
 
-  <!-- 04 PENDÊNCIAS (condicional) -->
-  <div class="section" id="section-pendencias" style="display:none">
+  <!-- 04 PRÓXIMA SEMANA -->
+  <div class="section">
     <div class="section-header">
       <span class="section-num">04</span>
+      <span class="section-title">Planejamento — Próxima Semana</span>
+    </div>
+    <table class="tabela">
+      <thead>
+        <tr>
+          <th style="width:50%">Serviço</th>
+          <th style="width:30%">Período</th>
+          <th style="width:20%">Status atual</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-proxima">
+        <tr><td colspan="3" style="text-align:center;color:#999;padding:8px">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 05 PENDÊNCIAS (condicional) -->
+  <div class="section" id="section-pendencias" style="display:none">
+    <div class="section-header">
+      <span class="section-num">05</span>
       <span class="section-title">Pendências e Alertas</span>
     </div>
     <table class="tabela">
@@ -481,10 +516,10 @@ body {
   if (exec.length) {
     tbExec.innerHTML = exec.map(function(s) {
       var per = s.dataInicio ? fmtBRcurto(s.dataInicio)+(s.dataFim && s.dataFim !== s.dataInicio ? ' a '+fmtBRcurto(s.dataFim) : '') : '—';
-      return '<tr><td><strong>'+s.descricao+'</strong></td><td>'+( s.equipe||'—')+'</td><td>'+per+'</td><td>'+badgeStatus(s.status)+'</td><td>'+progHtml(s.pctAtual, s.delta)+'</td></tr>';
+      return '<tr><td><strong>'+s.descricao+'</strong></td><td>'+per+'</td><td>'+badgeStatus(s.status)+'</td><td>'+progHtml(s.pctAtual, s.delta)+'</td></tr>';
     }).join('');
   } else {
-    tbExec.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;padding:8px">Nenhum serviço executado registrado</td></tr>';
+    tbExec.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999;padding:8px">Nenhum serviço executado registrado</td></tr>';
   }
 
   // Próxima semana
@@ -492,10 +527,10 @@ body {
   var prox = (d.proximaSemana || []);
   if (prox.length) {
     tbProx.innerHTML = prox.map(function(s) {
-      return '<tr><td><strong>'+s.descricao+'</strong></td><td>'+(s.equipe||'—')+'</td><td>'+(s.periodo||'—')+'</td><td>'+badgeStatus(s.status)+'</td></tr>';
+      return '<tr><td><strong>'+s.descricao+'</strong></td><td>'+(s.periodo||'—')+'</td><td>'+badgeStatus(s.status)+'</td></tr>';
     }).join('');
   } else {
-    tbProx.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999;padding:8px">Nenhum serviço programado encontrado</td></tr>';
+    tbProx.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#999;padding:8px">Nenhum serviço programado encontrado</td></tr>';
   }
 
   // Pendências
@@ -506,6 +541,17 @@ body {
     tbPend.innerHTML = pends.map(function(p) {
       var cls = p.prioridade === 'critica' ? 'pend-row-critica' : p.prioridade === 'alta' ? 'pend-row-alta' : 'pend-row-media';
       return '<tr class="'+cls+'"><td>'+p.descricao+'</td><td>'+p.prioridade+'</td><td>'+(p.responsavel||'—')+'</td><td>'+badgeStatus(p.status)+'</td></tr>';
+    }).join('');
+  }
+
+  // Fotos da semana
+  var fotos = d.fotos || [];
+  if (fotos.length) {
+    document.getElementById('section-fotos').style.display = 'block';
+    var grid = document.getElementById('fotos-grid');
+    grid.innerHTML = fotos.map(function(f) {
+      var leg = f.legenda ? f.legenda : (f.data || '');
+      return '<div class="foto-item"><img src="'+f.url+'" alt="'+leg+'" loading="eager"><div class="foto-legenda">'+leg+'</div></div>';
     }).join('');
   }
 
