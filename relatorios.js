@@ -57,7 +57,9 @@ FORMATO OBRIGATÓRIO (não altere a estrutura):
 [0 a 2 itens com solução. Se nenhum: "Nenhum ponto crítico esta semana."]
 
 ## 📆 Próxima semana
-[Liste TODOS os serviços programados no cronograma — não resuma nem agrupe]
+[Liste TODOS os serviços programados no cronograma — um bullet por serviço, com a data entre parênteses. Não resuma nem agrupe. Exemplo:
+- Isolamento acústico — Salão 2 (30/03)
+- Infraestrutura Elétrica — Salão 2 (31/03 a 01/04)]
 
 ---
 *Dúvidas? Estamos à disposição pelo WhatsApp.*
@@ -573,9 +575,9 @@ function _montarContextoCliente(obra, delta, proximaSem, pendencias, narrativa, 
 
   // Todos os serviços programados — sem limite
   const linhasProxima = proximaSem.map(s => {
-    const st  = s.pct_atual > 0 ? `continua (${s.pct_atual}% feito)` : 'início previsto';
-    const per = s.periodo ? ` · ${s.periodo}` : '';
-    return `• ${s.descricao_cliente} — ${st}${per}`;
+    const st  = s.pct_atual > 0 ? ` (continua — ${s.pct_atual}% concluído)` : '';
+    const per = s.periodo ? ` (${s.periodo})` : '';
+    return `• ${s.descricao_cliente}${per}${st}`;
   });
 
   // Pendências (apenas para contexto interno da IA — não exibir ao cliente)
