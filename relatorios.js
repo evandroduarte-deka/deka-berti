@@ -264,7 +264,7 @@ async function _buscarObra(obraId) {
 async function _buscarServicosAtuais(obraId) {
   const { data, error } = await supabase
     .from('obra_servicos')
-    .select('id, codigo, descricao_cliente, percentual_concluido, valor_contratado, equipe_codigo')
+    .select('id, codigo, descricao_cliente, percentual_concluido, pct_anterior, valor_contratado, equipe_codigo, dias_marcados, data_inicio, data_fim, status')
     .eq('obra_id', obraId)
     .order('codigo');
   if (error) throw new Error('Erro ao buscar serviços: ' + error.message);
@@ -389,15 +389,24 @@ async function _calcularProximaSemana(servicosAtuais, dataFim) {
   const proxIniISO = _toISO(proxIni);
   const proxFimISO = _toISO(proxFim);
 
-  // Lê dias_marcados do Supabase (ou localStorage se offline)
-  const cockpitState = await _lerCockpitState();
+  // Prioridade 1: dias_marcados já na tabela normalizada (obra_servicos)
   const mapDias = {};
-  if (cockpitState && Array.isArray(cockpitState.servicos)) {
-    cockpitState.servicos.forEach(s => {
-      if (s.descricao_cliente && Array.isArray(s.dias_marcados)) {
-        mapDias[s.descricao_cliente] = s.dias_marcados;
-      }
-    });
+  servicosAtuais.forEach(s => {
+    if (s.descricao_cliente && Array.isArray(s.dias_marcados) && s.dias_marcados.length) {
+      mapDias[s.descricao_cliente] = s.dias_marcados;
+    }
+  });
+
+  // Prioridade 2: fallback cockpit_obras (enquanto migração não está completa)
+  if (!Object.keys(mapDias).length) {
+    const cockpitState = await _lerCockpitState();
+    if (cockpitState && Array.isArray(cockpitState.servicos)) {
+      cockpitState.servicos.forEach(s => {
+        if (s.descricao_cliente && Array.isArray(s.dias_marcados)) {
+          mapDias[s.descricao_cliente] = s.dias_marcados;
+        }
+      });
+    }
   }
 
   function _temDiasProxSem(s) {
