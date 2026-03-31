@@ -462,7 +462,8 @@ body {
   // Carregar dados do localStorage
   var raw = localStorage.getItem('deka_relatorio_pdf');
   if (!raw) {
-    document.getElementById('resumo-ia').textContent = 'Nenhum dado encontrado. Gere o relatório pelo sistema DEKA OS.';
+    var resumoEl = document.getElementById('resumo-ia');
+    if (resumoEl) resumoEl.textContent = 'Nenhum dado encontrado. Gere o relatório pelo sistema DEKA OS.';
     return;
   }
   var d = JSON.parse(raw);
@@ -498,8 +499,9 @@ body {
     prazoEl.textContent = 'No prazo';
   }
 
-  // Resumo IA
-  document.getElementById('resumo-ia').textContent = d.resumoIA || '—';
+  // Resumo IA (elemento removido — ignorar)
+  var resumoEl = document.getElementById('resumo-ia');
+  if (resumoEl) resumoEl.textContent = d.resumoIA || '—';
 
   // Serviços executados
   var tbExec = document.getElementById('tbody-executados');
