@@ -31,40 +31,51 @@ const CACHE_TTL_OBRAS_MIN = 15;
 const CACHE_KEY_OBRAS     = 'deka_cache_v2_obras_ativas';
 
 const SYSTEM_PROMPT_SEMANAL_CLIENTE = `
-Você é o AGT_RELATORIO da Berti Construtora — empresa de reformas residenciais de médio-alto padrão.
+Você é o AGT_RELATORIO da Berti Construtora — empresa de reformas residenciais de médio-alto padrão em Curitiba.
 
-MISSÃO: Gerar o relatório semanal para o CLIENTE. Leitura máxima: 2 minutos.
+MISSÃO: Gerar o relatório semanal para o CLIENTE. Tom: profissional, positivo, direto. Leitura máxima: 2 minutos.
 
 REGRAS ABSOLUTAS:
 1. NUNCA use códigos internos: SRV-*, EQ-*, UUIDs
 2. NUNCA mencione semanas anteriores — só esta semana
 3. NUNCA cite problema sem solução imediata ao lado
-4. NUNCA use frases vagas: "bom andamento", "conforme cronograma"
-5. Use % apenas quando relevante e claro para o cliente
-6. Tom: profissional, positivo, confiante
+4. NUNCA use frases vagas: "bom andamento", "conforme previsto", "dentro do esperado"
+5. Use linguagem acessível — o cliente não é técnico
+6. NUNCA reproduza tabelas markdown no texto — só texto corrido e bullets
 
-FORMATO OBRIGATÓRIO (não altere a estrutura):
+FORMATO OBRIGATÓRIO — siga exatamente esta estrutura:
+
 # Relatório Semanal — [Nome da Obra]
 📅 Semana [N] · [DD/MM] a [DD/MM/AAAA]
-📊 Avanço geral da obra: [X]%
 
 ---
 
-## ✅ O que avançamos esta semana
-[2 a 4 bullets — apenas o delta real desta semana, em linguagem simples]
+## 📊 Situação da Obra
+**Avanço:** [X]% concluído · [adiantado/no prazo/com atenção] em relação ao cronograma
+**Entrega prevista:** [data]
+[1 frase sobre a situação geral — ex: "A obra avança acima do planejado, com margem confortável até a entrega."]
 
-## 🔧 Pontos em acompanhamento
-[0 a 2 itens com solução. Se nenhum: "Nenhum ponto crítico esta semana."]
+## ✅ O que foi entregue esta semana
+[2 a 4 bullets — apenas conquistas reais desta semana, em linguagem simples para o cliente]
 
-## 📆 Próxima semana
-[Liste TODOS os serviços programados no cronograma — um bullet por serviço, com a data entre parênteses. Não resuma nem agrupe. Exemplo:
-- Isolamento acústico — Salão 2 (30/03)
-- Infraestrutura Elétrica — Salão 2 (31/03 a 01/04)]
+## 📆 O que entra na próxima semana
+[2 a 4 bullets — o que o cliente vai ver acontecer, com datas quando relevante]
+
+## ⚠️ Pontos que precisam da sua atenção
+[0 a 3 bullets — APENAS pendências que dependem do cliente: aprovações, escolhas, acesso, decisões financeiras]
+[Se não houver nada: "Nenhuma ação necessária da sua parte esta semana. ✓"]
+
+## 💬 Mensagem do gestor
+[1 parágrafo curto e humano — contexto da semana, tom pessoal, confiança no andamento]
 
 ---
-*Dúvidas? Estamos à disposição pelo WhatsApp.*
+*Dúvidas? Fale conosco pelo WhatsApp.*
 
-RETORNE APENAS O MARKDOWN. Máximo 350 palavras.
+IMPORTANTE:
+- Retorne APENAS o Markdown formatado acima
+- Máximo 400 palavras
+- NUNCA reproduza tabelas ou listas com | pipes |
+- A seção "Pontos que precisam da sua atenção" deve focar APENAS no que o CLIENTE precisa fazer — não problemas internos
 `.trim();
 
 const SYSTEM_PROMPT_INTERNO = `
@@ -635,64 +646,68 @@ async function _extrairNarrativa(visitasSemana, dataInicio, dataFim) {
 function _montarContextoCliente(obra, delta, proximaSem, pendencias, narrativa, dataInicio, dataFim, semanaNum) {
   const pctGeral = delta.pctGeral;
 
-  // Serviços com avanço real na semana
-  const linhasAvanco = delta.comDelta.map(s => {
+  // 1. Aderência ao prazo
+  var prazoTexto = '';
+  var prazoStatus = 'no prazo';
+  if (obra.data_inicio && (obra.data_previsao_fim || obra.data_fim)) {
+    var ini  = new Date(obra.data_inicio + 'T00:00:00');
+    var fim2 = new Date((obra.data_previsao_fim || obra.data_fim) + 'T00:00:00');
+    var hoje = new Date(); hoje.setHours(0,0,0,0);
+    var totalDias    = Math.max(1, Math.round((fim2 - ini) / 86400000));
+    var decorridos   = Math.max(0, Math.round((hoje - ini) / 86400000));
+    var pctPrevisto  = Math.min(100, Math.round(decorridos / totalDias * 100));
+    var desvio       = pctGeral - pctPrevisto;
+    var diasRestantes = Math.max(0, Math.round((fim2 - hoje) / 86400000));
+    if (desvio >= 3)       prazoStatus = 'adiantado';
+    else if (desvio <= -5) prazoStatus = 'com atenção';
+    prazoTexto = `Previsto: ${pctPrevisto}% · Executado: ${pctGeral}% · Desvio: ${desvio >= 0 ? '+' : ''}${desvio}% · Dias restantes: ${diasRestantes}`;
+  }
+
+  // 2. O que foi entregue esta semana
+  const linhasEntregue = delta.comDelta.map(s => {
     const sufixo = s.pct_atual >= 100
-      ? ' — concluído nesta semana ✓'
-      : ` — ${s.pct_atual}% concluído (+${s.delta}% nesta semana)`;
+      ? ' — concluído ✓'
+      : ` — ${s.pct_atual}% concluído (era ${s.pct_anterior}%)`;
     return `• ${s.descricao_cliente}${sufixo}`;
   });
 
-  // Todos os serviços programados — sem limite
+  // 3. Próxima semana
   const linhasProxima = proximaSem.map(s => {
-    const st  = s.pct_atual > 0 ? ` (continua — ${s.pct_atual}% concluído)` : '';
-    const per = s.periodo ? ` (${s.periodo})` : '';
+    const st  = s.pct_atual > 0 ? ` (em andamento — ${s.pct_atual}% feito)` : '';
+    const per = s.periodo ? ` · ${s.periodo}` : '';
     return `• ${s.descricao_cliente}${per}${st}`;
   });
 
-  // Pendências (apenas para contexto interno da IA — não exibir ao cliente)
-  const linhasPend = pendencias
-    .filter(p => p.prioridade === 'critica' || p.prioridade === 'alta')
-    .map(p => `• [${p.prioridade.toUpperCase()}] ${p.descricao}`);
-
-  // Aderência ao prazo
-  let prazoCtx = '';
-  if (obra.data_inicio && (obra.data_previsao_fim || obra.data_fim)) {
-    const ini  = new Date((obra.data_inicio.includes('/') ? obra.data_inicio.split('/').reverse().join('-') : obra.data_inicio) + 'T00:00:00');
-    const fim2 = new Date(((obra.data_previsao_fim || obra.data_fim).includes('/') ? (obra.data_previsao_fim || obra.data_fim).split('/').reverse().join('-') : (obra.data_previsao_fim || obra.data_fim)) + 'T00:00:00');
-    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-    const total    = Math.max(1, Math.round((fim2 - ini) / 86400000));
-    const decorrido = Math.max(0, Math.round((hoje - ini) / 86400000));
-    const previsto  = Math.min(100, Math.round(decorrido / total * 100));
-    const desvio    = pctGeral - previsto;
-    prazoCtx = `Aderência ao prazo: ${decorrido} de ${total} dias (${previsto}% previsto). Executado: ${pctGeral}%. Desvio: ${desvio >= 0 ? '+' : ''}${desvio}%.`;
-  }
+  // 4. Pendências que dependem do cliente (filtrar apenas as relevantes)
+  const linhasPendCliente = pendencias
+    .filter(p => p.status !== 'resolvida')
+    .slice(0, 3)
+    .map(p => `• ${p.descricao}${p.responsavel ? ' → ' + p.responsavel : ''}`);
 
   return `Gere o RELATÓRIO SEMANAL para o CLIENTE.
 
-DADOS DA OBRA:
-Nome: ${obra.nome}
-Cliente: ${obra.cliente || obra.razao_cliente || '—'}
-Semana nº: ${semanaNum}
-Período: ${_formatBR(dataInicio)} a ${_formatBR(dataFim)}
-Avanço acumulado: ${pctGeral}%
-Entrega prevista: ${_formatBR(obra.data_previsao_fim || obra.data_fim || '')}
-${prazoCtx}
+OBRA: ${obra.nome}
+CLIENTE: ${obra.razao_cliente || obra.cliente || '—'}
+SEMANA: ${semanaNum} · ${_formatBR(dataInicio)} a ${_formatBR(dataFim)}
+AVANÇO: ${pctGeral}% concluído · ${prazoStatus}
+PRAZO: ${prazoTexto}
+ENTREGA PREVISTA: ${_formatBR(obra.data_previsao_fim || obra.data_fim || '')}
 
-O QUE AVANÇOU NESTA SEMANA (${delta.comDelta.length} serviço(s) com delta real):
-${linhasAvanco.length ? linhasAvanco.join('\n') : 'Nenhum avanço registrado com dados precisos. Use a narrativa do gestor.'}
+O QUE FOI ENTREGUE ESTA SEMANA (${delta.comDelta.length} serviços com avanço real):
+${linhasEntregue.length ? linhasEntregue.join('\n') : 'Nenhum avanço registrado com dados precisos — use a narrativa do gestor.'}
 
 NARRATIVA DO GESTOR (enriqueça, não copie literalmente):
 ${narrativa || 'Sem narrativa registrada para esta semana.'}
 
-${linhasPend.length ? `ALERTAS (mencione se relevante ao cliente):\n${linhasPend.join('\n')}` : ''}
-
-PROGRAMADO PRÓXIMA SEMANA — LISTE TODOS (${proximaSem.length} serviço(s) confirmados no cronograma):
+O QUE ENTRA NA PRÓXIMA SEMANA (${proximaSem.length} serviços programados no cronograma):
 ${linhasProxima.length ? linhasProxima.join('\n') : 'A definir conforme andamento.'}
+
+PENDÊNCIAS QUE DEPENDEM DO CLIENTE (${linhasPendCliente.length} itens):
+${linhasPendCliente.length ? linhasPendCliente.join('\n') : 'Nenhuma pendência que dependa do cliente.'}
 
 TOTAIS: ${delta.totalServicos} serviços · ${delta.concluidos} concluídos · ${delta.emAndamento} em andamento
 
-LEMBRE-SE: APENAS sobre a Semana ${semanaNum}. Não mencione semanas anteriores.`.trim();
+ATENÇÃO: NÃO reproduza tabelas com | pipes |. Escreva apenas texto corrido e bullets simples.`.trim();
 }
 
 function _montarContextoInterno(obra, delta, proximaSem, pendencias, narrativa, dataInicio, dataFim, semanaNum) {
@@ -749,7 +764,7 @@ async function _gerarRelatorio() {
     return;
   }
 
-  const tipoRel = Estado.tipoRelatorioEl?.value || 'cliente';
+  const tipoRel = 'cliente';
 
   try {
     Estado.btnGerarRelatorio.disabled = true;
