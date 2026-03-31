@@ -726,7 +726,8 @@ async function _gerarRelatorio() {
 
     // STEP 4 — Render
     _ativarStep(Estado.step4);
-    const mdCorrigido = relatorioMd
+    const mdTexto = relatorioMd?.texto || relatorioMd || '';
+    const mdCorrigido = mdTexto
       .replace(/Semana\s+0?1(?=\s|—|-|$|\.)/gi, `Semana ${semanaNum}`)
       .replace(/\b(SRV|EQ|FOR)-[\w-]+/gi, '');
     _renderizarPreview(mdCorrigido, obra, dataInicio, dataFim, semanaNum, delta, tipoRel);
