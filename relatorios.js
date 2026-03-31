@@ -970,19 +970,26 @@ function _abrirPDF() {
     prazoStatus:       prazoStatus,
     resumoIA: (function() {
       var md = Estado.relatorioGerado || '';
-      // Remover linhas que começam com # (headers)
-      var linhas = md.split('\n').filter(function(l) {
-        return !l.startsWith('#') && !l.startsWith('📅') && !l.startsWith('📊');
-      });
-      // Pegar até a primeira seção relevante
-      var texto = linhas.join('\n')
-        .replace(/[*_`]/g, '')
-        .replace(/^\s*•\s*/gm, '')
-        .trim();
-      // Pegar apenas o bloco "O que avançamos" até "Pontos em acompanhamento"
-      var match = md.match(/O que avançamos esta semana\s*\n([\s\S]*?)(?=##|🔧|📆|$)/i);
-      if (match) return match[1].replace(/[*_`#]/g,'').replace(/^\s*•\s*/gm,'• ').trim();
-      return texto.split('\n\n').slice(0,2).join('\n\n');
+      // Extrair seção "Situação da Obra"
+      var situacao = '';
+      var mSit = md.match(/##\s*📊\s*Situa[çc][ãa]o da Obra\s*\n([\s\S]*?)(?=##|$)/i);
+      if (mSit) situacao = mSit[1].replace(/[*_`#]/g,'').trim();
+      // Extrair seção "Mensagem do gestor"
+      var mensagem = '';
+      var mMsg = md.match(/##\s*💬\s*Mensagem do gestor\s*\n([\s\S]*?)(?=##|---|$)/i);
+      if (mMsg) mensagem = mMsg[1].replace(/[*_`#]/g,'').trim();
+      // Combinar situação + mensagem
+      if (situacao || mensagem) {
+        return [situacao, mensagem].filter(Boolean).join('\n\n');
+      }
+      // Fallback: remover headers e pegar texto limpo
+      return md
+        .split('\n')
+        .filter(function(l) { return l && !l.startsWith('#') && !l.startsWith('---') && l.trim(); })
+        .map(function(l) { return l.replace(/[*_`]/g,'').trim(); })
+        .filter(function(l) { return l && !l.match(/^[📅📊✅📆⚠️💬]/); })
+        .slice(0, 6)
+        .join('\n');
     })(),
     servicosExecutados: servicosExec,
     proximaSemana:      proxSemFmt,
