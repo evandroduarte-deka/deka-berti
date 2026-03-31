@@ -57,7 +57,7 @@ FORMATO OBRIGATÓRIO (não altere a estrutura):
 [0 a 2 itens com solução. Se nenhum: "Nenhum ponto crítico esta semana."]
 
 ## 📆 Próxima semana
-[2 a 3 bullets com o que está programado no cronograma]
+[Liste TODOS os serviços programados no cronograma — não resuma nem agrupe]
 
 ---
 *Dúvidas? Estamos à disposição pelo WhatsApp.*
@@ -507,8 +507,8 @@ async function _calcularProximaSemana(servicos, dataFim) {
     .sort((a, b) => b.percentual_concluido - a.percentual_concluido);
 
   const lista = agendados.length > 0
-    ? [...agendados, ...emAndamento].slice(0, 5)
-    : emAndamento.slice(0, 5);
+    ? [...agendados, ...emAndamento]
+    : emAndamento.slice(0, 8);
 
   return lista.map(s => {
     const dias = mapDias[s.descricao_cliente] || [];
@@ -571,7 +571,7 @@ function _montarContextoCliente(obra, delta, proximaSem, pendencias, narrativa, 
     return `• ${s.descricao_cliente}${sufixo}`;
   });
 
-  // Próxima semana com período
+  // Todos os serviços programados — sem limite
   const linhasProxima = proximaSem.map(s => {
     const st  = s.pct_atual > 0 ? `continua (${s.pct_atual}% feito)` : 'início previsto';
     const per = s.periodo ? ` · ${s.periodo}` : '';
@@ -615,7 +615,7 @@ ${narrativa || 'Sem narrativa registrada para esta semana.'}
 
 ${linhasPend.length ? `ALERTAS (mencione se relevante ao cliente):\n${linhasPend.join('\n')}` : ''}
 
-PROGRAMADO PRÓXIMA SEMANA (${proximaSem.length} serviço(s)):
+PROGRAMADO PRÓXIMA SEMANA — LISTE TODOS (${proximaSem.length} serviço(s) confirmados no cronograma):
 ${linhasProxima.length ? linhasProxima.join('\n') : 'A definir conforme andamento.'}
 
 TOTAIS: ${delta.totalServicos} serviços · ${delta.concluidos} concluídos · ${delta.emAndamento} em andamento
