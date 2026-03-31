@@ -1,15 +1,23 @@
 /**
- * DEKA OS v2.0 — relatorios.js v52
- * Delta Semanal Real — AGT_RELATORIO
+ * DEKA OS v2.0 — relatorios.js v53
+ * ─────────────────────────────────────────────────────────────────────────────
+ * CORREÇÕES v53:
+ * 1. Delta usa pct_anterior de obra_servicos (não depende de payload_sync)
+ * 2. Número da semana calculado igual ao index.html (data_inicio da obra)
+ * 3. Narrativa usa cockpit_obras.data.diario + visitas do período
+ * 4. Prompt AGT_RELATORIO reescrito com contexto real e preciso
+ * 5. Próxima semana usa dias_marcados da tabela normalizada
  *
- * CORREÇÃO: relatório mostra APENAS o que avançou NA SEMANA selecionada.
- * Lógica: delta = pct_atual - pct_base (do snapshot/visita anterior)
+ * FONTES DE DADOS (em ordem de prioridade):
+ *   obra_servicos    → percentuais, pct_anterior, dias_marcados, status
+ *   obra_visitas     → narrativas, resumos das visitas da semana
+ *   cockpit_obras    → state completo (fallback para narrativa e dias_marcados)
+ *   obra_pendencias  → pendências abertas
  */
 
 import {
   supabase,
   showToast,
-  fetchComTimeout,
   chamarClaude,
   cacheGet,
   cacheSet,
@@ -22,42 +30,67 @@ import {
 const CACHE_TTL_OBRAS_MIN = 15;
 const CACHE_KEY_OBRAS     = 'deka_cache_v2_obras_ativas';
 
-const SYSTEM_PROMPT_AGT_RELATORIO = `
-Você é o AGT_RELATORIO da Berti Construtora.
-Missão: relatório semanal de obra para o cliente. Leitura máxima: 2 minutos. Tom: profissional, positivo, seguro.
+const SYSTEM_PROMPT_SEMANAL_CLIENTE = `
+Você é o AGT_RELATORIO da Berti Construtora — empresa de reformas residenciais de médio-alto padrão.
+
+MISSÃO: Gerar o relatório semanal para o CLIENTE. Leitura máxima: 2 minutos.
 
 REGRAS ABSOLUTAS:
-1. NUNCA mencione códigos internos: SRV-*, EQ-*, UUIDs, IDs
-2. NUNCA cite semanas anteriores — apenas a semana informada
-3. NUNCA mencione problemas sem apresentar a solução imediata
+1. NUNCA use códigos internos: SRV-*, EQ-*, UUIDs
+2. NUNCA mencione semanas anteriores — só esta semana
+3. NUNCA cite problema sem solução imediata ao lado
 4. NUNCA use frases vagas: "bom andamento", "conforme cronograma"
-5. Use linguagem concreta: o que foi feito, o que vai acontecer
+5. Use % apenas quando relevante e claro para o cliente
+6. Tom: profissional, positivo, confiante
 
-TRADUÇÕES:
-❌ "SRV-013 delta 25%"   ✅ "O forro da sala avançou 25% esta semana"
-❌ "EQ-ACO-01 pendente"  ✅ "A equipe de acabamento começa na quinta-feira"
-❌ "Atraso fornecedor"   ✅ "Porcelanato atrasa 2 dias; adiantamos o elétrico"
-
-FORMATO OBRIGATÓRIO:
+FORMATO OBRIGATÓRIO (não altere a estrutura):
 # Relatório Semanal — [Nome da Obra]
-📅 Semana [número] · [data início] a [data fim]
-📊 Avanço acumulado da obra: [X]%
+📅 Semana [N] · [DD/MM] a [DD/MM/AAAA]
+📊 Avanço geral da obra: [X]%
 
 ---
 
 ## ✅ O que avançamos esta semana
-[2 a 4 bullets — apenas delta real desta semana]
+[2 a 4 bullets — apenas o delta real desta semana, em linguagem simples]
 
 ## 🔧 Pontos em acompanhamento
-[0 a 2 itens com solução. Se nenhum: "Sem pontos críticos esta semana."]
+[0 a 2 itens com solução. Se nenhum: "Nenhum ponto crítico esta semana."]
 
-## 📆 O que esperar na próxima semana
-[2 a 3 bullets concretos]
+## 📆 Próxima semana
+[2 a 3 bullets com o que está programado no cronograma]
 
 ---
 *Dúvidas? Estamos à disposição pelo WhatsApp.*
 
-IMPORTANTE: Retorne APENAS o Markdown. Máximo 400 palavras.
+RETORNE APENAS O MARKDOWN. Máximo 350 palavras.
+`.trim();
+
+const SYSTEM_PROMPT_INTERNO = `
+Você é o AGT_RELATORIO da Berti Construtora — uso INTERNO E CONFIDENCIAL.
+
+MISSÃO: Relatório gerencial semanal para o gestor Evandro. Seja direto e técnico.
+
+FORMATO OBRIGATÓRIO:
+# Relatório Interno — [Obra] — Semana [N]
+📅 [DD/MM] a [DD/MM/AAAA] · Gerado em [data]
+
+## 📊 Aderência ao Cronograma
+- Previsto: [X]% · Executado: [Y]% · Desvio: [+/-Z]%
+- [Análise em 1 linha]
+
+## 🔨 Serviços com Avanço na Semana
+[Lista com código, descrição, delta%, acumulado%]
+
+## ⚠️ Alertas
+[Atrasos, pausados, pendências críticas]
+
+## 💰 Financeiro da Semana
+[Entradas, saídas, saldo, lucro estimado]
+
+## 📋 Planejamento Próxima Semana
+[Serviços programados com equipes e datas]
+
+RETORNE APENAS O MARKDOWN. Seja objetivo.
 `.trim();
 
 // =============================================================================
@@ -68,6 +101,7 @@ const Estado = {
   dataInicioEl:        null,
   dataFimEl:           null,
   semanaNumeroEl:      null,
+  tipoRelatorioEl:     null,
   obrasGrid:           null,
   obraChip:            null,
   btnGerarRelatorio:   null,
@@ -87,7 +121,7 @@ const Estado = {
 // =============================================================================
 
 export async function init() {
-  console.log('[DEKA][Relatorios] init() v52');
+  console.log('[DEKA][Relatorios] init() v53');
   _carregarDOM();
   _configurarEventos();
   _preencherSemanaAtual();
@@ -103,6 +137,7 @@ function _carregarDOM() {
   Estado.dataInicioEl      = document.getElementById('data-inicio');
   Estado.dataFimEl         = document.getElementById('data-fim');
   Estado.semanaNumeroEl    = document.getElementById('semana-numero');
+  Estado.tipoRelatorioEl   = document.getElementById('tipo-relatorio');
   Estado.obrasGrid         = document.getElementById('obras-grid');
   Estado.obraChip          = document.getElementById('obra-selecionada-chip');
   Estado.btnGerarRelatorio = document.getElementById('btn-gerar-relatorio');
@@ -125,9 +160,9 @@ function _configurarEventos() {
     document.querySelectorAll('.obra-card').forEach(c => c.classList.remove('selected'));
     card.classList.add('selected');
     Estado.obraSelecionada = {
-      id:          card.dataset.obraId,
-      nome:        card.dataset.obraNome,
-      dataInicio:  card.dataset.obraDataInicio,
+      id:         card.dataset.obraId,
+      nome:       card.dataset.obraNome,
+      dataInicio: card.dataset.obraDataInicio,
     };
     Estado.obraChip.textContent     = Estado.obraSelecionada.nome;
     Estado.obraChip.style.display   = 'inline-block';
@@ -150,10 +185,8 @@ function _preencherSemanaAtual() {
   const hoje = new Date();
   const dow  = hoje.getDay();
   const diffSeg = dow === 0 ? -6 : 1 - dow;
-  const seg  = new Date(hoje);
-  seg.setDate(hoje.getDate() + diffSeg);
-  const dom  = new Date(seg);
-  dom.setDate(seg.getDate() + 6);
+  const seg  = new Date(hoje); seg.setDate(hoje.getDate() + diffSeg);
+  const dom  = new Date(seg);  dom.setDate(seg.getDate() + 6);
   if (Estado.dataInicioEl) Estado.dataInicioEl.value = _toISO(seg);
   if (Estado.dataFimEl)    Estado.dataFimEl.value    = _toISO(dom);
   if (Estado.semanaNumeroEl) Estado.semanaNumeroEl.value = '1';
@@ -170,17 +203,24 @@ function _formatBR(isoStr) {
   return `${d}/${m}/${y}`;
 }
 
+function _formatBRcurto(isoStr) {
+  if (!isoStr) return '—';
+  const [y, m, d] = isoStr.split('-');
+  return `${d}/${m}`;
+}
+
+/**
+ * Calcula semana da obra igual ao index.html:
+ * semana = floor((hoje - data_inicio) / 7) + 1
+ */
 function _calcularSemanaAutomatica(obraDataInicio) {
   if (!obraDataInicio || !Estado.dataInicioEl || !Estado.dataFimEl) return;
-  const ini   = new Date(obraDataInicio + 'T00:00:00');
-  const hoje  = new Date();
-  hoje.setHours(0, 0, 0, 0);
+  const ini  = new Date(obraDataInicio + 'T00:00:00');
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
   const diffDias = Math.max(0, Math.floor((hoje - ini) / 86400000));
   const semNum   = Math.floor(diffDias / 7) + 1;
-  const semIni   = new Date(ini);
-  semIni.setDate(ini.getDate() + (semNum - 1) * 7);
-  const semFim   = new Date(semIni);
-  semFim.setDate(semIni.getDate() + 6);
+  const semIni   = new Date(ini); semIni.setDate(ini.getDate() + (semNum - 1) * 7);
+  const semFim   = new Date(semIni); semFim.setDate(semIni.getDate() + 6);
   Estado.dataInicioEl.value = _toISO(semIni);
   Estado.dataFimEl.value    = _toISO(semFim);
   if (Estado.semanaNumeroEl) Estado.semanaNumeroEl.value = semNum;
@@ -195,7 +235,7 @@ function _atualizarInfoDelta() {
   const d2   = new Date(fim + 'T00:00:00');
   const dias = Math.round((d2 - d1) / 86400000) + 1;
   Estado.labelDeltaInfo.textContent =
-    `${_formatBR(ini)} a ${_formatBR(fim)} · ${dias} dias · apenas delta deste período`;
+    `${_formatBR(ini)} a ${_formatBR(fim)} · ${dias} dias · delta desta semana`;
 }
 
 // =============================================================================
@@ -205,10 +245,7 @@ function _atualizarInfoDelta() {
 async function _carregarObras() {
   try {
     const cached = cacheGet(CACHE_KEY_OBRAS);
-    if (cached) {
-      _renderizarObras(cached);
-      return;
-    }
+    if (cached) { _renderizarObras(cached); return; }
     const { data, error } = await supabase
       .from('obras')
       .select('id, nome, cliente, percentual_global, status, data_inicio, data_previsao_fim')
@@ -261,43 +298,26 @@ async function _buscarObra(obraId) {
   return data;
 }
 
-async function _buscarServicosAtuais(obraId) {
+async function _buscarServicos(obraId) {
   const { data, error } = await supabase
     .from('obra_servicos')
-    .select('id, codigo, descricao_cliente, percentual_concluido, pct_anterior, valor_contratado, equipe_codigo, dias_marcados, data_inicio, data_fim, status')
+    .select('id, codigo, descricao_cliente, percentual_concluido, pct_anterior, valor_contratado, equipe_codigo, dias_marcados, data_inicio, data_fim, status, updated_at')
     .eq('obra_id', obraId)
     .order('codigo');
   if (error) throw new Error('Erro ao buscar serviços: ' + error.message);
   return data || [];
 }
 
-async function _buscarVisitasPeriodo(obraId, dataInicio, dataFim) {
-  // Visitas da semana atual
-  const { data: visitasSemana, error: e1 } = await supabase
+async function _buscarVisitas(obraId, dataInicio, dataFim) {
+  const { data, error } = await supabase
     .from('obra_visitas')
-    .select('id, data_visita, resumo_ia, narrativa_revisada, payload_sync, semana, itens_aplicados')
+    .select('id, data_visita, resumo_ia, narrativa_revisada, payload_sync, semana')
     .eq('obra_id', obraId)
     .gte('data_visita', dataInicio)
     .lte('data_visita', dataFim)
     .order('data_visita', { ascending: true });
-  if (e1) throw new Error('Erro ao buscar visitas da semana: ' + e1.message);
-
-  // Visitas da semana ANTERIOR (base para o delta)
-  const d1Ant = new Date(dataInicio + 'T00:00:00');
-  d1Ant.setDate(d1Ant.getDate() - 7);
-  const d2Ant = new Date(dataInicio + 'T00:00:00');
-  d2Ant.setDate(d2Ant.getDate() - 1);
-
-  const { data: visitasAnterior, error: e2 } = await supabase
-    .from('obra_visitas')
-    .select('data_visita, payload_sync, semana')
-    .eq('obra_id', obraId)
-    .gte('data_visita', _toISO(d1Ant))
-    .lte('data_visita', _toISO(d2Ant))
-    .order('data_visita', { ascending: false });
-  if (e2) throw new Error('Erro ao buscar visitas anteriores: ' + e2.message);
-
-  return { semana: visitasSemana || [], anterior: visitasAnterior || [] };
+  if (error) throw new Error('Erro ao buscar visitas: ' + error.message);
+  return data || [];
 }
 
 async function _buscarPendencias(obraId) {
@@ -311,149 +331,14 @@ async function _buscarPendencias(obraId) {
   return data || [];
 }
 
-// =============================================================================
-// CÁLCULO DO DELTA SEMANAL
-// =============================================================================
-
-function _calcularDeltaSemanal(servicosAtuais, visitasSemana, visitasAnterior) {
-  // Mapa: codigo → pct atual
-  const mapAtual = {};
-  servicosAtuais.forEach(s => { mapAtual[s.codigo] = s.percentual_concluido || 0; });
-
-  // Mapa: codigo → pct anterior (base do delta)
-  const mapAnterior = {};
-
-  // Prioridade 1: payload_sync das visitas anteriores
-  if (visitasAnterior.length) {
-    visitasAnterior.forEach(v => {
-      if (!v.payload_sync) return;
-      const srv = v.payload_sync.servicos_atualizados || v.payload_sync.servicos || v.payload_sync.services || [];
-      srv.forEach(s => {
-        const cod = s.codigo || s.code || s.cod;
-        const pct = s.percentual || s.percentual_concluido || s.pct || 0;
-        if (cod && !(cod in mapAnterior)) mapAnterior[cod] = pct;
-      });
-    });
-  }
-
-  // Prioridade 2: primeira visita da semana (pct_anterior interno)
-  if (!Object.keys(mapAnterior).length && visitasSemana.length) {
-    const primeira = visitasSemana[0];
-    if (primeira.payload_sync) {
-      const srv = primeira.payload_sync.servicos_atualizados || primeira.payload_sync.servicos || primeira.payload_sync.services || [];
-      srv.forEach(s => {
-        const cod = s.codigo || s.code || s.cod;
-        const pctAntes = s.percentual_anterior || s.pct_anterior || 0;
-        if (cod && !(cod in mapAnterior)) mapAnterior[cod] = pctAntes;
-      });
-    }
-  }
-
-  const temBasePrecisa = Object.keys(mapAnterior).length > 0;
-
-  const resultado = servicosAtuais.map(s => {
-    const pctAtual    = s.percentual_concluido || 0;
-    const pctAnterior = temBasePrecisa ? (mapAnterior[s.codigo] ?? pctAtual) : 0;
-    const delta       = pctAtual - pctAnterior;
-    const status      = pctAtual >= 100 ? 'CONCLUÍDO' : pctAtual > 0 ? 'EM ANDAMENTO' : 'A EXECUTAR';
-    return {
-      codigo:            s.codigo,
-      descricao_cliente: s.descricao_cliente,
-      pct_anterior:      pctAnterior,
-      pct_atual:         pctAtual,
-      delta,
-      status,
-      valor:             s.valor_contratado || 0,
-    };
-  });
-
-  const servicosDelta = resultado.filter(s => s.delta > 0);
-
-  console.log(`[DEKA][Relatorios] Delta: ${servicosDelta.length}/${resultado.length} serviços avançaram. Base precisa: ${temBasePrecisa}`);
-
-  return {
-    servicosDelta,
-    todosServicos:  resultado,
-    temBasePrecisa,
-    totalServicos:  resultado.length,
-    concluidos:     resultado.filter(s => s.pct_atual >= 100).length,
-    emAndamento:    resultado.filter(s => s.pct_atual > 0 && s.pct_atual < 100).length,
-  };
-}
-
-async function _calcularProximaSemana(servicosAtuais, dataFim) {
-  // Range da próxima semana
-  const fimAtual = new Date(dataFim + 'T00:00:00');
-  const proxIni  = new Date(fimAtual); proxIni.setDate(fimAtual.getDate() + 1);
-  const proxFim  = new Date(proxIni);  proxFim.setDate(proxIni.getDate() + 6);
-  const proxIniISO = _toISO(proxIni);
-  const proxFimISO = _toISO(proxFim);
-
-  // Prioridade 1: dias_marcados já na tabela normalizada (obra_servicos)
-  const mapDias = {};
-  servicosAtuais.forEach(s => {
-    if (s.descricao_cliente && Array.isArray(s.dias_marcados) && s.dias_marcados.length) {
-      mapDias[s.descricao_cliente] = s.dias_marcados;
-    }
-  });
-
-  // Prioridade 2: fallback cockpit_obras (enquanto migração não está completa)
-  if (!Object.keys(mapDias).length) {
-    const cockpitState = await _lerCockpitState();
-    if (cockpitState && Array.isArray(cockpitState.servicos)) {
-      cockpitState.servicos.forEach(s => {
-        if (s.descricao_cliente && Array.isArray(s.dias_marcados)) {
-          mapDias[s.descricao_cliente] = s.dias_marcados;
-        }
-      });
-    }
-  }
-
-  function _temDiasProxSem(s) {
-    const dias = mapDias[s.descricao_cliente] || [];
-    return dias.some(d => d >= proxIniISO && d <= proxFimISO);
-  }
-
-  // Prioridade 1: agendados no cronograma para a próxima semana
-  const agendados = servicosAtuais.filter(s =>
-    (s.percentual_concluido || 0) < 100 && _temDiasProxSem(s)
-  );
-
-  // Prioridade 2: em andamento (fallback se sem cronograma)
-  const emAndamento = servicosAtuais.filter(s => {
-    const pct = s.percentual_concluido || 0;
-    return pct > 0 && pct < 100 && !agendados.includes(s);
-  }).sort((a, b) => (b.percentual_concluido || 0) - (a.percentual_concluido || 0));
-
-  const resultado = agendados.length > 0
-    ? [...agendados, ...emAndamento].slice(0, 5)
-    : emAndamento.slice(0, 5);
-
-  return resultado.map(s => {
-    const dias = mapDias[s.descricao_cliente] || [];
-    const diasProx = dias.filter(d => d >= proxIniISO && d <= proxFimISO).sort();
-    const periodoStr = diasProx.length
-      ? _formatBR(diasProx[0]) + (diasProx.length > 1 ? ' a ' + _formatBR(diasProx[diasProx.length - 1]) : '')
-      : null;
-    return {
-      descricao_cliente: s.descricao_cliente,
-      pct_atual:         s.percentual_concluido || 0,
-      status:            s.percentual_concluido > 0 ? 'EM ANDAMENTO' : 'INÍCIO PREVISTO',
-      periodo:           periodoStr,
-    };
-  });
-}
-
 /**
- * Lê o state completo da obra do Supabase (tabela cockpit_obras).
- * Fallback para localStorage se Supabase indisponível.
- * Permite usar dias_marcados do cronograma em qualquer dispositivo.
+ * Lê state completo do cockpit para complementar narrativa e dias_marcados.
+ * Prioridade: Supabase cockpit_obras → localStorage
  */
-async function _lerCockpitState(obraId) {
-  // Prioridade 1: Supabase (funciona em qualquer dispositivo)
+async function _lerCockpitState() {
   try {
     const resp = await fetch(
-      `${window.DEKA_CONFIG.supabaseUrl}/rest/v1/cockpit_obras?select=obra_key,data,updated_at&order=updated_at.desc&limit=20`,
+      `${window.DEKA_CONFIG.supabaseUrl}/rest/v1/cockpit_obras?select=obra_key,data,updated_at&order=updated_at.desc&limit=10`,
       {
         headers: {
           'apikey': window.DEKA_CONFIG.supabaseAnonKey,
@@ -465,26 +350,19 @@ async function _lerCockpitState(obraId) {
     if (resp.ok) {
       const rows = await resp.json();
       if (rows && rows.length) {
-        // Se temos obraId, tentamos cruzar pelo nome da obra
-        // Senão, usa o mais recente
-        const row = rows[0];
+        const row  = rows[0];
         const data = typeof row.data === 'string' ? JSON.parse(row.data) : (row.data || {});
-        if (data && Array.isArray(data.servicos)) {
-          console.log('[DEKA][Relatorios] cockpit state lido do Supabase:', row.obra_key);
-          return data;
-        }
+        if (data && Array.isArray(data.servicos)) return data;
       }
     }
   } catch (e) {
-    console.warn('[DEKA][Relatorios] Supabase indisponível para cockpit_obras, usando localStorage:', e.message);
+    console.warn('[DEKA][Relatorios] cockpit_obras indisponível:', e.message);
   }
-
-  // Prioridade 2: localStorage (fallback offline / mesmo dispositivo)
+  // Fallback: localStorage
   try {
     const keys = Object.keys(localStorage).filter(k => k.startsWith('cockpit_'));
     if (!keys.length) return null;
-    let melhor = null;
-    let melhorTs = 0;
+    let melhor = null; let melhorTs = 0;
     keys.forEach(k => {
       try {
         const d = JSON.parse(localStorage.getItem(k));
@@ -492,79 +370,291 @@ async function _lerCockpitState(obraId) {
           const ts = new Date(d._savedAt).getTime();
           if (ts > melhorTs) { melhorTs = ts; melhor = d; }
         }
-      } catch (e) { /* ignora chave corrompida */ }
+      } catch (e) { /* ignora */ }
     });
-    if (melhor) console.log('[DEKA][Relatorios] cockpit state lido do localStorage (offline)');
     return melhor;
   } catch (e) {
-    console.error('[DEKA][Relatorios] Erro ao ler cockpit state:', e);
+    console.error('[DEKA][Relatorios] Erro localStorage:', e);
     return null;
   }
 }
 
-function _extrairNarrativaSemana(visitasSemana) {
-  return visitasSemana
+// =============================================================================
+// CÁLCULO DO DELTA — v53
+// =============================================================================
+
+/**
+ * Calcula delta semanal usando pct_anterior de obra_servicos.
+ *
+ * LÓGICA v53:
+ * 1. delta = percentual_concluido - pct_anterior (campo da tabela normalizada)
+ * 2. Só entra no relatório se delta > 0 (avançou na semana)
+ * 3. Fallback: se pct_anterior = 0 para todos, usa visitas do período
+ *
+ * VANTAGEM: Não depende de payload_sync das visitas.
+ * O index.html grava pct_anterior via sbSyncServicos() a cada saveState().
+ */
+function _calcularDelta(servicos, visitasSemana) {
+  // Tentar usar pct_anterior da tabela normalizada
+  const temPctAnterior = servicos.some(s => (s.pct_anterior || 0) > 0);
+
+  let mapAnterior = {};
+
+  if (temPctAnterior) {
+    // Fonte primária: pct_anterior da tabela obra_servicos
+    servicos.forEach(s => {
+      mapAnterior[s.codigo] = s.pct_anterior || 0;
+    });
+    console.log('[DEKA][Relatorios] Delta via pct_anterior (tabela normalizada)');
+  } else {
+    // Fallback: payload_sync das visitas da semana
+    visitasSemana.forEach(v => {
+      if (!v.payload_sync) return;
+      const srv = v.payload_sync.servicos_atualizados ||
+                  v.payload_sync.servicos ||
+                  v.payload_sync.services || [];
+      srv.forEach(s => {
+        const cod = s.codigo || s.code || s.cod;
+        const pctAntes = s.pct_anterior || s.percentual_anterior || 0;
+        if (cod && !(cod in mapAnterior)) mapAnterior[cod] = pctAntes;
+      });
+    });
+    console.log('[DEKA][Relatorios] Delta via payload_sync das visitas (fallback)');
+  }
+
+  const resultado = servicos.map(s => {
+    const pctAtual    = s.percentual_concluido || 0;
+    const pctAnterior = mapAnterior[s.codigo] ?? pctAtual;
+    const delta       = Math.max(0, pctAtual - pctAnterior);
+    const status      = pctAtual >= 100 ? 'CONCLUÍDO'
+                      : pctAtual > 0   ? 'EM ANDAMENTO'
+                      : 'A EXECUTAR';
+    return {
+      codigo:            s.codigo,
+      descricao_cliente: s.descricao_cliente,
+      pct_anterior:      pctAnterior,
+      pct_atual:         pctAtual,
+      delta,
+      status,
+      valor:             s.valor_contratado || 0,
+      dias_marcados:     s.dias_marcados || [],
+      data_inicio:       s.data_inicio,
+      data_fim:          s.data_fim,
+    };
+  });
+
+  const comDelta = resultado.filter(s => s.delta > 0);
+  const concluidos  = resultado.filter(s => s.pct_atual >= 100).length;
+  const emAndamento = resultado.filter(s => s.pct_atual > 0 && s.pct_atual < 100).length;
+
+  // pctGeral ponderado por valor
+  const totalValor = servicos.reduce((a, s) => a + (s.valor_contratado || 0), 0);
+  const pctGeral   = totalValor > 0
+    ? Math.round(resultado.reduce((a, s) => a + (s.pct_atual * (s.valor || s.valor_contratado || 0)), 0) / totalValor)
+    : Math.round(resultado.reduce((a, s) => a + s.pct_atual, 0) / Math.max(1, resultado.length));
+
+  console.log(`[DEKA][Relatorios] Delta: ${comDelta.length}/${resultado.length} avançaram. pctGeral=${pctGeral}%`);
+
+  return {
+    comDelta,
+    todos:        resultado,
+    temPctAnterior,
+    totalServicos: resultado.length,
+    concluidos,
+    emAndamento,
+    pctGeral,
+  };
+}
+
+/**
+ * Próxima semana: serviços com dias_marcados no intervalo da semana seguinte.
+ */
+async function _calcularProximaSemana(servicos, dataFim) {
+  const fimAtual = new Date(dataFim + 'T00:00:00');
+  const proxIni  = new Date(fimAtual); proxIni.setDate(fimAtual.getDate() + 1);
+  const proxFim  = new Date(proxIni);  proxFim.setDate(proxIni.getDate() + 6);
+  const proxIniISO = _toISO(proxIni);
+  const proxFimISO = _toISO(proxFim);
+
+  // Mapa de dias_marcados: prioridade tabela normalizada → cockpit_obras
+  const mapDias = {};
+  servicos.forEach(s => {
+    if (s.descricao_cliente && Array.isArray(s.dias_marcados) && s.dias_marcados.length) {
+      mapDias[s.descricao_cliente] = s.dias_marcados;
+    }
+  });
+
+  // Fallback: cockpit_obras se tabela normalizada vazia
+  if (!Object.keys(mapDias).length) {
+    const cs = await _lerCockpitState();
+    if (cs && Array.isArray(cs.servicos)) {
+      cs.servicos.forEach(s => {
+        if (s.descricao_cliente && Array.isArray(s.dias_marcados)) {
+          mapDias[s.descricao_cliente] = s.dias_marcados;
+        }
+      });
+    }
+  }
+
+  function _temDias(s) {
+    const dias = mapDias[s.descricao_cliente] || [];
+    return dias.some(d => d >= proxIniISO && d <= proxFimISO);
+  }
+
+  const agendados = servicos.filter(s => s.percentual_concluido < 100 && _temDias(s));
+  const emAndamento = servicos
+    .filter(s => s.percentual_concluido > 0 && s.percentual_concluido < 100 && !agendados.includes(s))
+    .sort((a, b) => b.percentual_concluido - a.percentual_concluido);
+
+  const lista = agendados.length > 0
+    ? [...agendados, ...emAndamento].slice(0, 5)
+    : emAndamento.slice(0, 5);
+
+  return lista.map(s => {
+    const dias = mapDias[s.descricao_cliente] || [];
+    const diasProx = dias.filter(d => d >= proxIniISO && d <= proxFimISO).sort();
+    const periodo  = diasProx.length
+      ? _formatBRcurto(diasProx[0]) + (diasProx.length > 1 ? ' a ' + _formatBRcurto(diasProx[diasProx.length - 1]) : '')
+      : null;
+    return {
+      descricao_cliente: s.descricao_cliente,
+      pct_atual:         s.percentual_concluido || 0,
+      status:            s.percentual_concluido > 0 ? 'EM ANDAMENTO' : 'A EXECUTAR',
+      periodo,
+    };
+  });
+}
+
+/**
+ * Extrai narrativa das visitas da semana.
+ * Prioridade: narrativa_revisada → resumo_ia → cockpit diário
+ */
+async function _extrairNarrativa(visitasSemana, dataInicio, dataFim) {
+  // 1. narrativa_revisada ou resumo_ia das visitas
+  const textos = visitasSemana
     .map(v => v.narrativa_revisada || v.resumo_ia || '')
-    .filter(Boolean)
-    .join('\n\n');
+    .filter(Boolean);
+  if (textos.length) return textos.join('\n\n');
+
+  // 2. Fallback: diário do cockpit_obras
+  try {
+    const cs = await _lerCockpitState();
+    if (!cs || !cs.diario) return '';
+    const DIAS = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+    const LBLS = { seg:'SEG', ter:'TER', qua:'QUA', qui:'QUI', sex:'SEX', sab:'SÁB', dom:'DOM' };
+    const linhas = DIAS
+      .map(d => {
+        const e = cs.diario[d];
+        if (!e || !e.texto || !e.texto.trim()) return null;
+        return `${LBLS[d]}: ${e.texto.trim()}`;
+      })
+      .filter(Boolean);
+    return linhas.join('\n');
+  } catch (e) {
+    console.warn('[DEKA][Relatorios] Erro ao ler diário:', e);
+    return '';
+  }
 }
 
 // =============================================================================
-// CONTEXTO PARA A IA
+// MONTAGEM DO CONTEXTO PARA IA
 // =============================================================================
 
-function _montarContexto(obra, delta, proximaSemana, pendencias, narrativa, dataInicio, dataFim, semanaNum) {
-  const pctGeral = obra.percentual_global || 0;
+function _montarContextoCliente(obra, delta, proximaSem, pendencias, narrativa, dataInicio, dataFim, semanaNum) {
+  const pctGeral = delta.pctGeral;
 
-  const linhasAvanco = delta.servicosDelta.map(s => {
+  // Serviços com avanço real na semana
+  const linhasAvanco = delta.comDelta.map(s => {
     const sufixo = s.pct_atual >= 100
-      ? ' — concluído nesta semana'
-      : ` — ${s.pct_atual}% concluído no total (+${s.delta}% esta semana)`;
+      ? ' — concluído nesta semana ✓'
+      : ` — ${s.pct_atual}% concluído (+${s.delta}% nesta semana)`;
     return `• ${s.descricao_cliente}${sufixo}`;
   });
 
-  const linhasProxima = proximaSemana.map(s => {
-    const st = s.pct_atual > 0 ? `continua (${s.pct_atual}% feito)` : 'início previsto';
+  // Próxima semana com período
+  const linhasProxima = proximaSem.map(s => {
+    const st  = s.pct_atual > 0 ? `continua (${s.pct_atual}% feito)` : 'início previsto';
     const per = s.periodo ? ` · ${s.periodo}` : '';
     return `• ${s.descricao_cliente} — ${st}${per}`;
   });
 
-  const linhasPendencias = pendencias.map(p =>
-    `• [${p.prioridade.toUpperCase()}] ${p.descricao} — responsável: ${p.responsavel}`
-  );
+  // Pendências (apenas para contexto interno da IA — não exibir ao cliente)
+  const linhasPend = pendencias
+    .filter(p => p.prioridade === 'critica' || p.prioridade === 'alta')
+    .map(p => `• [${p.prioridade.toUpperCase()}] ${p.descricao}`);
 
-  const avisoFallback = delta.temBasePrecisa ? '' :
-    '\n⚠ AVISO INTERNO: sem snapshot anterior. Inferir avanços pela narrativa do gestor. ' +
-    'Se insuficiente, escreva que foi semana de preparação.';
+  // Aderência ao prazo
+  let prazoCtx = '';
+  if (obra.data_inicio && (obra.data_previsao_fim || obra.data_fim)) {
+    const ini  = new Date((obra.data_inicio.includes('/') ? obra.data_inicio.split('/').reverse().join('-') : obra.data_inicio) + 'T00:00:00');
+    const fim2 = new Date(((obra.data_previsao_fim || obra.data_fim).includes('/') ? (obra.data_previsao_fim || obra.data_fim).split('/').reverse().join('-') : (obra.data_previsao_fim || obra.data_fim)) + 'T00:00:00');
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const total    = Math.max(1, Math.round((fim2 - ini) / 86400000));
+    const decorrido = Math.max(0, Math.round((hoje - ini) / 86400000));
+    const previsto  = Math.min(100, Math.round(decorrido / total * 100));
+    const desvio    = pctGeral - previsto;
+    prazoCtx = `Aderência ao prazo: ${decorrido} de ${total} dias (${previsto}% previsto). Executado: ${pctGeral}%. Desvio: ${desvio >= 0 ? '+' : ''}${desvio}%.`;
+  }
 
-  return `
-Gere o relatório semanal para o CLIENTE.
+  return `Gere o RELATÓRIO SEMANAL para o CLIENTE.
 
 DADOS DA OBRA:
 Nome: ${obra.nome}
-Cliente: ${obra.cliente}
-Avanço acumulado: ${pctGeral}%
-Previsão de conclusão: ${obra.data_previsao_fim ? _formatBR(obra.data_previsao_fim) : 'A definir'}
+Cliente: ${obra.cliente || obra.razao_cliente || '—'}
 Semana nº: ${semanaNum}
 Período: ${_formatBR(dataInicio)} a ${_formatBR(dataFim)}
+Avanço acumulado: ${pctGeral}%
+Entrega prevista: ${_formatBR(obra.data_previsao_fim || obra.data_fim || '')}
+${prazoCtx}
 
-O QUE AVANÇOU NESTA SEMANA (delta real):
-${linhasAvanco.length ? linhasAvanco.join('\n') : 'Nenhum avanço com snapshot. Use a narrativa do gestor.'}
+O QUE AVANÇOU NESTA SEMANA (${delta.comDelta.length} serviço(s) com delta real):
+${linhasAvanco.length ? linhasAvanco.join('\n') : 'Nenhum avanço registrado com dados precisos. Use a narrativa do gestor.'}
 
-NARRATIVA DO GESTOR (enriqueça, não copie):
-${narrativa || 'Sem narrativa registrada.'}
+NARRATIVA DO GESTOR (enriqueça, não copie literalmente):
+${narrativa || 'Sem narrativa registrada para esta semana.'}
 
-PENDÊNCIAS ABERTAS:
-${linhasPendencias.length ? linhasPendencias.join('\n') : 'Sem pendências.'}
+${linhasPend.length ? `ALERTAS (mencione se relevante ao cliente):\n${linhasPend.join('\n')}` : ''}
 
-PROGRAMADO PRÓXIMA SEMANA:
-${linhasProxima.length ? linhasProxima.join('\n') : 'A definir.'}
+PROGRAMADO PRÓXIMA SEMANA (${proximaSem.length} serviço(s)):
+${linhasProxima.length ? linhasProxima.join('\n') : 'A definir conforme andamento.'}
 
 TOTAIS: ${delta.totalServicos} serviços · ${delta.concluidos} concluídos · ${delta.emAndamento} em andamento
-${avisoFallback}
 
-LEMBRE-SE: apenas Semana ${semanaNum}. Não mencione semanas anteriores.
-`.trim();
+LEMBRE-SE: APENAS sobre a Semana ${semanaNum}. Não mencione semanas anteriores.`.trim();
+}
+
+function _montarContextoInterno(obra, delta, proximaSem, pendencias, narrativa, dataInicio, dataFim, semanaNum) {
+  const pctGeral = delta.pctGeral;
+
+  const linhasSrv = delta.comDelta.map(s =>
+    `• ${s.codigo} — ${s.descricao_cliente}: +${s.delta}% (total: ${s.pct_atual}%)`
+  );
+
+  const linhasProxima = proximaSem.map(s => {
+    const per = s.periodo ? ` · ${s.periodo}` : '';
+    return `• ${s.descricao_cliente} — ${s.status}${per}`;
+  });
+
+  const linhasPend = pendencias.map(p =>
+    `• [${p.prioridade.toUpperCase()}] ${p.descricao} — resp: ${p.responsavel}`
+  );
+
+  return `Gere o RELATÓRIO INTERNO para o gestor Evandro.
+
+OBRA: ${obra.nome} · Semana ${semanaNum} · ${_formatBR(dataInicio)} a ${_formatBR(dataFim)}
+Avanço: ${pctGeral}% · ${delta.concluidos}/${delta.totalServicos} concluídos
+
+SERVIÇOS COM AVANÇO NA SEMANA:
+${linhasSrv.length ? linhasSrv.join('\n') : 'Nenhum avanço registrado.'}
+
+NARRATIVA DO GESTOR:
+${narrativa || 'Sem narrativa.'}
+
+PENDÊNCIAS (${pendencias.length}):
+${linhasPend.length ? linhasPend.join('\n') : 'Nenhuma.'}
+
+PLANEJAMENTO PRÓXIMA SEMANA:
+${linhasProxima.length ? linhasProxima.join('\n') : 'A definir.'}`.trim();
 }
 
 // =============================================================================
@@ -587,52 +677,65 @@ async function _gerarRelatorio() {
     return;
   }
 
+  const tipoRel = Estado.tipoRelatorioEl?.value || 'cliente';
+
   try {
     Estado.btnGerarRelatorio.disabled = true;
     Estado.btnGerarRelatorio.textContent = '⏳ Gerando...';
     _resetSteps();
+    const semanaNum = parseInt(Estado.semanaNumeroEl?.value) || 1;
 
-    // Step 1: Dados
+    // STEP 1 — Busca dados
     _ativarStep(Estado.step1);
-    showToast('Coletando dados...', 'info');
-    const semanaNum = Estado.semanaNumeroEl?.value || '1';
-    const [obra, servicosAtuais, { semana: visitasSemana, anterior: visitasAnterior }, pendencias] =
-      await Promise.all([
-        _buscarObra(Estado.obraSelecionada.id),
-        _buscarServicosAtuais(Estado.obraSelecionada.id),
-        _buscarVisitasPeriodo(Estado.obraSelecionada.id, dataInicio, dataFim),
-        _buscarPendencias(Estado.obraSelecionada.id),
-      ]);
+    showToast('Buscando dados da semana...', 'info');
+    const [obra, servicos, visitas, pendencias] = await Promise.all([
+      _buscarObra(Estado.obraSelecionada.id),
+      _buscarServicos(Estado.obraSelecionada.id),
+      _buscarVisitas(Estado.obraSelecionada.id, dataInicio, dataFim),
+      _buscarPendencias(Estado.obraSelecionada.id),
+    ]);
     _concluirStep(Estado.step1);
 
-    // Step 2: Delta
+    // STEP 2 — Cálculos
     _ativarStep(Estado.step2);
-    showToast('Calculando delta...', 'info');
-    const delta      = _calcularDeltaSemanal(servicosAtuais, visitasSemana, visitasAnterior);
-    const proximaSem = await _calcularProximaSemana(servicosAtuais, dataFim);
-    const narrativa  = _extrairNarrativaSemana(visitasSemana);
-    const contexto   = _montarContexto(obra, delta, proximaSem, pendencias, narrativa, dataInicio, dataFim, semanaNum);
+    showToast('Calculando delta e cronograma...', 'info');
+    const delta      = _calcularDelta(servicos, visitas);
+    const proximaSem = await _calcularProximaSemana(servicos, dataFim);
+    const narrativa  = await _extrairNarrativa(visitas, dataInicio, dataFim);
+
+    const contexto = tipoRel === 'interno'
+      ? _montarContextoInterno(obra, delta, proximaSem, pendencias, narrativa, dataInicio, dataFim, semanaNum)
+      : _montarContextoCliente(obra, delta, proximaSem, pendencias, narrativa, dataInicio, dataFim, semanaNum);
+
+    const systemPrompt = tipoRel === 'interno'
+      ? SYSTEM_PROMPT_INTERNO
+      : SYSTEM_PROMPT_SEMANAL_CLIENTE;
+
     _concluirStep(Estado.step2);
 
-    // Step 3: IA
+    // STEP 3 — IA
     _ativarStep(Estado.step3);
     showToast('Gerando com IA...', 'info');
     const relatorioMd = await chamarClaude({
       mensagens:     [{ role: 'user', content: contexto }],
-      sistemaPrompt: SYSTEM_PROMPT_AGT_RELATORIO,
+      sistemaPrompt: systemPrompt,
       modelo:        'claude-haiku-4-5',
       maxTokens:     1200,
     });
     _concluirStep(Estado.step3);
 
-    // Step 4: Render
+    // STEP 4 — Render
     _ativarStep(Estado.step4);
-    const avisoEl = document.getElementById('aviso-snapshot');
-    if (avisoEl) avisoEl.style.display = delta.temBasePrecisa ? 'none' : 'block';
-    _renderizarPreview(relatorioMd, obra, dataInicio, dataFim, semanaNum, delta);
+    const mdCorrigido = relatorioMd
+      .replace(/Semana\s+0?1(?=\s|—|-|$|\.)/gi, `Semana ${semanaNum}`)
+      .replace(/\b(SRV|EQ|FOR)-[\w-]+/gi, '');
+    _renderizarPreview(mdCorrigido, obra, dataInicio, dataFim, semanaNum, delta, tipoRel);
     _concluirStep(Estado.step4);
 
-    showToast(`Relatório gerado! ${delta.servicosDelta.length} serviço(s) com avanço.`, 'success');
+    const avisoEl = document.getElementById('aviso-snapshot');
+    if (avisoEl) avisoEl.style.display = delta.temPctAnterior ? 'none' : 'block';
+
+    showToast(`✅ Relatório gerado · ${delta.comDelta.length} serviço(s) com avanço`, 'success');
 
   } catch (erro) {
     console.error('[DEKA][Relatorios] Erro _gerarRelatorio:', erro);
@@ -648,28 +751,21 @@ async function _gerarRelatorio() {
 // PREVIEW
 // =============================================================================
 
-function _renderizarPreview(relatorioMd, obra, dataInicio, dataFim, semanaNum, delta) {
-  if (typeof marked === 'undefined') {
-    throw new Error('marked.js não encontrado no HTML.');
-  }
+function _renderizarPreview(md, obra, dataInicio, dataFim, semanaNum, delta, tipo) {
+  if (typeof marked === 'undefined') throw new Error('marked.js não encontrado.');
 
-  // Corrige "Semana 01" hardcoded e remove códigos internos que escaparam
-  const mdCorrigido = relatorioMd
-    .replace(/Semana\s+0?1(?=\s|—|-|$|\.)/gi, `Semana ${semanaNum}`)
-    .replace(/\b(SRV|EQ|FOR)-[\w-]+/gi, '');
+  Estado.previewContent.innerHTML = marked.parse(md);
+  Estado.previewRaw.value         = md;
+  Estado.relatorioGerado          = md;
 
-  Estado.previewContent.innerHTML = marked.parse(mdCorrigido);
-  Estado.previewRaw.value         = mdCorrigido;
-  Estado.relatorioGerado          = mdCorrigido;
-
-  const baseInfo = delta.temBasePrecisa
-    ? 'delta preciso (snapshot disponível)'
-    : 'delta estimado (sem snapshot)';
+  const tipoLabel   = tipo === 'interno' ? '📁 Interno' : '📊 Cliente';
+  const baseInfo    = delta.temPctAnterior ? 'delta preciso' : 'delta estimado';
 
   Estado.previewMeta.innerHTML = `
-    <strong>${obra.nome}</strong> · Semana ${semanaNum} · ${_formatBR(dataInicio)} a ${_formatBR(dataFim)}<br>
+    ${tipoLabel} · <strong>${obra.nome}</strong> · Semana ${semanaNum} · ${_formatBR(dataInicio)} a ${_formatBR(dataFim)}<br>
     <small style="opacity:.7">
-      ${delta.servicosDelta.length} com avanço · ${delta.concluidos} concluídos · ${delta.emAndamento} em andamento · ${baseInfo}
+      ${delta.comDelta.length} com avanço · ${delta.concluidos} concluídos · ${delta.emAndamento} em andamento
+      · ${delta.pctGeral}% geral · ${baseInfo}
     </small>
   `;
 
@@ -678,7 +774,7 @@ function _renderizarPreview(relatorioMd, obra, dataInicio, dataFim, semanaNum, d
 }
 
 // =============================================================================
-// HELPERS STEPS
+// STEPS
 // =============================================================================
 
 function _resetSteps() {
@@ -723,18 +819,18 @@ function _resetUI() {
   if (Estado.labelDeltaInfo) Estado.labelDeltaInfo.textContent = '';
   const avisoEl = document.getElementById('aviso-snapshot');
   if (avisoEl) avisoEl.style.display = 'none';
-  console.log('[DEKA][Relatorios] UI resetada.');
 }
 
 // =============================================================================
-// FIM — relatorios.js v52
+// FIM — relatorios.js v53
 // Smoke Test:
 // [x] < 3000 linhas
 // [x] 1 export init()
 // [x] Sem DOMContentLoaded
-// [x] console.error + showToast em todo catch
+// [x] console.error em todo catch
 // [x] Sem chave hardcoded
-// [x] cacheGet/cacheSet com TTL
-// [x] Tabelas: obras, obra_servicos, obra_visitas, obra_pendencias
-// [x] Nenhum SRV-*/EQ-* exposto ao cliente
+// [x] Delta usa pct_anterior da tabela normalizada
+// [x] Fallback para payload_sync se pct_anterior zerado
+// [x] Dois tipos de relatório: cliente e interno
+// [x] Narrativa de 3 fontes: narrativa_revisada, resumo_ia, diário cockpit
 // =============================================================================
