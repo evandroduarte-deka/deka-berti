@@ -381,16 +381,80 @@ function _calcularDeltaSemanal(servicosAtuais, visitasSemana, visitasAnterior) {
   };
 }
 
-function _calcularProximaSemana(servicosAtuais) {
-  return servicosAtuais
-    .filter(s => (s.percentual_concluido || 0) < 100)
-    .sort((a, b) => (b.percentual_concluido || 0) - (a.percentual_concluido || 0))
-    .slice(0, 5)
-    .map(s => ({
+function _calcularProximaSemana(servicosAtuais, dataFim) {
+  // Range da próxima semana
+  const fimAtual = new Date(dataFim + 'T00:00:00');
+  const proxIni  = new Date(fimAtual); proxIni.setDate(fimAtual.getDate() + 1);
+  const proxFim  = new Date(proxIni);  proxFim.setDate(proxIni.getDate() + 6);
+  const proxIniISO = _toISO(proxIni);
+  const proxFimISO = _toISO(proxFim);
+
+  // Lê dias_marcados do localStorage (salvo pelo index.html antes de abrir relatorios.html)
+  const cockpitState = _lerCockpitState();
+  const mapDias = {};
+  if (cockpitState && Array.isArray(cockpitState.servicos)) {
+    cockpitState.servicos.forEach(s => {
+      if (s.descricao_cliente && Array.isArray(s.dias_marcados)) {
+        mapDias[s.descricao_cliente] = s.dias_marcados;
+      }
+    });
+  }
+
+  function _temDiasProxSem(s) {
+    const dias = mapDias[s.descricao_cliente] || [];
+    return dias.some(d => d >= proxIniISO && d <= proxFimISO);
+  }
+
+  // Prioridade 1: agendados no cronograma para a próxima semana
+  const agendados = servicosAtuais.filter(s =>
+    (s.percentual_concluido || 0) < 100 && _temDiasProxSem(s)
+  );
+
+  // Prioridade 2: em andamento (fallback se sem cronograma)
+  const emAndamento = servicosAtuais.filter(s => {
+    const pct = s.percentual_concluido || 0;
+    return pct > 0 && pct < 100 && !agendados.includes(s);
+  }).sort((a, b) => (b.percentual_concluido || 0) - (a.percentual_concluido || 0));
+
+  const resultado = agendados.length > 0
+    ? [...agendados, ...emAndamento].slice(0, 5)
+    : emAndamento.slice(0, 5);
+
+  return resultado.map(s => {
+    const dias = mapDias[s.descricao_cliente] || [];
+    const diasProx = dias.filter(d => d >= proxIniISO && d <= proxFimISO).sort();
+    const periodoStr = diasProx.length
+      ? _formatBR(diasProx[0]) + (diasProx.length > 1 ? ' a ' + _formatBR(diasProx[diasProx.length - 1]) : '')
+      : null;
+    return {
       descricao_cliente: s.descricao_cliente,
       pct_atual:         s.percentual_concluido || 0,
-      status:            s.percentual_concluido > 0 ? 'EM ANDAMENTO' : 'A EXECUTAR',
-    }));
+      status:            s.percentual_concluido > 0 ? 'EM ANDAMENTO' : 'INÍCIO PREVISTO',
+      periodo:           periodoStr,
+    };
+  });
+}
+
+function _lerCockpitState() {
+  try {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith('cockpit_'));
+    if (!keys.length) return null;
+    let melhor = null;
+    let melhorTs = 0;
+    keys.forEach(k => {
+      try {
+        const d = JSON.parse(localStorage.getItem(k));
+        if (d && d._savedAt) {
+          const ts = new Date(d._savedAt).getTime();
+          if (ts > melhorTs) { melhorTs = ts; melhor = d; }
+        }
+      } catch (e) { /* ignora */ }
+    });
+    return melhor;
+  } catch (e) {
+    console.error('[DEKA][Relatorios] Erro ao ler cockpit state:', e);
+    return null;
+  }
 }
 
 function _extrairNarrativaSemana(visitasSemana) {
@@ -416,7 +480,8 @@ function _montarContexto(obra, delta, proximaSemana, pendencias, narrativa, data
 
   const linhasProxima = proximaSemana.map(s => {
     const st = s.pct_atual > 0 ? `continua (${s.pct_atual}% feito)` : 'início previsto';
-    return `• ${s.descricao_cliente} — ${st}`;
+    const per = s.periodo ? ` · ${s.periodo}` : '';
+    return `• ${s.descricao_cliente} — ${st}${per}`;
   });
 
   const linhasPendencias = pendencias.map(p =>
@@ -499,7 +564,7 @@ async function _gerarRelatorio() {
     _ativarStep(Estado.step2);
     showToast('Calculando delta...', 'info');
     const delta      = _calcularDeltaSemanal(servicosAtuais, visitasSemana, visitasAnterior);
-    const proximaSem = _calcularProximaSemana(servicosAtuais);
+    const proximaSem = _calcularProximaSemana(servicosAtuais, dataFim);
     const narrativa  = _extrairNarrativaSemana(visitasSemana);
     const contexto   = _montarContexto(obra, delta, proximaSem, pendencias, narrativa, dataInicio, dataFim, semanaNum);
     _concluirStep(Estado.step2);
