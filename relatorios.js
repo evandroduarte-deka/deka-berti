@@ -918,12 +918,19 @@ function _abrirPDF() {
   var obra    = Estado._ultimaObra;
   var pends   = Estado._ultimasPendencias;
 
+  var dataIniSel = Estado.dataInicioEl?.value || '';
+  var dataFimSel = Estado.dataFimEl?.value || '';
   var servicosExec = (delta?.comDelta || []).map(function(s) {
+    // Usar dias_marcados para encontrar datas reais dentro do período selecionado
+    var diasNaSemana = (s.dias_marcados || []).filter(function(d) {
+      return d >= dataIniSel && d <= dataFimSel;
+    }).sort();
+    var dIni = diasNaSemana.length ? diasNaSemana[0] : (s.data_inicio || null);
+    var dFim = diasNaSemana.length ? diasNaSemana[diasNaSemana.length-1] : (s.data_fim || null);
     return {
-      descricao: s.descricao_cliente,
-      equipe:    s.equipe_codigo || '',
-      dataInicio: s.data_inicio || null,
-      dataFim:    s.data_fim || null,
+      descricao:  s.descricao_cliente,
+      dataInicio: dIni,
+      dataFim:    dFim,
       status:     s.status,
       pctAtual:   s.pct_atual,
       delta:      s.delta,
