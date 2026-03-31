@@ -381,7 +381,7 @@ function _calcularDeltaSemanal(servicosAtuais, visitasSemana, visitasAnterior) {
   };
 }
 
-function _calcularProximaSemana(servicosAtuais, dataFim) {
+async function _calcularProximaSemana(servicosAtuais, dataFim) {
   // Range da próxima semana
   const fimAtual = new Date(dataFim + 'T00:00:00');
   const proxIni  = new Date(fimAtual); proxIni.setDate(fimAtual.getDate() + 1);
@@ -389,8 +389,8 @@ function _calcularProximaSemana(servicosAtuais, dataFim) {
   const proxIniISO = _toISO(proxIni);
   const proxFimISO = _toISO(proxFim);
 
-  // Lê dias_marcados do localStorage (salvo pelo index.html antes de abrir relatorios.html)
-  const cockpitState = _lerCockpitState();
+  // Lê dias_marcados do Supabase (ou localStorage se offline)
+  const cockpitState = await _lerCockpitState();
   const mapDias = {};
   if (cockpitState && Array.isArray(cockpitState.servicos)) {
     cockpitState.servicos.forEach(s => {
@@ -435,7 +435,42 @@ function _calcularProximaSemana(servicosAtuais, dataFim) {
   });
 }
 
-function _lerCockpitState() {
+/**
+ * Lê o state completo da obra do Supabase (tabela cockpit_obras).
+ * Fallback para localStorage se Supabase indisponível.
+ * Permite usar dias_marcados do cronograma em qualquer dispositivo.
+ */
+async function _lerCockpitState(obraId) {
+  // Prioridade 1: Supabase (funciona em qualquer dispositivo)
+  try {
+    const resp = await fetch(
+      `${window.DEKA_CONFIG.supabaseUrl}/rest/v1/cockpit_obras?select=obra_key,data,updated_at&order=updated_at.desc&limit=20`,
+      {
+        headers: {
+          'apikey': window.DEKA_CONFIG.supabaseAnonKey,
+          'Authorization': 'Bearer ' + window.DEKA_CONFIG.supabaseAnonKey,
+        },
+        signal: AbortSignal.timeout(8000),
+      }
+    );
+    if (resp.ok) {
+      const rows = await resp.json();
+      if (rows && rows.length) {
+        // Se temos obraId, tentamos cruzar pelo nome da obra
+        // Senão, usa o mais recente
+        const row = rows[0];
+        const data = typeof row.data === 'string' ? JSON.parse(row.data) : (row.data || {});
+        if (data && Array.isArray(data.servicos)) {
+          console.log('[DEKA][Relatorios] cockpit state lido do Supabase:', row.obra_key);
+          return data;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[DEKA][Relatorios] Supabase indisponível para cockpit_obras, usando localStorage:', e.message);
+  }
+
+  // Prioridade 2: localStorage (fallback offline / mesmo dispositivo)
   try {
     const keys = Object.keys(localStorage).filter(k => k.startsWith('cockpit_'));
     if (!keys.length) return null;
@@ -448,8 +483,9 @@ function _lerCockpitState() {
           const ts = new Date(d._savedAt).getTime();
           if (ts > melhorTs) { melhorTs = ts; melhor = d; }
         }
-      } catch (e) { /* ignora */ }
+      } catch (e) { /* ignora chave corrompida */ }
     });
+    if (melhor) console.log('[DEKA][Relatorios] cockpit state lido do localStorage (offline)');
     return melhor;
   } catch (e) {
     console.error('[DEKA][Relatorios] Erro ao ler cockpit state:', e);
@@ -564,7 +600,7 @@ async function _gerarRelatorio() {
     _ativarStep(Estado.step2);
     showToast('Calculando delta...', 'info');
     const delta      = _calcularDeltaSemanal(servicosAtuais, visitasSemana, visitasAnterior);
-    const proximaSem = _calcularProximaSemana(servicosAtuais, dataFim);
+    const proximaSem = await _calcularProximaSemana(servicosAtuais, dataFim);
     const narrativa  = _extrairNarrativaSemana(visitasSemana);
     const contexto   = _montarContexto(obra, delta, proximaSem, pendencias, narrativa, dataInicio, dataFim, semanaNum);
     _concluirStep(Estado.step2);
