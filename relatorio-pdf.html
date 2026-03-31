@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatório Berti</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-size: 11pt;
+  color: #1a1a2e;
+  background: #f0f0f0;
+}
+
+/* ── Layout A4 ── */
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  background: #fff;
+  padding: 12mm 14mm;
+  position: relative;
+}
+
+/* ── Cabeçalho ── */
+.header {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding-bottom: 10mm;
+  border-bottom: 2px solid #1a1a2e;
+  margin-bottom: 8mm;
+}
+.header-left .logo {
+  font-size: 28pt;
+  font-weight: 900;
+  letter-spacing: -1px;
+  color: #1a1a2e;
+  margin-bottom: 4mm;
+}
+.header-left .logo span { color: #1d9e75; }
+.tag-relatorio {
+  display: inline-block;
+  background: #1a1a2e;
+  color: #fff;
+  font-size: 7pt;
+  font-weight: 700;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 2px;
+  margin-bottom: 3mm;
+}
+.obra-nome {
+  font-size: 20pt;
+  font-weight: 900;
+  color: #1a1a2e;
+  line-height: 1.1;
+  margin-bottom: 2mm;
+}
+.obra-endereco {
+  font-size: 8pt;
+  color: #666;
+  line-height: 1.5;
+}
+.header-right {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 4mm;
+  justify-content: flex-end;
+}
+.header-field { display: flex; flex-direction: column; align-items: flex-end; }
+.header-field .lbl {
+  font-size: 7pt;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #999;
+  margin-bottom: 1px;
+}
+.header-field .val {
+  font-size: 10pt;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+.header-field .sub {
+  font-size: 8pt;
+  color: #666;
+}
+
+/* ── KPIs ── */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6mm;
+  margin-bottom: 6mm;
+  padding-bottom: 6mm;
+  border-bottom: 1px solid #e8e8e8;
+}
+.kpi { display: flex; flex-direction: column; gap: 1mm; }
+.kpi .num {
+  font-size: 28pt;
+  font-weight: 900;
+  color: #1a1a2e;
+  line-height: 1;
+}
+.kpi .num.verde { color: #1d9e75; }
+.kpi .lbl {
+  font-size: 7pt;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #999;
+}
+.prazo-badge {
+  display: inline-block;
+  font-size: 8pt;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 2px;
+  margin-top: 1mm;
+}
+.prazo-ok { background: #e1f5ee; color: #085041; }
+.prazo-atencao { background: #faeeda; color: #633806; }
+.prazo-atrasado { background: #fcebeb; color: #501313; }
+.entrega {
+  font-size: 20pt;
+  font-weight: 900;
+  color: #1a1a2e;
+  margin-top: 2mm;
+}
+.entrega-lbl {
+  font-size: 7pt;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #999;
+}
+
+/* ── Progresso bar ── */
+.progress-bar {
+  height: 4px;
+  background: #e8e8e8;
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 2mm 0;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: #1d9e75;
+  border-radius: 2px;
+}
+
+/* ── Seções ── */
+.section { margin-bottom: 6mm; }
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3mm;
+  padding-bottom: 2mm;
+  border-bottom: 1px solid #e8e8e8;
+}
+.section-num {
+  font-size: 7pt;
+  font-weight: 700;
+  color: #1d9e75;
+  letter-spacing: .05em;
+  min-width: 16px;
+}
+.section-title {
+  font-size: 9pt;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #1a1a2e;
+}
+
+/* ── Resumo IA ── */
+.resumo-box {
+  background: #f8f9fa;
+  border-left: 3px solid #1d9e75;
+  padding: 4mm 5mm;
+  font-size: 9.5pt;
+  color: #333;
+  line-height: 1.7;
+  border-radius: 0 4px 4px 0;
+}
+
+/* ── Tabelas ── */
+.tabela { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+.tabela thead tr { background: #1a1a2e; color: #fff; }
+.tabela thead th {
+  padding: 4px 6px;
+  text-align: left;
+  font-weight: 600;
+  letter-spacing: .04em;
+  font-size: 7.5pt;
+  text-transform: uppercase;
+}
+.tabela tbody tr { border-bottom: 0.5px solid #e8e8e8; }
+.tabela tbody tr:nth-child(even) { background: #f8f9fa; }
+.tabela tbody td { padding: 5px 6px; color: #333; vertical-align: middle; }
+.tabela tbody td strong { color: #1a1a2e; font-weight: 600; }
+
+/* Status badges */
+.badge {
+  display: inline-block;
+  font-size: 7pt;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+.badge-concluido { background: #e1f5ee; color: #085041; }
+.badge-andamento { background: #e6f1fb; color: #042c53; }
+.badge-executar  { background: #f1efe8; color: #2c2c2a; }
+.badge-pausado   { background: #faeeda; color: #633806; }
+
+/* Progresso inline */
+.prog-wrap { display: flex; align-items: center; gap: 5px; }
+.prog-bar-mini {
+  width: 60px;
+  height: 4px;
+  background: #e8e8e8;
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.prog-bar-mini-fill { height: 100%; background: #1d9e75; border-radius: 2px; }
+.prog-pct { font-size: 8pt; font-weight: 700; color: #1a1a2e; white-space: nowrap; }
+.prog-delta { font-size: 7.5pt; color: #1d9e75; white-space: nowrap; }
+
+/* Pendências */
+.pend-row-critica td { border-left: 3px solid #e24b4a; }
+.pend-row-alta td    { border-left: 3px solid #ef9f27; }
+.pend-row-media td   { border-left: 3px solid #185fa5; }
+
+/* ── Rodapé ── */
+.footer {
+  position: absolute;
+  bottom: 8mm;
+  left: 14mm;
+  right: 14mm;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 7.5pt;
+  color: #aaa;
+  border-top: 0.5px solid #e8e8e8;
+  padding-top: 3mm;
+}
+
+/* ── Print ── */
+@media print {
+  body { background: #fff; }
+  .page { margin: 0; padding: 12mm 14mm; box-shadow: none; width: 100%; }
+  .badge, .prazo-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .tabela thead tr { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .prog-bar-mini-fill, .progress-bar-fill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .resumo-box { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .section { page-break-inside: avoid; }
+}
+
+@media screen {
+  body { padding: 10mm 0 20mm; }
+  .page { box-shadow: 0 2px 20px rgba(0,0,0,.15); }
+}
+</style>
+</head>
+<body>
+<div class="page" id="pagina">
+
+  <!-- CABEÇALHO -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">BERTI<span>.</span></div>
+      <div class="tag-relatorio">Relatório de Acompanhamento de Obra</div>
+      <div class="obra-nome" id="obra-nome">—</div>
+      <div class="obra-endereco" id="obra-endereco">—</div>
+    </div>
+    <div class="header-right">
+      <div class="header-field">
+        <span class="lbl">Contratante</span>
+        <span class="val" id="hdr-cliente">—</span>
+        <span class="sub" id="hdr-cnpj"></span>
+      </div>
+      <div class="header-field">
+        <span class="lbl">Semana / Revisão</span>
+        <span class="val" id="hdr-semana">—</span>
+      </div>
+      <div class="header-field">
+        <span class="lbl">Período</span>
+        <span class="val" id="hdr-periodo">—</span>
+      </div>
+      <div class="header-field">
+        <span class="lbl">Contratada</span>
+        <span class="val">Berti Construtora LTDA</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpis">
+    <div class="kpi">
+      <span class="num verde" id="kpi-pct">—%</span>
+      <span class="lbl">Avanço geral da obra</span>
+      <div class="progress-bar" style="max-width:80px">
+        <div class="progress-bar-fill" id="kpi-bar" style="width:0%"></div>
+      </div>
+      <span class="prazo-badge prazo-ok" id="kpi-prazo">No prazo</span>
+    </div>
+    <div class="kpi">
+      <span class="num" id="kpi-concluidos">0</span>
+      <span class="lbl">Serviços concluídos</span>
+    </div>
+    <div class="kpi">
+      <span class="num" id="kpi-andamento">0</span>
+      <span class="lbl">Em andamento</span>
+    </div>
+  </div>
+  <div style="margin-bottom:4mm">
+    <div class="entrega" id="kpi-entrega">—</div>
+    <div class="entrega-lbl">Entrega prevista</div>
+  </div>
+
+  <!-- 01 RESUMO -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <span class="section-title">Resumo da Semana</span>
+    </div>
+    <div class="resumo-box" id="resumo-ia">Carregando...</div>
+  </div>
+
+  <!-- 02 SERVIÇOS EXECUTADOS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <span class="section-title">Serviços Executados</span>
+    </div>
+    <table class="tabela">
+      <thead>
+        <tr>
+          <th style="width:35%">Serviço</th>
+          <th style="width:18%">Equipe</th>
+          <th style="width:20%">Período</th>
+          <th style="width:12%">Status</th>
+          <th style="width:15%">Progresso</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-executados">
+        <tr><td colspan="5" style="text-align:center;color:#999;padding:8px">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 03 PRÓXIMA SEMANA -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <span class="section-title">Planejamento — Próxima Semana</span>
+    </div>
+    <table class="tabela">
+      <thead>
+        <tr>
+          <th style="width:40%">Serviço</th>
+          <th style="width:20%">Equipe</th>
+          <th style="width:22%">Período</th>
+          <th style="width:18%">Status atual</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-proxima">
+        <tr><td colspan="4" style="text-align:center;color:#999;padding:8px">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 04 PENDÊNCIAS (condicional) -->
+  <div class="section" id="section-pendencias" style="display:none">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <span class="section-title">Pendências e Alertas</span>
+    </div>
+    <table class="tabela">
+      <thead>
+        <tr>
+          <th style="width:45%">Descrição</th>
+          <th style="width:15%">Prioridade</th>
+          <th style="width:25%">Responsável</th>
+          <th style="width:15%">Status</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-pendencias"></tbody>
+    </table>
+  </div>
+
+  <!-- RODAPÉ -->
+  <div class="footer">
+    <span id="footer-url">evandroduarte-deka.github.io/deka-berti</span>
+    <span id="footer-data">—</span>
+    <span>1/1</span>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  function fmtBR(iso) {
+    if (!iso) return '—';
+    var p = iso.split('-');
+    return p[2]+'/'+p[1]+'/'+p[0];
+  }
+  function fmtBRcurto(iso) {
+    if (!iso) return '—';
+    var p = iso.split('-');
+    return p[2]+'/'+p[1];
+  }
+  function badgeStatus(s) {
+    var map = {
+      'CONCLUÍDO':    ['badge-concluido','Concluído'],
+      'EM ANDAMENTO': ['badge-andamento','Em andamento'],
+      'A EXECUTAR':   ['badge-executar', 'A executar'],
+      'PAUSADO':      ['badge-pausado',  'Pausado'],
+    };
+    var b = map[s] || ['badge-executar', s || '—'];
+    return '<span class="badge '+b[0]+'">'+b[1]+'</span>';
+  }
+  function progHtml(pct, delta) {
+    var w = Math.min(100, Math.max(0, pct));
+    var d = delta > 0 ? ' <span class="prog-delta">+'+delta+'%</span>' : '';
+    return '<div class="prog-wrap"><div class="prog-bar-mini"><div class="prog-bar-mini-fill" style="width:'+w+'%"></div></div><span class="prog-pct">'+pct+'%</span>'+d+'</div>';
+  }
+
+  // Carregar dados do localStorage
+  var raw = localStorage.getItem('deka_relatorio_pdf');
+  if (!raw) {
+    document.getElementById('resumo-ia').textContent = 'Nenhum dado encontrado. Gere o relatório pelo sistema DEKA OS.';
+    return;
+  }
+  var d = JSON.parse(raw);
+
+  // Cabeçalho
+  document.title = 'Relatorio_' + (d.obraNome||'Obra').replace(/\s+/g,'_') + '_Sem' + (d.semanaNum||1);
+  document.getElementById('obra-nome').textContent      = d.obraNome || '—';
+  document.getElementById('obra-endereco').textContent  = d.obraEndereco || '';
+  document.getElementById('hdr-cliente').textContent    = d.cliente || '—';
+  document.getElementById('hdr-cnpj').textContent       = d.cnpjCliente || '';
+  document.getElementById('hdr-semana').textContent     = 'Semana '+d.semanaNum+' — Rev. A';
+  document.getElementById('hdr-periodo').textContent    = fmtBR(d.dataInicio)+' a '+fmtBR(d.dataFim);
+  document.getElementById('kpi-entrega').textContent    = fmtBR(d.dataEntrega);
+  document.getElementById('footer-data').textContent    = 'Gerado em '+fmtBRcurto(new Date().toISOString().split('T')[0])+'/'+new Date().getFullYear();
+
+  // KPIs
+  var pct = d.pctGeral || 0;
+  document.getElementById('kpi-pct').textContent       = pct+'%';
+  document.getElementById('kpi-bar').style.width       = pct+'%';
+  document.getElementById('kpi-concluidos').textContent = d.concluidos || 0;
+  document.getElementById('kpi-andamento').textContent  = d.emAndamento || 0;
+
+  // Prazo
+  var prazoEl = document.getElementById('kpi-prazo');
+  if (d.prazoStatus === 'atrasado') {
+    prazoEl.className = 'prazo-badge prazo-atrasado';
+    prazoEl.textContent = 'Atrasado';
+  } else if (d.prazoStatus === 'atencao') {
+    prazoEl.className = 'prazo-badge prazo-atencao';
+    prazoEl.textContent = 'Atenção';
+  } else {
+    prazoEl.className = 'prazo-badge prazo-ok';
+    prazoEl.textContent = 'No prazo';
+  }
+
+  // Resumo IA
+  document.getElementById('resumo-ia').textContent = d.resumoIA || '—';
+
+  // Serviços executados
+  var tbExec = document.getElementById('tbody-executados');
+  var exec = (d.servicosExecutados || []);
+  if (exec.length) {
+    tbExec.innerHTML = exec.map(function(s) {
+      var per = s.dataInicio ? fmtBRcurto(s.dataInicio)+(s.dataFim && s.dataFim !== s.dataInicio ? ' a '+fmtBRcurto(s.dataFim) : '') : '—';
+      return '<tr><td><strong>'+s.descricao+'</strong></td><td>'+( s.equipe||'—')+'</td><td>'+per+'</td><td>'+badgeStatus(s.status)+'</td><td>'+progHtml(s.pctAtual, s.delta)+'</td></tr>';
+    }).join('');
+  } else {
+    tbExec.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;padding:8px">Nenhum serviço executado registrado</td></tr>';
+  }
+
+  // Próxima semana
+  var tbProx = document.getElementById('tbody-proxima');
+  var prox = (d.proximaSemana || []);
+  if (prox.length) {
+    tbProx.innerHTML = prox.map(function(s) {
+      return '<tr><td><strong>'+s.descricao+'</strong></td><td>'+(s.equipe||'—')+'</td><td>'+(s.periodo||'—')+'</td><td>'+badgeStatus(s.status)+'</td></tr>';
+    }).join('');
+  } else {
+    tbProx.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999;padding:8px">Nenhum serviço programado encontrado</td></tr>';
+  }
+
+  // Pendências
+  var pends = (d.pendencias || []);
+  if (pends.length) {
+    document.getElementById('section-pendencias').style.display = 'block';
+    var tbPend = document.getElementById('tbody-pendencias');
+    tbPend.innerHTML = pends.map(function(p) {
+      var cls = p.prioridade === 'critica' ? 'pend-row-critica' : p.prioridade === 'alta' ? 'pend-row-alta' : 'pend-row-media';
+      return '<tr class="'+cls+'"><td>'+p.descricao+'</td><td>'+p.prioridade+'</td><td>'+(p.responsavel||'—')+'</td><td>'+badgeStatus(p.status)+'</td></tr>';
+    }).join('');
+  }
+
+  // Auto-print após 800ms
+  setTimeout(function() { window.print(); }, 800);
+})();
+</script>
+</body>
+</html>

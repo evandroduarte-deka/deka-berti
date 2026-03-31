@@ -116,6 +116,10 @@ const Estado = {
   labelDeltaInfo:      null,
   obraSelecionada:     null,
   relatorioGerado:     null,
+  _ultimoDelta:        null,
+  _ultimaProxSem:      null,
+  _ultimaObra:         null,
+  _ultimasPendencias:  null,
 };
 
 // =============================================================================
@@ -152,6 +156,7 @@ function _carregarDOM() {
   Estado.previewRaw        = document.getElementById('preview-raw');
   Estado.btnCopiar         = document.getElementById('btn-copiar');
   Estado.btnNovo           = document.getElementById('btn-novo');
+  Estado.btnPdf            = document.getElementById('btn-pdf');
   Estado.labelDeltaInfo    = document.getElementById('delta-info');
 }
 
@@ -175,6 +180,7 @@ function _configurarEventos() {
   Estado.btnGerarRelatorio.addEventListener('click', _gerarRelatorio);
   Estado.btnCopiar.addEventListener('click',         _copiarClipboard);
   Estado.btnNovo.addEventListener('click',           _resetUI);
+  Estado.btnPdf?.addEventListener('click',           _abrirPDF);
 
   // Listener: semana → datas
   Estado.semanaNumeroEl?.addEventListener('change', function() {
@@ -769,6 +775,12 @@ async function _gerarRelatorio() {
     const proximaSem = await _calcularProximaSemana(servicos, dataFim);
     const narrativa  = await _extrairNarrativa(visitas, dataInicio, dataFim);
 
+    // Guardar para PDF
+    Estado._ultimoDelta       = delta;
+    Estado._ultimaProxSem     = proximaSem;
+    Estado._ultimaObra        = obra;
+    Estado._ultimasPendencias = pendencias;
+
     const contexto = tipoRel === 'interno'
       ? _montarContextoInterno(obra, delta, proximaSem, pendencias, narrativa, dataInicio, dataFim, semanaNum)
       : _montarContextoCliente(obra, delta, proximaSem, pendencias, narrativa, dataInicio, dataFim, semanaNum);
@@ -838,6 +850,81 @@ function _renderizarPreview(md, obra, dataInicio, dataFim, semanaNum, delta, tip
 
   Estado.btnCopiar.disabled = false;
   Estado.btnNovo.disabled   = false;
+  if (Estado.btnPdf) Estado.btnPdf.disabled = false;
+}
+
+function _abrirPDF() {
+  if (!Estado.relatorioGerado || !Estado.obraSelecionada) return;
+
+  // Buscar dados extras da obra do Supabase (endereço, cnpj cliente, data entrega)
+  // Montar payload completo para o template
+  var delta   = Estado._ultimoDelta;
+  var proxSem = Estado._ultimaProxSem;
+  var obra    = Estado._ultimaObra;
+  var pends   = Estado._ultimasPendencias;
+
+  var servicosExec = (delta?.comDelta || []).map(function(s) {
+    return {
+      descricao: s.descricao_cliente,
+      equipe:    s.equipe_codigo || '',
+      dataInicio: s.data_inicio || null,
+      dataFim:    s.data_fim || null,
+      status:     s.status,
+      pctAtual:   s.pct_atual,
+      delta:      s.delta,
+    };
+  });
+
+  var proxSemFmt = (proxSem || []).map(function(s) {
+    return {
+      descricao: s.descricao_cliente,
+      equipe:    s.equipe_codigo || '',
+      periodo:   s.periodo || null,
+      status:    s.status,
+    };
+  });
+
+  // Calcular prazoStatus
+  var prazoStatus = 'ok';
+  if (obra) {
+    var dataFimObra = obra.data_previsao_fim || obra.data_fim;
+    if (dataFimObra) {
+      var hoje = new Date(); hoje.setHours(0,0,0,0);
+      var fim  = new Date(dataFimObra + 'T00:00:00');
+      var diasRestantes = Math.round((fim - hoje) / 86400000);
+      if (diasRestantes < 0)  prazoStatus = 'atrasado';
+      else if (diasRestantes < 14) prazoStatus = 'atencao';
+    }
+  }
+
+  var payload = {
+    obraNome:          Estado.obraSelecionada.nome,
+    obraEndereco:      obra?.endereco_obra || obra?.endereco || '',
+    cliente:           obra?.razao_cliente || obra?.cliente || '',
+    cnpjCliente:       obra?.cnpj_cliente ? 'CNPJ '+obra.cnpj_cliente : '',
+    semanaNum:         parseInt(Estado.semanaNumeroEl?.value) || 1,
+    dataInicio:        Estado.dataInicioEl?.value || '',
+    dataFim:           Estado.dataFimEl?.value || '',
+    dataEntrega:       obra?.data_previsao_fim || obra?.data_fim || '',
+    pctGeral:          delta?.pctGeral || 0,
+    concluidos:        delta?.concluidos || 0,
+    emAndamento:       delta?.emAndamento || 0,
+    prazoStatus:       prazoStatus,
+    resumoIA:          Estado.relatorioGerado
+                         .replace(/^#.+\n/m, '')
+                         .replace(/##.+\n/gm, '')
+                         .replace(/[*_#`]/g, '')
+                         .trim()
+                         .split('\n\n')[0],
+    servicosExecutados: servicosExec,
+    proximaSemana:      proxSemFmt,
+    pendencias:         (pends || []).map(function(p) {
+      return { descricao: p.descricao, prioridade: p.prioridade, responsavel: p.responsavel, status: p.status };
+    }),
+  };
+
+  localStorage.setItem('deka_relatorio_pdf', JSON.stringify(payload));
+  window.open('relatorio-pdf.html', '_blank');
 }
 
 // =============================================================================
@@ -883,6 +970,7 @@ function _resetUI() {
   Estado.btnGerarRelatorio.disabled = true;
   Estado.btnCopiar.disabled         = true;
   Estado.btnNovo.disabled           = true;
+  if (Estado.btnPdf) Estado.btnPdf.disabled = true;
   if (Estado.labelDeltaInfo) Estado.labelDeltaInfo.textContent = '';
   const avisoEl = document.getElementById('aviso-snapshot');
   if (avisoEl) avisoEl.style.display = 'none';
