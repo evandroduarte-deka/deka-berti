@@ -3982,11 +3982,16 @@ async function _buscarEGravarObraUUID() {
     );
     if (!r.ok) return;
     const rows = await r.json();
-    // Busca por nome exato ou parcial
+    // Match 1: nome exato
+    // Match 2: um contém o outro
+    // Match 3: palavras-chave (>= 4 chars) — resolve nomes diferentes entre sistemas
+    var palavrasChave = nomObra.toLowerCase().split(/\s+/).filter(function(p){ return p.length >= 4; });
     const match = rows.find(function(o) {
+      var nomeNorm = o.nome.toLowerCase();
       return o.nome === nomObra ||
-             o.nome.toLowerCase().includes(nomObra.toLowerCase()) ||
-             nomObra.toLowerCase().includes(o.nome.toLowerCase());
+             nomeNorm.includes(nomObra.toLowerCase()) ||
+             nomObra.toLowerCase().includes(nomeNorm) ||
+             palavrasChave.some(function(p){ return nomeNorm.includes(p); });
     });
     if (match) {
       state.config.obra_id = match.id;
