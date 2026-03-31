@@ -3966,6 +3966,49 @@ function sbSave(obraKey, stateObj){
  * Garante que dias_marcados, pct_anterior, status e datas do cronograma
  * fiquem disponíveis em qualquer dispositivo via tabela normalizada.
  */
+/**
+ * Busca o UUID da obra na tabela normalizada pelo nome.
+ * Salva em state.config.obra_id para uso no sbSyncServicos.
+ * Chamada uma vez ao carregar a obra.
+ */
+async function _buscarEGravarObraUUID() {
+  if (state.config.obra_id) return; // já tem UUID
+  const nomObra = state.config.obra || '';
+  if (!nomObra) return;
+  try {
+    const r = await fetch(
+      SB_URL + '/rest/v1/obras?select=id,nome&order=nome',
+      { headers: sbHeaders(), signal: AbortSignal.timeout(8000) }
+    );
+    if (!r.ok) return;
+    const rows = await r.json();
+    // Busca por nome exato ou parcial
+    const match = rows.find(function(o) {
+      return o.nome === nomObra ||
+             o.nome.toLowerCase().includes(nomObra.toLowerCase()) ||
+             nomObra.toLowerCase().includes(o.nome.toLowerCase());
+    });
+    if (match) {
+      state.config.obra_id = match.id;
+      console.log('[DEKA] obra_id encontrado:', match.id, '→', match.nome);
+      // Persiste no localStorage silenciosamente
+      try {
+        var k = currentObraKey;
+        if (k) {
+          var saved = JSON.parse(localStorage.getItem(k) || '{}');
+          if (!saved.config) saved.config = {};
+          saved.config.obra_id = match.id;
+          localStorage.setItem(k, JSON.stringify(saved));
+        }
+      } catch(e) { /* ignora */ }
+    } else {
+      console.warn('[DEKA] obra_id não encontrado para:', nomObra);
+    }
+  } catch(e) {
+    console.warn('[DEKA] Erro ao buscar obra_id:', e.message);
+  }
+}
+
 let _sbSyncServTimer = null;
 function sbSyncServicos(obraId, servicos) {
   if (!obraId || !servicos || !servicos.length) return;
@@ -4492,6 +4535,8 @@ function loadState(key){
       sanitizeState(state);
       restoreUI();
       sbLoadBackground(key.replace('cockpit_',''));
+      // Buscar e gravar UUID da obra para sincronização normalizada
+      setTimeout(function(){ _buscarEGravarObraUUID(); }, 2000);
       return true;
     }
   } catch(e){ console.error('loadState ERRO:', e.message, e.stack); toast('Erro ao carregar: '+e.message,'error'); }
@@ -12115,6 +12160,7 @@ function selecionarObra(key){
       if(typeof atualizarBadgesAbas==='function') setTimeout(function(){ try{atualizarBadgesAbas();}catch(e){console.error(e);}},100);
       sbAtualizarIndicador('ok');
       toast('☁ '+state.config.obra+' — dados atualizados','success');
+      _buscarEGravarObraUUID();
     } else {
       // Nuvem vazia ou offline → fallback localStorage
       if(loadState(key)){
