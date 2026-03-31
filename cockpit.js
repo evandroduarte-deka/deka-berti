@@ -495,6 +495,7 @@ async function processarComClaude(transcricao, obraId) {
  */
 async function salvarVisitaNoBanco(obraId, transcricao, resumo, payload) {
   const dataHoje = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const semanaNum = await _calcularNumeroSemana(obraId);
 
   const { data, error } = await supabase
     .from('obra_visitas')
@@ -505,6 +506,7 @@ async function salvarVisitaNoBanco(obraId, transcricao, resumo, payload) {
       resumo_ia: resumo,
       payload_sync: payload,
       status_sync: 'pendente',
+      semana: semanaNum,
     })
     .select();
 
@@ -697,6 +699,34 @@ export async function init() {
 
   console.log('[DEKA][Cockpit] ✅ Módulo inicializado com sucesso.');
 
+}
+
+// =============================================================================
+// FUNÇÃO AUXILIAR — CÁLCULO DE NÚMERO DA SEMANA
+// =============================================================================
+
+/**
+ * Calcula o número da semana a partir da data de início da obra.
+ * @param {string} obraId UUID da obra
+ * @returns {Promise<number|null>} Número da semana (1-based) ou null se erro
+ */
+async function _calcularNumeroSemana(obraId) {
+  try {
+    const { data, error } = await supabase
+      .from('obras')
+      .select('data_inicio')
+      .eq('id', obraId)
+      .single();
+    if (error || !data || !data.data_inicio) return null;
+    const ini = new Date(data.data_inicio + 'T00:00:00');
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const diffDias = Math.max(0, Math.floor((hoje - ini) / 86400000));
+    return Math.floor(diffDias / 7) + 1;
+  } catch (e) {
+    console.error('[DEKA][Cockpit] Erro ao calcular semana:', e);
+    return null;
+  }
 }
 
 // =============================================================================

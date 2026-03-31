@@ -327,7 +327,7 @@ function _calcularDeltaSemanal(servicosAtuais, visitasSemana, visitasAnterior) {
   if (visitasAnterior.length) {
     visitasAnterior.forEach(v => {
       if (!v.payload_sync) return;
-      const srv = v.payload_sync.servicos || v.payload_sync.services || [];
+      const srv = v.payload_sync.servicos_atualizados || v.payload_sync.servicos || v.payload_sync.services || [];
       srv.forEach(s => {
         const cod = s.codigo || s.code || s.cod;
         const pct = s.percentual || s.percentual_concluido || s.pct || 0;
@@ -340,7 +340,7 @@ function _calcularDeltaSemanal(servicosAtuais, visitasSemana, visitasAnterior) {
   if (!Object.keys(mapAnterior).length && visitasSemana.length) {
     const primeira = visitasSemana[0];
     if (primeira.payload_sync) {
-      const srv = primeira.payload_sync.servicos || primeira.payload_sync.services || [];
+      const srv = primeira.payload_sync.servicos_atualizados || primeira.payload_sync.servicos || primeira.payload_sync.services || [];
       srv.forEach(s => {
         const cod = s.codigo || s.code || s.cod;
         const pctAntes = s.percentual_anterior || s.pct_anterior || 0;
