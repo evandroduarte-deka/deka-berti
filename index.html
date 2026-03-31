@@ -3960,6 +3960,70 @@ function sbSave(obraKey, stateObj){
   }, 3000);
 }
 
+/**
+ * sbSyncServicos — Sincroniza state.servicos[] → tabela normalizada obra_servicos
+ * Chamado após sbSave() com debounce de 8s (não urgente, não bloqueia UI)
+ * Garante que dias_marcados, pct_anterior, status e datas do cronograma
+ * fiquem disponíveis em qualquer dispositivo via tabela normalizada.
+ */
+let _sbSyncServTimer = null;
+function sbSyncServicos(obraId, servicos) {
+  if (!obraId || !servicos || !servicos.length) return;
+  clearTimeout(_sbSyncServTimer);
+  _sbSyncServTimer = setTimeout(async function() {
+    try {
+      // Mapear cada serviço do state para o schema normalizado
+      const rows = servicos.map(function(s) {
+        var diasMarcados = s.dias_marcados || [];
+        var dataInicio   = diasMarcados.length ? diasMarcados[0] : (s.data_inicio || null);
+        var dataFim      = diasMarcados.length ? diasMarcados[diasMarcados.length - 1] : (s.data_fim || null);
+        var pctAtual     = s.pct_atual || s.percentual_concluido || 0;
+        var status;
+        if (pctAtual >= 100)      status = 'CONCLUÍDO';
+        else if (pctAtual > 0)    status = 'EM ANDAMENTO';
+        else                      status = 'A EXECUTAR';
+        return {
+          obra_id:              obraId,
+          codigo:               s.cod || s.codigo || '',
+          descricao_interna:    s.descricao || s.descricao_interna || '',
+          descricao_cliente:    s.descricao_cliente || s.descricao || '',
+          equipe_codigo:        s.equipe || s.equipe_cod || s.equipe_codigo || '',
+          percentual_concluido: pctAtual,
+          pct_anterior:         s.pct_anterior || 0,
+          valor_contratado:     s.valor || s.valor_contratado || 0,
+          dias_marcados:        diasMarcados,
+          data_inicio:          dataInicio || null,
+          data_fim:             dataFim || null,
+          status:               status,
+          updated_at:           new Date().toISOString(),
+        };
+      }).filter(function(r) { return r.codigo; }); // só com código válido
+
+      if (!rows.length) return;
+
+      const r = await fetch(SB_URL + '/rest/v1/obra_servicos', {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'apikey':        SB_KEY,
+          'Authorization': 'Bearer ' + SB_KEY,
+          'Prefer':        'resolution=merge-duplicates,return=minimal',
+        },
+        body: JSON.stringify(rows),
+        signal: AbortSignal.timeout(20000),
+      });
+
+      if (r.ok || r.status === 201 || r.status === 204) {
+        console.log('[DEKA][Sync] obra_servicos sincronizado:', rows.length, 'serviços');
+      } else {
+        console.error('[DEKA][Sync] Erro ao sincronizar obra_servicos:', r.status);
+      }
+    } catch (e) {
+      console.error('[DEKA][Sync] Exceção sbSyncServicos:', e);
+    }
+  }, 8000); // 8s debounce — não urgente
+}
+
 // Sync imediato — para operações críticas (avançar semana, fechar app)
 function sbSaveImmediate(obraKey, stateObj){
   clearTimeout(_sbSaveTimer);
@@ -4146,6 +4210,10 @@ function saveState(){
       const sbData = JSON.parse(JSON.stringify(toSave));
       sbData.fotos = (sbData.fotos||[]).map(function(f){ return f.cloud&&f.url ? {...f,src:f.url,b64:undefined} : {...f,b64:undefined}; });
       sbSave(newKey.replace('cockpit_',''), sbData);
+      // Sincronizar serviços na tabela normalizada (dias_marcados, cronograma)
+      if (state.obras_id || state.config && state.config.obra_id) {
+        sbSyncServicos(state.obras_id || state.config.obra_id, state.servicos || []);
+      }
 
       // Apps Script sync só se configurado
       if(getSyncScript()){
