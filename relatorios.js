@@ -65,9 +65,6 @@ FORMATO OBRIGATÓRIO — siga exatamente esta estrutura:
 [0 a 3 bullets — APENAS pendências que dependem do cliente: aprovações, escolhas, acesso, decisões financeiras]
 [Se não houver nada: "Nenhuma ação necessária da sua parte esta semana. ✓"]
 
-## 💬 Mensagem do gestor
-[1 parágrafo curto e humano — contexto da semana, tom pessoal, confiança no andamento]
-
 ---
 *Dúvidas? Fale conosco pelo WhatsApp.*
 
@@ -978,10 +975,8 @@ function _abrirPDF() {
       var mensagem = '';
       var mMsg = md.match(/##\s*💬\s*Mensagem do gestor\s*\n([\s\S]*?)(?=##|---|$)/i);
       if (mMsg) mensagem = mMsg[1].replace(/[*_`#]/g,'').trim();
-      // Combinar situação + mensagem
-      if (situacao || mensagem) {
-        return [situacao, mensagem].filter(Boolean).join('\n\n');
-      }
+      // Usar apenas situação da obra
+      if (situacao) return situacao;
       // Fallback: remover headers e pegar texto limpo
       return md
         .split('\n')
