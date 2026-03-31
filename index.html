@@ -4049,18 +4049,35 @@ function sbSyncServicos(obraId, servicos) {
 
       if (!rows.length) return;
 
-      const r = await fetch(SB_URL + '/rest/v1/obra_servicos', {
-        method:  'POST',
-        headers: {
-          'Content-Type':  'application/json',
-          'apikey':        SB_KEY,
-          'Authorization': 'Bearer ' + SB_KEY,
-          'Prefer':        'resolution=merge-duplicates,return=minimal',
-          'on-conflict':   'obra_id,codigo',
-        },
-        body: JSON.stringify(rows),
-        signal: AbortSignal.timeout(20000),
-      });
+      // Upsert individual por codigo (evita conflito de constraint)
+      var erros = 0;
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var rUp = await fetch(
+          SB_URL + '/rest/v1/obra_servicos?obra_id=eq.' + obraId + '&codigo=eq.' + encodeURIComponent(row.codigo),
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type':  'application/json',
+              'apikey':        SB_KEY,
+              'Authorization': 'Bearer ' + SB_KEY,
+              'Prefer':        'return=minimal',
+            },
+            body: JSON.stringify({
+              percentual_concluido: row.percentual_concluido,
+              pct_anterior:         row.pct_anterior,
+              dias_marcados:        row.dias_marcados,
+              data_inicio:          row.data_inicio,
+              data_fim:             row.data_fim,
+              status:               row.status,
+              updated_at:           row.updated_at,
+            }),
+            signal: AbortSignal.timeout(10000),
+          }
+        );
+        if (!rUp.ok && rUp.status !== 204) erros++;
+      }
+      var r = { ok: erros === 0, status: erros === 0 ? 204 : 500 };
 
       if (r.ok || r.status === 201 || r.status === 204) {
         console.log('[DEKA][Sync] obra_servicos sincronizado:', rows.length, 'serviços');
