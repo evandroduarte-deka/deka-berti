@@ -175,8 +175,72 @@ function _configurarEventos() {
   Estado.btnGerarRelatorio.addEventListener('click', _gerarRelatorio);
   Estado.btnCopiar.addEventListener('click',         _copiarClipboard);
   Estado.btnNovo.addEventListener('click',           _resetUI);
-  Estado.dataInicioEl?.addEventListener('change',    _atualizarInfoDelta);
-  Estado.dataFimEl?.addEventListener('change',       _atualizarInfoDelta);
+
+  // Listener: semana → datas
+  Estado.semanaNumeroEl?.addEventListener('change', function() {
+    if (!Estado.obraSelecionada?.dataInicio) return;
+    var semNum = parseInt(Estado.semanaNumeroEl.value) || 1;
+    var ini = new Date(Estado.obraSelecionada.dataInicio + 'T00:00:00');
+    var semIni = new Date(ini);
+    semIni.setDate(ini.getDate() + (semNum - 1) * 7);
+    var semFim = new Date(semIni);
+    semFim.setDate(semIni.getDate() + 6);
+    Estado.dataInicioEl.value = _toISO(semIni);
+    Estado.dataFimEl.value    = _toISO(semFim);
+    _atualizarInfoDelta();
+  });
+
+  // Listener: data início → recalcula semana
+  Estado.dataInicioEl?.addEventListener('change', function() {
+    if (!Estado.obraSelecionada?.dataInicio) { _atualizarInfoDelta(); return; }
+    var ini   = new Date(Estado.obraSelecionada.dataInicio + 'T00:00:00');
+    var novaIni = new Date(Estado.dataInicioEl.value + 'T00:00:00');
+    var diffDias = Math.max(0, Math.floor((novaIni - ini) / 86400000));
+    var semNum   = Math.floor(diffDias / 7) + 1;
+    if (Estado.semanaNumeroEl) Estado.semanaNumeroEl.value = semNum;
+    _atualizarInfoDelta();
+  });
+
+  Estado.dataFimEl?.addEventListener('change', _atualizarInfoDelta);
+
+  // Listener: atalhos de período
+  document.getElementById('periodo-rapido')?.addEventListener('change', function() {
+    if (!Estado.obraSelecionada?.dataInicio) return;
+    var val = this.value;
+    if (!val) return;
+    var ini = new Date(Estado.obraSelecionada.dataInicio + 'T00:00:00');
+    var semIni, semFim, semNum = 1;
+    if (val.startsWith('s')) {
+      semNum = parseInt(val.slice(1));
+      semIni = new Date(ini); semIni.setDate(ini.getDate() + (semNum-1)*7);
+      semFim = new Date(semIni); semFim.setDate(semIni.getDate() + 6);
+    } else if (val.startsWith('q')) {
+      var q = parseInt(val.slice(1));
+      semNum = (q-1)*2 + 1;
+      semIni = new Date(ini); semIni.setDate(ini.getDate() + (semNum-1)*7);
+      semFim = new Date(semIni); semFim.setDate(semIni.getDate() + 13);
+    } else if (val.startsWith('m')) {
+      var m = parseInt(val.slice(1));
+      semNum = (m-1)*4 + 1;
+      semIni = new Date(ini); semIni.setDate(ini.getDate() + (semNum-1)*7);
+      semFim = new Date(semIni); semFim.setDate(semIni.getDate() + 27);
+    } else if (val === 't1') {
+      semNum = 1;
+      semIni = new Date(ini);
+      semFim = new Date(ini); semFim.setDate(ini.getDate() + 83);
+    } else if (val === 'full') {
+      semNum = 1;
+      semIni = new Date(ini);
+      semFim = Estado.obraSelecionada.dataFim
+        ? new Date(Estado.obraSelecionada.dataFim + 'T00:00:00')
+        : new Date(ini); semFim.setDate(ini.getDate() + 180);
+    }
+    Estado.dataInicioEl.value = _toISO(semIni);
+    Estado.dataFimEl.value    = _toISO(semFim);
+    if (Estado.semanaNumeroEl) Estado.semanaNumeroEl.value = semNum;
+    _atualizarInfoDelta();
+    this.value = '';
+  });
 }
 
 // =============================================================================

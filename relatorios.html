@@ -112,8 +112,41 @@
           <div class="panel-header">📅 Semana do Relatório</div>
           <div class="panel-body">
             <div class="form-group">
-              <label>Número da Semana</label>
-              <input type="number" id="semana-numero" value="1" min="1" max="52" style="max-width:100px">
+              <label>Período</label>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <input type="number" id="semana-numero" min="1" max="52" value="1"
+                  style="width:70px;padding:8px;background:var(--bg-surface);border:1px solid var(--border);border-radius:7px;color:var(--text-primary);font-size:13px"
+                  title="Número da semana">
+                <select id="periodo-rapido"
+                  style="padding:8px 10px;background:var(--bg-surface);border:1px solid var(--border);border-radius:7px;color:var(--text-primary);font-size:12px;flex:1">
+                  <option value="">— Atalhos de período —</option>
+                  <optgroup label="Semanas">
+                    <option value="s1">Semana 1</option>
+                    <option value="s2">Semana 2</option>
+                    <option value="s3">Semana 3</option>
+                    <option value="s4">Semana 4</option>
+                    <option value="s5">Semana 5</option>
+                    <option value="s6">Semana 6</option>
+                    <option value="s7">Semana 7</option>
+                    <option value="s8">Semana 8</option>
+                  </optgroup>
+                  <optgroup label="Quinzenas">
+                    <option value="q1">Quinzena 1 (sem 1-2)</option>
+                    <option value="q2">Quinzena 2 (sem 3-4)</option>
+                    <option value="q3">Quinzena 3 (sem 5-6)</option>
+                    <option value="q4">Quinzena 4 (sem 7-8)</option>
+                  </optgroup>
+                  <optgroup label="Meses">
+                    <option value="m1">Mês 1 (sem 1-4)</option>
+                    <option value="m2">Mês 2 (sem 5-8)</option>
+                    <option value="m3">Mês 3 (sem 9-12)</option>
+                  </optgroup>
+                  <optgroup label="Consolidados">
+                    <option value="t1">Trimestre 1 (sem 1-12)</option>
+                    <option value="full">Obra completa</option>
+                  </optgroup>
+                </select>
+              </div>
             </div>
             <div class="periodo-grid">
               <div class="form-group">
