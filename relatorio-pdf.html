@@ -278,6 +278,24 @@ body {
   font-style: italic;
 }
 
+.gantt-wrap { overflow-x: auto; }
+.gantt-table { border-collapse: collapse; font-size: 7.5pt; width: 100%; }
+.gantt-table th { background: #1a1a2e; color: #fff; padding: 3px 4px; font-size: 6.5pt; text-align: center; white-space: nowrap; }
+.gantt-table td { padding: 3px 4px; border-bottom: 0.5px solid #e8e8e8; vertical-align: middle; }
+.gantt-table td.srv-nome { font-size: 7.5pt; max-width: 130px; word-break: break-word; }
+.gantt-table td.srv-pct { text-align: center; font-size: 7pt; font-weight: 700; color: #1d9e75; }
+.gantt-cell { width: 16px; height: 12px; border-radius: 2px; margin: 0 auto; }
+.gantt-cell-ativo { background: #1d9e75 !important; }
+.gantt-cell-vazio { background: #f0f0f0; }
+.gantt-cell-fds   { background: #e8e8e8; }
+.gantt-head-fds   { background: #666 !important; }
+.gantt-head-hoje  { background: #1d9e75 !important; }
+.fin-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 3mm; margin-bottom: 3mm; }
+.fin-kpi { background: #f8f9fa; border-radius: 3px; padding: 3mm; }
+.fin-kpi .fin-lbl { font-size: 7pt; color: #999; text-transform: uppercase; letter-spacing: .06em; }
+.fin-kpi .fin-val { font-size: 13pt; font-weight: 900; color: #1a1a2e; margin-top: 1mm; }
+.fin-kpi .fin-sub { font-size: 7pt; color: #666; margin-top: 1mm; }
+
 /* ── Print ── */
 @media print {
   body { background: #fff; }
@@ -301,7 +319,7 @@ body {
 <div class="page" id="pagina">
 
   <!-- CABEÇALHO -->
-  <div class="header">
+  <div class="header" id="cabecalho-pdf">
     <div class="header-left">
       <div class="logo">BERTI<span>.</span></div>
       <div class="tag-relatorio">Relatório de Acompanhamento de Obra</div>
@@ -330,7 +348,7 @@ body {
   </div>
 
   <!-- KPIs -->
-  <div class="kpis">
+  <div class="kpis" id="kpis-pdf">
     <div class="kpi">
       <span class="num verde" id="kpi-pct">—%</span>
       <span class="lbl">Avanço geral da obra</span>
@@ -348,7 +366,7 @@ body {
       <span class="lbl">Em andamento</span>
     </div>
   </div>
-  <div style="margin-bottom:4mm">
+  <div style="margin-bottom:4mm" id="entrega-pdf">
     <div class="entrega" id="kpi-entrega">—</div>
     <div class="entrega-lbl">Entrega prevista</div>
   </div>
@@ -363,7 +381,7 @@ body {
   </div>
 
   <!-- 02 SERVIÇOS EXECUTADOS -->
-  <div class="section">
+  <div class="section" id="section-executados">
     <div class="section-header">
       <span class="section-num">02</span>
       <span class="section-title">Serviços Executados</span>
@@ -384,7 +402,7 @@ body {
   </div>
 
   <!-- 03 PRÓXIMA SEMANA -->
-  <div class="section">
+  <div class="section" id="section-proxima">
     <div class="section-header">
       <span class="section-num">03</span>
       <span class="section-title">Planejamento — Próxima Semana</span>
@@ -400,6 +418,40 @@ body {
       <tbody id="tbody-proxima">
         <tr><td colspan="3" style="text-align:center;color:#999;padding:8px">Carregando...</td></tr>
       </tbody>
+    </table>
+  </div>
+
+  <!-- GANTT -->
+  <div class="section" id="section-gantt" style="display:none">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <span class="section-title">Cronograma — Próximas 2 Semanas</span>
+    </div>
+    <div class="gantt-wrap">
+      <table class="gantt-table">
+        <thead id="gantt-head"></thead>
+        <tbody id="gantt-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FINANCEIRO -->
+  <div class="section" id="section-financeiro" style="display:none">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <span class="section-title">Financeiro</span>
+    </div>
+    <div class="fin-grid" id="fin-grid"></div>
+    <table class="tabela" id="fin-pagamentos" style="margin-top:3mm;display:none">
+      <thead>
+        <tr>
+          <th style="width:40%">Descrição</th>
+          <th style="width:20%">Valor</th>
+          <th style="width:20%">Vencimento</th>
+          <th style="width:20%">Status</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-pagamentos"></tbody>
     </table>
   </div>
 
@@ -546,6 +598,75 @@ body {
       var leg = f.legenda ? f.legenda : (f.data || '');
       return '<div class="foto-item"><img src="'+f.url+'" alt="'+leg+'" loading="eager"><div class="foto-legenda">'+leg+'</div></div>';
     }).join('');
+  }
+
+  // Controle de seções via checkboxes
+  var sec = d.secoes || {};
+  function mostrarSec(id) { var el = document.getElementById(id); if(el) el.style.display = 'block'; }
+  function ocultarSec(id) { var el = document.getElementById(id); if(el) el.style.display = 'none'; }
+  if (sec.cabecalho === false) { ocultarSec('cabecalho-pdf'); ocultarSec('kpis-pdf'); ocultarSec('entrega-pdf'); }
+  if (sec.executados === false) ocultarSec('section-executados');
+  if (sec.proxima    === false) ocultarSec('section-proxima');
+  if (sec.pendencias === false) ocultarSec('section-pendencias');
+
+  // Gantt
+  if (sec.gantt !== false) {
+    var ganttSrvs = d.ganttServicos || [];
+    if (ganttSrvs.length && ganttSrvs[0].ganttIni) {
+      mostrarSec('section-gantt');
+      var ganttIniStr = ganttSrvs[0].ganttIni;
+      var ganttFimStr = ganttSrvs[0].ganttFim;
+      var dias = [];
+      var cur = new Date(ganttIniStr + 'T00:00:00');
+      var fim2 = new Date(ganttFimStr + 'T00:00:00');
+      var hojeISO = new Date().toISOString().split('T')[0];
+      while (cur <= fim2) {
+        dias.push({ iso: cur.toISOString().split('T')[0], dow: cur.getDay(), dd: cur.getDate(), mm: cur.getMonth()+1 });
+        cur.setDate(cur.getDate()+1);
+      }
+      var headHtml = '<tr><th style="text-align:left;min-width:110px">Serviço</th><th>%</th>';
+      dias.forEach(function(di) {
+        var isFds = di.dow===0||di.dow===6;
+        var isHoje = di.iso===hojeISO;
+        var cls = isHoje ? 'gantt-head-hoje' : (isFds ? 'gantt-head-fds' : '');
+        headHtml += '<th class="'+cls+'">'+di.dd+'/'+('0'+di.mm).slice(-2)+'</th>';
+      });
+      headHtml += '</tr>';
+      document.getElementById('gantt-head').innerHTML = headHtml;
+      var bodyHtml = ganttSrvs.map(function(s) {
+        var cells = dias.map(function(di) {
+          var isFds = di.dow===0||di.dow===6;
+          var ativo = (s.diasMarcados||[]).indexOf(di.iso) >= 0;
+          var cls   = ativo ? 'gantt-cell-ativo' : (isFds ? 'gantt-cell-fds' : 'gantt-cell-vazio');
+          return '<td><div class="gantt-cell '+cls+'"></div></td>';
+        }).join('');
+        return '<tr><td class="srv-nome">'+s.descricao+'</td><td class="srv-pct">'+s.pctAtual+'%</td>'+cells+'</tr>';
+      }).join('');
+      document.getElementById('gantt-body').innerHTML = bodyHtml;
+    }
+  }
+
+  // Financeiro
+  if (sec.financeiro && d.financeiro) {
+    var fin = d.financeiro;
+    var totalContrato = parseFloat(fin.valorContrato)||0;
+    var totalPago = (fin.pagamentos||[]).filter(function(p){return p.status==='pago';}).reduce(function(a,p){return a+(parseFloat(p.valor)||0);},0);
+    var saldoAberto = totalContrato - totalPago;
+    var pctPago = totalContrato>0 ? Math.round(totalPago/totalContrato*100) : 0;
+    var fmtBRL = function(v){ return 'R$ '+parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+    mostrarSec('section-financeiro');
+    document.getElementById('fin-grid').innerHTML =
+      '<div class="fin-kpi"><div class="fin-lbl">Valor do Contrato</div><div class="fin-val">'+fmtBRL(totalContrato)+'</div></div>'+
+      '<div class="fin-kpi"><div class="fin-lbl">Valor Pago</div><div class="fin-val" style="color:#1d9e75">'+fmtBRL(totalPago)+'</div><div class="fin-sub">'+pctPago+'% do contrato</div></div>'+
+      '<div class="fin-kpi"><div class="fin-lbl">Saldo em Aberto</div><div class="fin-val" style="color:#e24b4a">'+fmtBRL(saldoAberto)+'</div></div>'+
+      '<div class="fin-kpi"><div class="fin-lbl">Medições</div><div class="fin-val">'+((fin.medicoes||[]).length)+'/'+((fin.numMedicoes||0))+'</div><div class="fin-sub">realizadas</div></div>';
+    var pagsFuturos = (fin.pagamentos||[]).filter(function(p){return p.status!=='pago';});
+    if (pagsFuturos.length) {
+      document.getElementById('fin-pagamentos').style.display='table';
+      document.getElementById('tbody-pagamentos').innerHTML = pagsFuturos.map(function(p){
+        return '<tr><td>'+(p.descricao||'—')+'</td><td>'+fmtBRL(p.valor)+'</td><td>'+(p.vencimento||'—')+'</td><td>'+badgeStatus(p.status||'A EXECUTAR')+'</td></tr>';
+      }).join('');
+    }
   }
 
   // Auto-print após 800ms
