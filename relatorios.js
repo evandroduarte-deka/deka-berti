@@ -165,6 +165,13 @@ function _carregarDOM() {
   Estado.btnCopiar         = document.getElementById('btn-copiar');
   Estado.btnNovo           = document.getElementById('btn-novo');
   Estado.btnPdf            = document.getElementById('btn-pdf');
+  Estado.secCabecalho      = document.getElementById('sec-cabecalho');
+  Estado.secFotos          = document.getElementById('sec-fotos');
+  Estado.secExecutados     = document.getElementById('sec-executados');
+  Estado.secProxima        = document.getElementById('sec-proxima');
+  Estado.secGantt          = document.getElementById('sec-gantt');
+  Estado.secFinanceiro     = document.getElementById('sec-financeiro');
+  Estado.secPendencias     = document.getElementById('sec-pendencias');
   Estado.labelDeltaInfo    = document.getElementById('delta-info');
 }
 
@@ -1001,6 +1008,73 @@ function _abrirPDF() {
     fotos: _coletarFotosSemana(Estado.dataInicioEl?.value, Estado.dataFimEl?.value),
   };
 
+  payload.secoes = {
+    cabecalho:  Estado.secCabecalho?.checked !== false,
+    fotos:      Estado.secFotos?.checked === true,
+    executados: Estado.secExecutados?.checked !== false,
+    proxima:    Estado.secProxima?.checked !== false,
+    gantt:      Estado.secGantt?.checked !== false,
+    financeiro: Estado.secFinanceiro?.checked === true,
+    pendencias: Estado.secPendencias?.checked !== false,
+  };
+  payload.financeiro = (function() {
+    try {
+      var keys = Object.keys(localStorage).filter(function(k){ return k.startsWith('cockpit_'); });
+      if (!keys.length) return null;
+      var melhor = null; var melhorTs = 0;
+      keys.forEach(function(k) {
+        try {
+          var d = JSON.parse(localStorage.getItem(k));
+          if (d && d._savedAt) { var ts = new Date(d._savedAt).getTime(); if (ts > melhorTs) { melhorTs = ts; melhor = d; } }
+        } catch(e) {}
+      });
+      if (!melhor) return null;
+      return {
+        valorContrato:  melhor.config?.valor_contrato || 0,
+        formaPagamento: melhor.config?.forma_pagamento || '',
+        numMedicoes:    melhor.config?.num_medicoes || 0,
+        pagamentos:     melhor.pagamentos || [],
+        medicoes:       melhor.medicoes || [],
+      };
+    } catch(e) { return null; }
+  })();
+  payload.ganttServicos = (function() {
+    try {
+      var keys = Object.keys(localStorage).filter(function(k){ return k.startsWith('cockpit_'); });
+      if (!keys.length) return [];
+      var melhor = null; var melhorTs = 0;
+      keys.forEach(function(k) {
+        try {
+          var d = JSON.parse(localStorage.getItem(k));
+          if (d && d._savedAt) { var ts = new Date(d._savedAt).getTime(); if (ts > melhorTs) { melhorTs = ts; melhor = d; } }
+        } catch(e) {}
+      });
+      if (!melhor || !Array.isArray(melhor.servicos)) return [];
+      var dataFimStr = Estado.dataFimEl?.value || '';
+      if (!dataFimStr) return [];
+      var fimAtual = new Date(dataFimStr + 'T00:00:00');
+      var ganttIni = new Date(fimAtual); ganttIni.setDate(fimAtual.getDate() + 1);
+      var ganttFim = new Date(ganttIni); ganttFim.setDate(ganttIni.getDate() + 13);
+      var ganttIniISO = ganttIni.toISOString().split('T')[0];
+      var ganttFimISO = ganttFim.toISOString().split('T')[0];
+      return melhor.servicos
+        .filter(function(s) {
+          return (s.dias_marcados || []).some(function(d) { return d >= ganttIniISO && d <= ganttFimISO; })
+              || (s.pct_atual > 0 && s.pct_atual < 100);
+        })
+        .map(function(s) {
+          return {
+            codigo:       s.cod || s.codigo || '',
+            descricao:    s.descricao_cliente || s.descricao || '',
+            equipe:       s.equipe || '',
+            pctAtual:     s.pct_atual || 0,
+            diasMarcados: (s.dias_marcados || []).filter(function(d) { return d >= ganttIniISO && d <= ganttFimISO; }).sort(),
+            ganttIni:     ganttIniISO,
+            ganttFim:     ganttFimISO,
+          };
+        });
+    } catch(e) { return []; }
+  })();
   localStorage.setItem('deka_relatorio_pdf', JSON.stringify(payload));
   window.open('relatorio-pdf.html?v=' + Date.now(), '_blank');
 }
