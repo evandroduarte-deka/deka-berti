@@ -23,71 +23,95 @@ body {
   position: relative;
 }
 
-/* ── Cabeçalho ── */
-.header {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  padding-bottom: 10mm;
-  border-bottom: 2px solid #1a1a2e;
-  margin-bottom: 8mm;
-}
-.header-left .logo {
-  font-size: 28pt;
-  font-weight: 900;
-  letter-spacing: -1px;
-  color: #1a1a2e;
-  margin-bottom: 4mm;
-}
-.header-left .logo span { color: #1d9e75; }
-.tag-relatorio {
-  display: inline-block;
+/* ── Cabeçalho Berti (escuro) ── */
+.cabecalho-pdf {
   background: #1a1a2e;
-  color: #fff;
-  font-size: 7pt;
-  font-weight: 700;
-  letter-spacing: .15em;
+  color: #ffffff;
+  padding: 6mm 8mm;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 6mm;
+  align-items: center;
+  border-bottom: 4px solid #c9a227;
+  margin: -12mm -14mm 6mm;
+}
+
+.cabecalho-logo {
+  font-size: 22pt;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #c9a227;
   text-transform: uppercase;
-  padding: 3px 10px;
-  border-radius: 2px;
-  margin-bottom: 3mm;
 }
-.obra-nome {
-  font-size: 20pt;
-  font-weight: 900;
-  color: #1a1a2e;
-  line-height: 1.1;
-  margin-bottom: 2mm;
+
+.cabecalho-subtitulo {
+  color: #888;
+  font-size: 7pt;
+  letter-spacing: 0.08em;
 }
-.obra-endereco {
+
+.cabecalho-titulo-obra {
+  font-size: 11pt;
+  color: #e0e0e0;
+  font-weight: 400;
+}
+
+.cabecalho-relatorio-tag {
+  color: #c9a227;
   font-size: 8pt;
-  color: #666;
-  line-height: 1.5;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 1mm;
 }
-.header-right {
+
+.cabecalho-meta {
   text-align: right;
+  font-size: 9pt;
+  color: #b0b0b0;
+  line-height: 1.8;
+}
+
+.cabecalho-meta strong {
+  color: #ffffff;
+  display: block;
+  font-size: 10pt;
+}
+
+/* KPI bar */
+.kpi-bar {
+  background: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 3mm 8mm;
+  display: flex;
+  gap: 8mm;
+  margin: 0 -14mm 6mm;
+}
+
+.kpi-item {
   display: flex;
   flex-direction: column;
-  gap: 4mm;
-  justify-content: flex-end;
 }
-.header-field { display: flex; flex-direction: column; align-items: flex-end; }
-.header-field .lbl {
+
+.kpi-label {
   font-size: 7pt;
-  letter-spacing: .1em;
+  color: #666;
   text-transform: uppercase;
-  color: #999;
-  margin-bottom: 1px;
+  letter-spacing: 0.05em;
 }
-.header-field .val {
-  font-size: 10pt;
+
+.kpi-valor {
+  font-size: 18pt;
   font-weight: 700;
   color: #1a1a2e;
 }
-.header-field .sub {
-  font-size: 8pt;
-  color: #666;
+
+.kpi-valor.destaque {
+  color: #c9a227;
 }
+
+/* Remover estilos antigos do header */
+.header { display: none !important; }
+.header-left, .header-right, .tag-relatorio, .obra-nome, .obra-endereco, .header-field { display: none !important; }
 
 /* ── KPIs ── */
 .kpis {
@@ -238,19 +262,20 @@ body {
 .pend-row-media td   { border-left: 3px solid #185fa5; }
 
 /* ── Rodapé ── */
-.footer {
-  position: absolute;
-  bottom: 8mm;
-  left: 14mm;
-  right: 14mm;
+.pdf-rodape {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 2mm 14mm;
   display: flex;
   justify-content: space-between;
-  align-items: center;
   font-size: 7.5pt;
-  color: #aaa;
-  border-top: 0.5px solid #e8e8e8;
-  padding-top: 3mm;
+  color: #999;
+  border-top: 1px solid #e0e0e0;
+  background: white;
 }
+.footer { display: none !important; }
 
 /* Fotos */
 .fotos-grid {
@@ -318,58 +343,46 @@ body {
 <body>
 <div class="page" id="pagina">
 
-  <!-- CABEÇALHO -->
-  <div class="header" id="cabecalho-pdf">
-    <div class="header-left">
-      <div class="logo">BERTI<span>.</span></div>
-      <div class="tag-relatorio">Relatório de Acompanhamento de Obra</div>
-      <div class="obra-nome" id="obra-nome">—</div>
-      <div class="obra-endereco" id="obra-endereco">—</div>
+  <!-- CABEÇALHO BERTI -->
+  <div class="cabecalho-pdf" id="cabecalho-pdf">
+    <div>
+      <div class="cabecalho-logo">Berti</div>
+      <div class="cabecalho-subtitulo">CONSTRUTORA</div>
     </div>
-    <div class="header-right">
-      <div class="header-field">
-        <span class="lbl">Contratante</span>
-        <span class="val" id="hdr-cliente">—</span>
-        <span class="sub" id="hdr-cnpj"></span>
+    <div>
+      <div class="cabecalho-relatorio-tag">
+        Relatório de Obra — Semana <span id="pdf-semana-num">—</span>
       </div>
-      <div class="header-field">
-        <span class="lbl">Semana / Revisão</span>
-        <span class="val" id="hdr-semana">—</span>
-      </div>
-      <div class="header-field">
-        <span class="lbl">Período</span>
-        <span class="val" id="hdr-periodo">—</span>
-      </div>
-      <div class="header-field">
-        <span class="lbl">Contratada</span>
-        <span class="val">Berti Construtora LTDA</span>
-      </div>
+      <div class="cabecalho-titulo-obra" id="pdf-obra-nome">—</div>
+      <div style="color: #666; font-size: 8pt;" id="pdf-obra-endereco">—</div>
+    </div>
+    <div class="cabecalho-meta">
+      <strong id="pdf-cliente-nome">—</strong>
+      <span id="pdf-cnpj">—</span>
+      <span id="pdf-periodo">—</span>
+      <span id="pdf-data-entrega">—</span>
     </div>
   </div>
 
-  <!-- KPIs -->
-  <div class="kpis" id="kpis-pdf">
-    <div class="kpi">
-      <span class="num verde" id="kpi-pct">—%</span>
-      <span class="lbl">Avanço geral da obra</span>
-      <div class="progress-bar" style="max-width:80px">
-        <div class="progress-bar-fill" id="kpi-bar" style="width:0%"></div>
-      </div>
-      <span class="prazo-badge prazo-ok" id="kpi-prazo">No prazo</span>
+  <div class="kpi-bar" id="kpi-bar-pdf">
+    <div class="kpi-item">
+      <span class="kpi-label">Avanço Geral</span>
+      <span class="kpi-valor destaque" id="pdf-pct-geral">—%</span>
     </div>
-    <div class="kpi">
-      <span class="num" id="kpi-concluidos">0</span>
-      <span class="lbl">Serviços concluídos</span>
+    <div class="kpi-item">
+      <span class="kpi-label">Concluídos</span>
+      <span class="kpi-valor" id="pdf-concluidos">0</span>
     </div>
-    <div class="kpi">
-      <span class="num" id="kpi-andamento">0</span>
-      <span class="lbl">Em andamento</span>
+    <div class="kpi-item">
+      <span class="kpi-label">Em Andamento</span>
+      <span class="kpi-valor" id="pdf-em-andamento">0</span>
+    </div>
+    <div class="kpi-item">
+      <span class="kpi-label">Status do Prazo</span>
+      <span class="kpi-valor" id="pdf-prazo-status">—</span>
     </div>
   </div>
-  <div style="margin-bottom:4mm" id="entrega-pdf">
-    <div class="entrega" id="kpi-entrega">—</div>
-    <div class="entrega-lbl">Entrega prevista</div>
-  </div>
+
 
   <!-- 01 FOTOS DA SEMANA -->
   <div class="section" id="section-fotos" style="display:none">
@@ -475,10 +488,10 @@ body {
   </div>
 
   <!-- RODAPÉ -->
-  <div class="footer">
-    <span id="footer-url">evandroduarte-deka.github.io/deka-berti</span>
-    <span id="footer-data">—</span>
-    <span>1/1</span>
+  <div class="pdf-rodape">
+    <span>Berti Construtora LTDA</span>
+    <span id="pdf-rodape-centro">Documento gerado em <span id="pdf-data-geracao">—</span></span>
+    <span>Página <span class="pageNumber">1</span></span>
   </div>
 
 </div>
@@ -519,35 +532,33 @@ body {
   }
   var d = JSON.parse(raw);
 
-  // Cabeçalho
+  // Cabeçalho Berti
   document.title = 'Relatorio_' + (d.obraNome||'Obra').replace(/\s+/g,'_') + '_Sem' + (d.semanaNum||1);
-  document.getElementById('obra-nome').textContent      = d.obraNome || '—';
-  document.getElementById('obra-endereco').textContent  = d.obraEndereco || '';
-  document.getElementById('hdr-cliente').textContent    = d.cliente || '—';
-  document.getElementById('hdr-cnpj').textContent       = d.cnpjCliente || '';
-  document.getElementById('hdr-semana').textContent     = 'Semana '+d.semanaNum+' — Rev. A';
-  document.getElementById('hdr-periodo').textContent    = fmtBR(d.dataInicio)+' a '+fmtBR(d.dataFim);
-  document.getElementById('kpi-entrega').textContent    = fmtBR(d.dataEntrega);
-  document.getElementById('footer-data').textContent    = 'Gerado em '+fmtBRcurto(new Date().toISOString().split('T')[0])+'/'+new Date().getFullYear();
+  document.getElementById('pdf-semana-num').textContent    = d.semanaNum || '—';
+  document.getElementById('pdf-obra-nome').textContent     = d.obraNome || '—';
+  document.getElementById('pdf-obra-endereco').textContent = d.obraEndereco || '';
+  document.getElementById('pdf-cliente-nome').textContent  = d.cliente || '—';
+  document.getElementById('pdf-cnpj').textContent          = d.cnpjCliente || '';
+  document.getElementById('pdf-periodo').textContent       = 'Período: ' + fmtBR(d.dataInicio) + ' a ' + fmtBR(d.dataFim);
+  document.getElementById('pdf-data-entrega').textContent  = d.dataEntrega ? ('Entrega prevista: ' + fmtBR(d.dataEntrega)) : '';
+  document.getElementById('pdf-data-geracao').textContent  = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-  // KPIs
+  // KPIs do cabeçalho Berti
   var pct = d.pctGeral || 0;
-  document.getElementById('kpi-pct').textContent       = pct+'%';
-  document.getElementById('kpi-bar').style.width       = pct+'%';
-  document.getElementById('kpi-concluidos').textContent = d.concluidos || 0;
-  document.getElementById('kpi-andamento').textContent  = d.emAndamento || 0;
+  document.getElementById('pdf-pct-geral').textContent    = pct + '%';
+  document.getElementById('pdf-concluidos').textContent   = d.concluidos || 0;
+  document.getElementById('pdf-em-andamento').textContent = d.emAndamento || 0;
 
-  // Prazo
-  var prazoEl = document.getElementById('kpi-prazo');
+  // Prazo no KPI bar
+  var prazoMap = { ok: '✅ No Prazo', atencao: '⚠️ Atenção', atrasado: '🔴 Atrasado' };
+  var prazoText = prazoMap[d.prazoStatus] || '—';
+  document.getElementById('pdf-prazo-status').textContent = prazoText;
   if (d.prazoStatus === 'atrasado') {
-    prazoEl.className = 'prazo-badge prazo-atrasado';
-    prazoEl.textContent = 'Atrasado';
+    document.getElementById('pdf-prazo-status').style.color = '#e24b4a';
   } else if (d.prazoStatus === 'atencao') {
-    prazoEl.className = 'prazo-badge prazo-atencao';
-    prazoEl.textContent = 'Atenção';
+    document.getElementById('pdf-prazo-status').style.color = '#ef9f27';
   } else {
-    prazoEl.className = 'prazo-badge prazo-ok';
-    prazoEl.textContent = 'No prazo';
+    document.getElementById('pdf-prazo-status').style.color = '#1d9e75';
   }
 
   // Resumo IA (elemento removido — ignorar)
@@ -603,7 +614,7 @@ body {
   var sec = d.secoes || {};
   function mostrarSec(id) { var el = document.getElementById(id); if(el) el.style.display = 'block'; }
   function ocultarSec(id) { var el = document.getElementById(id); if(el) el.style.display = 'none'; }
-  if (sec.cabecalho === false) { ocultarSec('cabecalho-pdf'); ocultarSec('kpis-pdf'); ocultarSec('entrega-pdf'); }
+  if (sec.cabecalho === false) { ocultarSec('cabecalho-pdf'); ocultarSec('kpi-bar-pdf'); }
   if (sec.executados === false) ocultarSec('section-executados');
   if (sec.proxima    === false) ocultarSec('section-proxima');
   if (sec.pendencias === false) ocultarSec('section-pendencias');
@@ -613,11 +624,19 @@ body {
     var ganttSrvs = d.ganttServicos || [];
     if (ganttSrvs.length && ganttSrvs[0].ganttIni) {
       mostrarSec('section-gantt');
-      var ganttIniStr = ganttSrvs[0].ganttIni;
-      var ganttFimStr = ganttSrvs[0].ganttFim;
+      // Janela do Gantt: dataFim + 14 dias (próximas 2 semanas)
+      var dataFimPayload = d.dataFim;
+      var ganttStart = new Date(dataFimPayload + 'T00:00:00');
+      ganttStart.setDate(ganttStart.getDate() + 1); // começa no dia seguinte
+      var ganttEnd = new Date(ganttStart);
+      ganttEnd.setDate(ganttEnd.getDate() + 13); // 14 dias total
+
+      var ganttIniISO = ganttStart.toISOString().split('T')[0];
+      var ganttFimISO = ganttEnd.toISOString().split('T')[0];
+
       var dias = [];
-      var cur = new Date(ganttIniStr + 'T00:00:00');
-      var fim2 = new Date(ganttFimStr + 'T00:00:00');
+      var cur = new Date(ganttIniISO + 'T00:00:00');
+      var fim2 = new Date(ganttFimISO + 'T00:00:00');
       var hojeISO = new Date().toISOString().split('T')[0];
       while (cur <= fim2) {
         dias.push({ iso: cur.toISOString().split('T')[0], dow: cur.getDay(), dd: cur.getDate(), mm: cur.getMonth()+1 });
@@ -632,15 +651,30 @@ body {
       });
       headHtml += '</tr>';
       document.getElementById('gantt-head').innerHTML = headHtml;
-      var bodyHtml = ganttSrvs.map(function(s) {
-        var cells = dias.map(function(di) {
-          var isFds = di.dow===0||di.dow===6;
-          var ativo = (s.diasMarcados||[]).indexOf(di.iso) >= 0;
-          var cls   = ativo ? 'gantt-cell-ativo' : (isFds ? 'gantt-cell-fds' : 'gantt-cell-vazio');
-          return '<td><div class="gantt-cell '+cls+'"></div></td>';
+
+      // Renderizar serviços com barra contínua entre ganttIni e ganttFim
+      var bodyHtml = ganttSrvs
+        .filter(function(s) {
+          // Mostrar apenas serviços que tenham ganttIni/ganttFim dentro da janela ou em_andamento
+          if (!s.ganttIni || !s.ganttFim) return false;
+          var sIni = new Date(s.ganttIni + 'T00:00:00');
+          var sFim = new Date(s.ganttFim + 'T00:00:00');
+          return (sIni <= fim2 && sFim >= ganttStart) || (s.pctAtual > 0 && s.pctAtual < 100);
+        })
+        .map(function(s) {
+          var srvIniDate = new Date(s.ganttIni + 'T00:00:00');
+          var srvFimDate = new Date(s.ganttFim + 'T00:00:00');
+
+          var cells = dias.map(function(di) {
+            var isFds = di.dow===0||di.dow===6;
+            var diaDate = new Date(di.iso + 'T00:00:00');
+            // Célula ativa se dia está entre ganttIni e ganttFim (inclusive)
+            var ativo = diaDate >= srvIniDate && diaDate <= srvFimDate;
+            var cls = ativo ? 'gantt-cell-ativo' : (isFds ? 'gantt-cell-fds' : 'gantt-cell-vazio');
+            return '<td><div class="gantt-cell '+cls+'"></div></td>';
+          }).join('');
+          return '<tr><td class="srv-nome">'+s.descricao+'</td><td class="srv-pct">'+s.pctAtual+'%</td>'+cells+'</tr>';
         }).join('');
-        return '<tr><td class="srv-nome">'+s.descricao+'</td><td class="srv-pct">'+s.pctAtual+'%</td>'+cells+'</tr>';
-      }).join('');
       document.getElementById('gantt-body').innerHTML = bodyHtml;
     }
   }
