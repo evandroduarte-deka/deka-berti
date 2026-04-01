@@ -927,26 +927,23 @@ function _abrirPDF() {
 
   var dataIniSel = Estado.dataInicioEl?.value || '';
   var dataFimSel = Estado.dataFimEl?.value || '';
-  var servicosExec = (delta?.comDelta || []).filter(function(s) {
-    var diasNaSemana = (s.dias_marcados || []).filter(function(d) {
-      return d >= dataIniSel && d <= dataFimSel;
+  // Serviços executados: apenas aqueles com delta > 0 na semana
+  var servicosExec = (delta?.comDelta || [])
+    .filter(function(s) {
+      return s.delta > 0; // Teve avanço real na semana
+    })
+    .map(function(s) {
+      // Usar período da semana como dataInicio/dataFim do serviço executado
+      // (mais preciso que dias_marcados que podem incluir dias fora do período)
+      return {
+        descricao:  s.descricao_cliente,
+        dataInicio: dataIniSel, // Início do período da semana
+        dataFim:    dataFimSel,  // Fim do período da semana
+        status:     s.pct_atual >= 100 ? 'CONCLUÍDO' : 'EM ANDAMENTO',
+        pctAtual:   s.pct_atual,
+        delta:      s.delta,
+      };
     });
-    return diasNaSemana.length > 0 || s.delta > 0;
-  }).map(function(s) {
-    var diasNaSemana = (s.dias_marcados || []).filter(function(d) {
-      return d >= dataIniSel && d <= dataFimSel;
-    }).sort();
-    var dIni = diasNaSemana.length ? diasNaSemana[0] : (s.data_inicio || null);
-    var dFim = diasNaSemana.length ? diasNaSemana[diasNaSemana.length-1] : (s.data_fim || null);
-    return {
-      descricao:  s.descricao_cliente,
-      dataInicio: dIni,
-      dataFim:    dFim,
-      status:     s.status,
-      pctAtual:   s.pct_atual,
-      delta:      s.delta,
-    };
-  });
 
   var proxSemFmt = (proxSem || []).map(function(s) {
     return {
