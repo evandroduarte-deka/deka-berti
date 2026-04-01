@@ -177,6 +177,18 @@
             </div>
           </div>
         </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <label style="margin-bottom:8px;display:block;font-size:12px;font-weight:600">Seções do Relatório</label>
+          <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg-surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="sec-cabecalho" checked style="accent-color:#1d9e75"> 📋 Cabeçalho + KPIs</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="sec-fotos" checked style="accent-color:#1d9e75"> 📸 Fotos da semana</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="sec-executados" checked style="accent-color:#1d9e75"> ✅ Serviços executados</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="sec-proxima" checked style="accent-color:#1d9e75"> 📆 Planejamento próxima semana</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="sec-gantt" checked style="accent-color:#1d9e75"> 📊 Gantt — próximas 2 semanas</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="sec-financeiro" style="accent-color:#1d9e75"> 💰 Financeiro</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="sec-pendencias" checked style="accent-color:#1d9e75"> ⚠️ Pendências do cliente</label>
+          </div>
+        </div>
         <button class="btn-gerar" id="btn-gerar-relatorio" disabled>✨ Gerar Relatório</button>
       </div>
       <div>
