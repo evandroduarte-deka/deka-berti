@@ -927,8 +927,12 @@ function _abrirPDF() {
 
   var dataIniSel = Estado.dataInicioEl?.value || '';
   var dataFimSel = Estado.dataFimEl?.value || '';
-  var servicosExec = (delta?.comDelta || []).map(function(s) {
-    // Usar dias_marcados para encontrar datas reais dentro do período selecionado
+  var servicosExec = (delta?.comDelta || []).filter(function(s) {
+    var diasNaSemana = (s.dias_marcados || []).filter(function(d) {
+      return d >= dataIniSel && d <= dataFimSel;
+    });
+    return diasNaSemana.length > 0 || s.delta > 0;
+  }).map(function(s) {
     var diasNaSemana = (s.dias_marcados || []).filter(function(d) {
       return d >= dataIniSel && d <= dataFimSel;
     }).sort();
